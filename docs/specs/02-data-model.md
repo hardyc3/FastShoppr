@@ -252,22 +252,31 @@ Deletion rules:
 
 Aisle values are strings and may be numeric, alphanumeric, or descriptive. Implement one Java `Comparator<String>` used everywhere.
 
-Rules, in order:
+**Rules, in order (ascending default):**
 
-1. Missing/blank/unresolved aisle sorts last in ascending mode and last in descending mode.
+1. Missing/blank/unresolved aisle sorts **last**.
 2. Extract the first contiguous digit run as the primary numeric value.
 3. If both values have digits, compare numeric values.
 4. If numeric values are equal, compare the normalized prefix before the digits (case-insensitive).
 5. If still equal, compare the remaining suffix after the digits.
 6. If still equal, compare the bay using the same numeric-aware logic.
 7. If still equal, compare `sortPosition` ascending for stability.
-8. In descending mode, reverse steps 2–7 but keep unresolved items last.
+8. **In descending mode, reverse steps 2–7 but keep unresolved items last.**
 
-Examples:
+**Default sort direction: ASCENDING.** User can toggle DESCENDING in settings; preference remembered across sessions via `SharedPreferences` `sort_direction`.
+
+**Examples (ascending):**
 
 - `2` < `EC2` < `03` < `10` < `A12` < `A100` < `unknown`
 - `Aisle 5` is treated as numeric 5 with prefix `aisle `.
 - `EC2` is numeric 2 with prefix `ec`; it sorts after plain `2` because the prefix differs.
+
+## Sort direction
+
+- **Default: ASCENDING** (ascending aisle numbers most intuitive for store navigation).
+- User can toggle DESCENDING in settings; preference remembered across sessions.
+- Remembered via `SharedPreferences` key `sort_direction` (`ASC` or `DESC`).
+- Toggle available on list detail screen for power users.
 
 ## SharedPreferences keys
 

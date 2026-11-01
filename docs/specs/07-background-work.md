@@ -10,6 +10,35 @@
 
 ## Work types
 
+| Work | Runner | Constraints | Visible | Auto-start |
+|---|---|---|---|---|
+| Home Depot HTTP lookup | WorkManager `Worker`/`ListenableWorker` | Network connected | Notification on completion | — |
+| Walmart WebView lookup | Foreground service | Network connected | Persistent notification | — |
+| Organizing coordinator | WorkManager | Network connected | Progress + completion notification | **After item save** |
+| Schedule check | WorkManager periodic | None | Notification when a list is created | — |
+| Cache cleanup | WorkManager periodic | None | None | — |
+
+### Organizing coordinator
+
+1. **User saves items** → coordinator dispatched immediately with `ExistingWorkPolicy.KEEP`.
+2. Coordinator marks eligible items `QUEUED`.
+3. Home Depot items are dispatched to an HTTP worker.
+4. Walmart items are dispatched to the foreground service.
+5. Results are written to the database in small transactions.
+6. The list is re-sorted and grouped by store.
+7. A completion notification is posted with counts: found, needs review, not found, errors.
+8. Tapping the notification opens the list.
+
+**Rules:**
+
+- One organizer run per list at a time.
+- New items added during a run are queued for the next run.
+- Manual aisle edits are never overwritten by an in-flight lookup result.
+- If the user deletes an item during a run, discard its result.
+- If the user deletes the list, cancel the work.
+- Do not block the list UI while organizing runs.
+- User can pause organizing; pending items remain queued for next run.
+
 | Work | Runner | Constraints | Visible |
 |---|---|---|---|
 | Home Depot HTTP lookup | WorkManager `Worker`/`ListenableWorker` | Network connected | Notification on completion |

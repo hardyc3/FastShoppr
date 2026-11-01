@@ -82,34 +82,38 @@ Users can write or say things like:
 - "batteries tomorrow"
 - "light bulbs next month"
 
-Behavior:
+**Behavior:**
 
 1. Parse the item text and date phrase.
-2. Remove the date phrase from `rawText` only if the user confirms the split in review.
-3. Resolve the phrase to a target `LocalDate`.
-4. Find the nearest shopping list on or after that date.
-5. If no list exists, create one for the resolved date.
-6. Move the item to that list.
-7. The item disappears from the current list and appears on the target list.
+2. **Auto-resolve deterministic phrases without user confirmation** (see table below).
+3. If phrase is ambiguous, show the parsed date and let the user correct it.
+4. Remove the date phrase from `rawText` only if the user confirms the split in review.
+5. Resolve the phrase to a target `LocalDate`.
+6. Find the nearest shopping list on or after that date.
+7. If no list exists, create one for the resolved date (user confirmed or default based on schedule enablement).
+8. Move the item to that list.
+9. The item disappears from the current list and appears on the target list.
 
-Parsing precedence:
+**Parsing precedence:**
 
 1. Explicit date selected by the user.
-2. Deterministic phrase rules.
+2. **Deterministic phrase rules (auto-resolved).**
 3. On-device AI suggestion, if enabled.
 4. Ask the user to pick a date.
 
-Deterministic phrases to support:
+**Deterministic phrases to support (auto-resolved):**
 
-- `tomorrow` -> today + 1 day.
-- `in N days` -> today + N days.
-- `next week` / `wait a week` -> current list date + 7 days.
-- `in N weeks` -> current list date + 7 * N days.
-- `next month` -> current list date plus one calendar month.
-- `next shopping day` -> next scheduled list after the current list.
-- `this weekend` -> the next Saturday relative to the current list date.
+| Phrase | Resolution | Relative to |
+|---|---|---|
+| `tomorrow` | today + 1 day | List date (per rule 114) |
+| `in N days` | today + N days | List date unless phrase says "today"/"tomorrow" |
+| `next week` / `wait a week` | list date + 7 days | Current list date |
+| `in N weeks` | list date + 7 * N days | Current list date |
+| `next month` | list date + 1 calendar month | Current list date |
+| `next shopping day` | next scheduled list after current list | Schedule-dependent |
+| `this weekend` | next Saturday relative to list date | Current list date |
 
-Rules:
+**Rules:**
 
 - Resolve relative phrases against the current list's shopping date, not the device date, unless the phrase explicitly says "today" or "tomorrow".
 - If the resolved date is in the past, ask the user to confirm.

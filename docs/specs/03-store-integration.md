@@ -163,16 +163,27 @@ The app must know which physical store's layout to query.
 Priority order:
 
 1. Store explicitly selected by the user for the item or list.
-2. Last used store.
-3. Nearest store from a recent location fix.
+2. **Last used store.**
+3. **Nearest store from a recent location fix (auto-selected on first item).**
 4. Manual ZIP/store selection prompt.
+
+**Auto-selection flow:**
+
+- On first item addition, request `ACCESS_COARSE_LOCATION` if not previously granted.
+- If granted, use last known location to determine nearest store.
+- Display selected store name and address in list UI with "edited" indicator.
+- User can override store selection via the store picker at any time.
+- Store choice is remembered for the current shopping list session.
+- If location permission is denied, fall back to last used store or ask for ZIP.
 
 Rules:
 
-- Request location permission only when the user chooses "use my location".
-- If permission is denied, use the last selected store or ask for a ZIP code.
+- Do not request location at app launch. Request only on first item addition.
+- Explain why location is needed before requesting: "Find the nearest store for aisle lookup."
+- If permission is denied, use last selected store or ask for ZIP/store selection.
 - Show the store name and address in the list UI so the user can verify it.
 - Never log coordinates.
+- Manual override always available and takes precedence over auto-selection.
 
 ## Caching
 

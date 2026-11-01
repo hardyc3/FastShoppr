@@ -76,14 +76,27 @@ A coordinator chooses the best available implementation and records which one pr
 
 ## Availability and lifecycle
 
-- Check availability with the Java GenAI API before creating a session.
+- **Check availability with the Java GenAI API before creating a session.**
 - Handle `DOWNLOADABLE` with an explicit user action; do not download a model silently.
 - Handle `DOWNLOADING` with progress.
-- Handle `UNAVAILABLE` by hiding AI actions and using rules.
+- Handle `UNAVAILABLE` by hiding AI actions and using deterministic rules **(default: AI on, fallback to rules)**.
 - Handle `BUSY` or quota errors with exponential backoff and fallback.
 - Close the model/session when leaving the screen.
-- Do not call AI from a `Worker`, service, or background thread without a foreground activity.
-- AI is disabled when the app is not in the foreground.
+- **Do not call AI from a `Worker`, service, or background thread without a foreground activity.**
+- **AI runs in the foreground by default**; if the app moves to background, ongoing cleanup sessions are cancelled.
+- AI is disabled only when the user turns it off in settings.
+
+## User experience
+
+- **AI cleanup is on by default** when the device supports Gemini Nano.
+- After review, offer "Clean up names" with a count of suggestions.
+- Show a before/after list.
+- Each suggestion can be accepted, edited, or dismissed.
+- "Accept all" is allowed but requires a confirmation dialog.
+- A dismissed suggestion is not shown again for that item.
+- If AI is unavailable (unsupported device, over quota, downloading), deterministic rules are used automatically and a short note appears: "AI cleanup unavailable; using automatic cleaning."
+- Never block saving on AI.
+- AI inference runs only while the app is in the foreground.
 
 ## Prompt design
 

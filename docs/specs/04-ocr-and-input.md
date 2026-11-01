@@ -78,16 +78,18 @@ All four modes feed the same review pipeline.
 
 - ML Kit Text Recognition v2 is optimized for printed text.
 - Handwritten camera photos are best-effort; accuracy may be poor.
+- **Digital Ink confidence > 80%: auto-save `rawText = recognized text`, skip review screen.**
+- **Camera/OCR confidence > 70%: auto-save with "auto-saved from [mode]" banner; user can edit anytime.**
 - Digital Ink is the recommended path for handwriting.
 - The UI must not imply perfect recognition.
-- Show a short note in camera/gallery review: "Handwriting recognition is best-effort. Please review."
+- Show a short note in camera/gallery review: "Handwriting recognition is best-effort. Review anytime from list detail."
 - If recognition returns nothing, allow the user to retake, pick another image, or switch to typed entry.
 
 ## Review pipeline
 
 Every capture creates a `CaptureSession` and opens a review screen.
 
-Review screen requirements:
+**Review screen requirements:**
 
 - Editable list of recognized lines using a `RecyclerView` with an editable row layout.
 - Each row has a checkbox for bulk actions.
@@ -95,10 +97,11 @@ Review screen requirements:
 - Each line can be assigned to a store section.
 - Each line can receive a target date/deferral.
 - Low-confidence lines are visually flagged.
+- **High-confidence lines (Ink > 80% or OCR > 70%) are marked "auto-saved" and skippable.**
 - The user can edit any line before saving.
 - The user can discard the entire capture.
 - Saving creates `ListItem` rows with `rawText` equal to the reviewed line text.
-- Do not auto-save without review.
+- **Do not auto-save low-confidence lines without review.**
 - Preserve line order from the image/canvas as the initial `sortPosition`.
 
 ### Bulk editing rules
@@ -117,7 +120,7 @@ Store three values:
 - `displayName` — initially equal to `rawText`; may be changed by confirmed AI cleanup or explicit edit.
 - `normalizedText` — derived for lookup.
 
-Normalization for lookup:
+**Normalization for lookup:**
 
 1. Trim and collapse whitespace.
 2. Lowercase with `Locale.US`.
@@ -125,6 +128,8 @@ Normalization for lookup:
 4. Keep digits, units, and size tokens.
 5. Do not remove brand names.
 6. Do not apply stemming beyond the documented alternate-query rules.
+
+**High-confidence auto-save note:** When auto-saved, `rawText` equals the recognized text. `displayName` initially equals `rawText`. User can edit `displayName` anytime.
 
 ## AI interaction
 
