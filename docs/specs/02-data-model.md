@@ -1,0 +1,315 @@
+# Data Model Specification
+
+## Conventions
+
+- IDs are UUID strings generated on device.
+- Timestamps are UTC epoch milliseconds (`long`).
+- Dates that represent a shopping day are stored as `LocalDate` converted to an ISO `yyyy-MM-dd` string in the database.
+- Money, if added post-MVP, is stored as integer minor units plus currency code.
+- Room entities are separate from domain models. Map explicitly.
+- No nullable field is used to mean "unknown" when a dedicated enum exists.
+- Domain classes are immutable Java classes with constructor validation.
+
+## Entities
+
+### Store
+
+```text
+Store
+  id: String (PK)
+  brand: StoreBrand
+  name: String                 // e.g. "Walmart Supercenter - Sacramento"
+  addressLine: String?
+  city: String?
+  state: String?
+  postalCode: String?
+  latitude: Double?
+  longitude: Double?
+  isCustom: Boolean
+  isDefault: Boolean
+  hoursJson: String?           // serialized weekly hours, nullable
+  createdAt: Long
+  updatedAt: Long
+```
+
+Rules:
+
+- The five chain brands are seeded or created on demand.
+- `isCustom` is true only for user-defined local stores (post-MVP UI).
+- A store is selected per item; the nearest store is the default suggestion.
+- Location coordinates are stored locally and never logged or transmitted.
+
+### ShoppingList
+
+```text
+ShoppingList
+  id: String (PK)
+  name: String
+  shoppingDate: String         // ISO date, unique among active lists
+  scheduleId: String?          // null for one-off lists
+  isAutoCreated: Boolean
+  isArchived: Boolean
+  createdAt: Long
+  updatedAt: Long
+```
+
+Rules:
+
+- Exactly one active list per `shoppingDate`.
+- Auto-created lists use the schedule's date and default stores.
+- Archiving a list keeps history and removes it from the active list.
+- Deleting a list deletes its items and capture sessions in one transaction.
+
+### ListItem
+
+```text
+ListItem
+  id: String (PK)
+  listId: String (FK -> ShoppingList.id, indexed)
+  storeId: String (FK -> Store.id, indexed)
+  rawText: String              // written/recognized name, never replaced by lookup
+  displayName: String          // user-facing cleaned name
+  normalizedText: String       // derived for lookup
+  quantity: String?            // free-form, e.g. "2", "1 gal"
+  targetDate: String           // ISO date; determines list membership
+  aisle: String?               // retailer aisle value
+  bay: String?                 // retailer bay value
+  matchedProductName: String?  // retailer product title
+  matchedProductUrl: String?
+  matchConfidence: Float?      // 0.0..1.0 when known
+  lookupStatus: LookupStatus
+  lookupSource: LookupSource?
+  lookupError: String?         // sanitized, user-safe message
+  source: ItemSource
+  isChecked: Boolean
+  sortPosition: Int            // stable insertion order tie-breaker
+  createdAt: Long
+  updatedAt: Long
+```
+
+Rules:
+
+- `rawText` is immutable except by an explicit user edit.
+- `displayName` defaults to `rawText`; AI cleanup requires confirmation.
+- `normalizedText` is generated from `displayName` and is not user-visible.
+- `targetDate` must match the `shoppingDate` of the containing list.
+- Moving an item to another date moves it to that date's list in a transaction.
+- `matchedProductName` is display-only; it never overwrites `rawText`.
+- `lookupStatus` is the source of truth for the UI state of a lookup.
+
+### CaptureSession
+
+```text
+CaptureSession
+  id: String (PK)
+  listId: String (FK, indexed)
+  source: ItemSource
+  imageUri: String?            // local content URI, deleted after review
+  recognizedLinesJson: String  // serialized recognition output
+  createdAt: Long
+  completedAt: Long?
+```
+
+Rules:
+
+- Images are stored in app-private cache storage.
+- Delete the image after the review is saved or discarded.
+- Never log image URIs or contents.
+
+### ShoppingSchedule
+
+```text
+ShoppingSchedule
+  id: String (PK)
+  intervalValue: Int           // e.g. 1, 2, 7
+  intervalUnit: IntervalUnit   // DAYS or WEEKS
+  nextShoppingDate: String     // ISO date
+  isEnabled: Boolean
+  notifyOnCreate: Boolean
+  lastCreatedDate: String?
+  createdAt: Long
+  updatedAt: Long
+```
+
+Rules:
+
+- MVP supports one active schedule.
+- `intervalValue` must be at least 1.
+- A one-off list can exist outside the schedule.
+- When a list is auto-created, advance `nextShoppingDate` by the interval.
+- Changing the schedule does not rewrite existing lists.
+
+### AisleCache
+
+```text
+AisleCache
+  id: String (PK)
+  storeId: String (indexed)
+  normalizedQuery: String      // normalized item name used for the lookup
+  aisle: String?
+  bay: String?
+  matchedProductName: String?
+  matchedProductUrl: String?
+  confidence: Float?
+  source: LookupSource
+  fetchedAt: Long
+  expiresAt: Long
+```
+
+Rules:
+
+- Default TTL is 60 days.
+- A cache hit does not require network access.
+- Expired entries may be used offline with an "outdated" flag.
+- Cache is keyed by store and normalized query; store context matters.
+- Do not cache blocked or failed responses.
+
+### PriceQuote (post-MVP)
+
+```text
+PriceQuote
+  id: String (PK)
+  storeId: String (indexed)
+  itemId: String?              // null when the quote is for a search term
+  normalizedQuery: String
+  priceMinorUnits: Long
+  currencyCode: String
+  productName: String?
+  productUrl: String?
+  source: PriceSource
+  observedAt: Long
+  expiresAt: Long
+```
+
+Rules:
+
+- Prices are location- and time-sensitive.
+- Manual quotes always show their source and timestamp.
+- Do not claim a price is current if it is expired.
+- No price data leaves the device.
+
+## Enums
+
+```java
+public enum StoreBrand { WALMART, HOME_DEPOT, LOWES, TARGET, SMITHS, CUSTOM }
+
+public enum LookupStatus {
+    PENDING, QUEUED, IN_PROGRESS, FOUND, NOT_FOUND, NEEDS_REVIEW, ERROR
+}
+
+public enum LookupSource { WALMART_WEBVIEW, HOME_DEPOT_HTTP, MANUAL, CACHE }
+
+public enum ItemSource { TYPED, DIGITAL_INK, CAMERA_OCR, GALLERY_OCR }
+
+public enum IntervalUnit { DAYS, WEEKS }
+
+public enum PriceSource { STORE_PAGE, MANUAL, RECEIPT }
+
+public enum SortDirection { ASC, DESC }
+```
+
+`LookupStatus` semantics:
+
+- `PENDING` — not yet attempted.
+- `QUEUED` — waiting for a worker or foreground service.
+- `IN_PROGRESS` — currently being resolved.
+- `FOUND` — aisle resolved with acceptable confidence.
+- `NOT_FOUND` — search completed with no usable result.
+- `NEEDS_REVIEW` — multiple or low-confidence results; user must choose or enter manually.
+- `ERROR` — transient/blocking failure; retry is possible.
+
+## Relationships
+
+```text
+ShoppingSchedule 1 --- * ShoppingList
+ShoppingList     1 --- * ListItem
+Store            1 --- * ListItem
+ShoppingList     1 --- * CaptureSession
+Store            1 --- * AisleCache
+Store            1 --- * PriceQuote
+```
+
+Deletion rules:
+
+- Deletion is a soft delete with a cleanup after 30 days. The User should be able to restore deleted lists durring the 30 day window.
+- Deleting a list soft deletes its items and capture sessions.
+- Deleting a store is blocked while items or cache entries reference it; archive instead.
+- Deleting an item soft removes its capture reference but keeps the capture session until cleanup.
+
+## Date semantics
+
+- `ShoppingList.shoppingDate` is the trip date.
+- `ListItem.targetDate` determines membership. It must equal the containing list's date.
+- A deferral changes `targetDate` and moves the item to the target list in one transaction.
+- Creating a list for a date that already exists returns the existing list.
+- "Wait a week" resolves to a target date, then selects the nearest list on or after that date.
+- Overdue items remain on their original list until the user chooses an action.
+- The overdue prompt options are: move unchecked items to the next list, keep them on the past list, or mark them missed.
+- All date comparisons use the device's local time zone; stored dates are ISO strings without time zones.
+- Use `java.time.LocalDate` and `java.time.ZoneId` with core library desugaring enabled.
+
+## Aisle sorting comparator
+
+Aisle values are strings and may be numeric, alphanumeric, or descriptive. Implement one Java `Comparator<String>` used everywhere.
+
+Rules, in order:
+
+1. Missing/blank/unresolved aisle sorts last in ascending mode and last in descending mode.
+2. Extract the first contiguous digit run as the primary numeric value.
+3. If both values have digits, compare numeric values.
+4. If numeric values are equal, compare the normalized prefix before the digits (case-insensitive).
+5. If still equal, compare the remaining suffix after the digits.
+6. If still equal, compare the bay using the same numeric-aware logic.
+7. If still equal, compare `sortPosition` ascending for stability.
+8. In descending mode, reverse steps 2–7 but keep unresolved items last.
+
+Examples:
+
+- `2` < `EC2` < `03` < `10` < `A12` < `A100` < `unknown`
+- `Aisle 5` is treated as numeric 5 with prefix `aisle `.
+- `EC2` is numeric 2 with prefix `ec`; it sorts after plain `2` because the prefix differs.
+
+## SharedPreferences keys
+
+Use a single `SettingsPreferences` wrapper around `SharedPreferences`:
+
+- `default_store_id`
+- `last_used_store_id`
+- `notifications_enabled`
+- `background_organizing_enabled`
+- `ai_cleanup_enabled`
+- `sort_direction` (`ASC` or `DESC`)
+- `last_calendar_month`
+- `onboarding_completed`
+
+Do not store list data in SharedPreferences.
+
+## Migrations
+
+- Start with schema version 1.
+- Export the Room schema to `app/schemas/`.
+- Every schema change requires a migration and a migration test.
+- No destructive migrations in release builds.
+- Keep migrations append-only; do not edit shipped migrations.
+
+## Indexing
+
+Add indexes for:
+
+- `ListItem.listId`
+- `ListItem.storeId`
+- `ListItem.targetDate`
+- `ListItem.lookupStatus`
+- `ShoppingList.shoppingDate` (unique for active lists)
+- `AisleCache.storeId + normalizedQuery`
+- `PriceQuote.storeId + normalizedQuery`
+
+## Validation rules
+
+- Reject blank `rawText`.
+- Trim leading/trailing whitespace from all user text.
+- Collapse internal repeated whitespace in `displayName` and `normalizedText`.
+- Limit item text to 200 characters.
+- Limit list name to 80 characters.
+- Normalize case with `Locale.US` for lookup text.
+- Store all timestamps from a single injected `Clock`.
