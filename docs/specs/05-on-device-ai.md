@@ -135,7 +135,7 @@ If rules and AI disagree, show the AI suggestion but keep the original visible.
 
 ## User experience
 
-- AI cleanup is off by default until the user enables it in settings.
+- AI cleanup is on by default until the user disables it in settings.
 - After review, offer "Clean up names" with a count of suggestions.
 - Show a before/after list.
 - Each suggestion can be accepted, edited, or dismissed.

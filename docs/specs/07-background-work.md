@@ -6,7 +6,7 @@
 - Keep long-running WebView work visible and reliable.
 - Respect Android background execution limits and notification permissions.
 - Never lose lookup work or silently drop items.
-- Never run on-device AI in the background.
+- Try to run on-device AI in the background.
 
 ## Work types
 
