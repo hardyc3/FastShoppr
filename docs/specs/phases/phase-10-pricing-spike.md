@@ -17,7 +17,7 @@ Price comparison is post-MVP. This spike prevents Phase 11 from depending on dat
 
 ## In scope
 
-- Price availability research for Walmart, Home Depot, and at least one of Lowe's, Target, or Smiths.
+- Price availability research for Walmart, Home Depot, and at least one of Lowe's, Target, or Smiths (Phase 0 already probed Walmart, Home Depot, and Target).
 - Store-context requirements for local prices.
 - Whether size/unit is visible.
 - Manual price and custom store requirements.

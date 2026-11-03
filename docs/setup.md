@@ -19,7 +19,7 @@ deliverable and does not authorize starting a phase.
 | Android SDK Platform-Tools | Latest stable | Provides `adb`. |
 | Android Emulator | Latest stable | Requires hardware virtualization. |
 | Emulator system image | API 36 Google APIs | `x86_64` on Intel/AMD, `arm64-v8a` on Apple Silicon. |
-| Gradle | **8.8** for now | Phase 1 adds the committed Gradle wrapper. Use `./gradlew` after that. |
+| Gradle | **8.10.2** for now | Phase 1 adds the committed Gradle wrapper. Use `./gradlew` after that. AGP 8.8.2 requires Gradle ≥ 8.10.2 (Phase 0 finding). |
 | Git | Any current version | Required for normal workflow. |
 
 `google_apis` is preferred over `google_apis_playstore` for automation. It

@@ -68,7 +68,7 @@ Rules:
 - Extract price, product name, size, and URL where available.
 - If the page does not show a local price, return unknown.
 - Do not infer a price from search snippets or unrelated products.
-- Cache successful prices for a short TTL (default 14 days).
+- Cache successful prices for a short TTL (default 24 hours).
 - Stop on block responses and surface a clear message.
 - Do not scrape prices in bulk; only for items the user entered.
 

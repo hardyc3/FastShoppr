@@ -41,7 +41,7 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 ### Build
 
 - `applicationId` and namespace: `com.fastshoppr.app`.
-- Java source/target compatibility: 17.
+- Java source/target compatibility: 21.
 - Core library desugaring enabled for `java.time`.
 - Version catalog at `gradle/libs.versions.toml`.
 - Release build with R8 configuration placeholders.

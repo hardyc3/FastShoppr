@@ -142,7 +142,7 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 | Custom store CRUD | Espresso | Add/archive |
 | Price parser | Unit | Sanitized fixtures |
 | Cache expiry | Unit | 24 hours |
-| Migration | Room | Version N -> N+1 |
+| Migration | Room | Version 2 -> 3 (adds `PriceQuote`) |
 | Compare sheet | Espresso | Display and selection |
 
 ## Manual demo

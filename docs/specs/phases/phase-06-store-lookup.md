@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-10-31
+- **Last updated:** 2026-11-03
 
 ## Goal
 
@@ -91,7 +91,7 @@ Phase 0 validated extraction. This phase turns the spikes into production servic
 
 ### Retries and alternates
 
-- Retry transient network errors twice with backoff.
+- Retry transient network errors twice with exponential backoff (initial attempt plus two retries).
 - Do not retry blocks.
 - Alternate queries only after no result.
 - Multiple plausible products -> `NEEDS_REVIEW`.

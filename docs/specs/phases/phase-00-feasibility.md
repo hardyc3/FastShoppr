@@ -94,7 +94,7 @@ app/src/test/resources/fixtures/walmart/
 app/src/test/resources/fixtures/homedepot/
 ```
 
-If the app module does not exist yet, place fixtures under `docs/spikes/fixtures/` and move them in Phase 1.
+If the app module does not exist yet, place fixtures under `docs/spikes/fixtures/` and move them in Phase 2.
 
 ## Acceptance criteria
 
