@@ -1,0 +1,11 @@
+QUERY: milk
+URL: https://www.walmart.com/blocked?url=L3NlYXJjaD9xPW1pbGs=&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b
+RAW: "{\"title\":\"Robot or human?\",\"finalUrl\":\"https://www.walmart.com/blocked?url=L3NlYXJjaD9xPW1pbGs=&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b\",\"bodySample\":\"Robot or human?\\n\\nActivate and hold the button to confirm that you’re human. Thank You!\\n\\nTerms of Use\\nPrivacy Policy\\nDo Not Sell My Personal Information\\nRequest My Personal Information\\n\\n©2026 Walmart Stores, Inc.\",\"isRobotWall\":true,\"isSignInWall\":false,\"hasNextData\":false,\"htmlLength\":17346,\"aisleMentions\":0,\"bayMentions\":0,\"locationSamples\":[],\"productLinks\":[]}"
+
+QUERY: eggs
+URL: https://www.walmart.com/blocked?url=L3NlYXJjaD9xPWVnZ3M=&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b
+RAW: "{\"title\":\"Robot or human?\",\"finalUrl\":\"https://www.walmart.com/blocked?url=L3NlYXJjaD9xPWVnZ3M=&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b\",\"bodySample\":\"Robot or human?\\n\\nActivate and hold the button to confirm that you’re human. Thank You!\\n\\nTerms of Use\\nPrivacy Policy\\nDo Not Sell My Personal Information\\nRequest My Personal Information\\n\\n©2026 Walmart Stores, Inc.\",\"isRobotWall\":true,\"isSignInWall\":false,\"hasNextData\":false,\"htmlLength\":17346,\"aisleMentions\":0,\"bayMentions\":0,\"locationSamples\":[],\"productLinks\":[]}"
+
+QUERY: paper towels
+URL: https://www.walmart.com/blocked?url=L3NlYXJjaD9xPXBhcGVyJTIwdG93ZWxz&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b
+RAW: "{\"title\":\"Robot or human?\",\"finalUrl\":\"https://www.walmart.com/blocked?url=L3NlYXJjaD9xPXBhcGVyJTIwdG93ZWxz&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b\",\"bodySample\":\"Robot or human?\\n\\nActivate and hold the button to confirm that you’re human. Thank You!\\n\\nTerms of Use\\nPrivacy Policy\\nDo Not Sell My Personal Information\\nRequest My Personal Information\\n\\n©2026 Walmart Stores, Inc.\",\"isRobotWall\":true,\"isSignInWall\":false,\"hasNextData\":false,\"htmlLength\":17346,\"aisleMentions\":0,\"bayMentions\":0,\"locationSamples\":[],\"productLinks\":[]}"

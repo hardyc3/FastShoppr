@@ -1,0 +1,16 @@
+{
+  "_comment": "TRIMMED from 2026-11-03 emulator WebView capture (homedepot-milk). Akamai error page rendered in WebView. No tokens/cookies present.",
+  "label": "homedepot-milk",
+  "title": "Error Page",
+  "host": "homedepot.com",
+  "isRobotWall": false,
+  "hasNextData": false,
+  "htmlLength": 2360,
+  "aisleMentions": 0,
+  "bayMentions": 0,
+  "priceCount": 0,
+  "priceSamples": [],
+  "sizeSamples": [],
+  "hasStoreContext": false,
+  "nextDataHits": []
+}

@@ -9,7 +9,7 @@
 
 ## Goal
 
-Resolve item aisles automatically for Walmart and Home Depot, with caching, rate limiting, retries, and manual override.
+Resolve item aisles for Walmart and Home Depot, with caching, rate limiting, retries, and manual override. Phase 0 findings (D-021/D-022): Walmart lookup only via user-initiated foreground WebView (PX intermittent, assisted); Home Depot blocked (403) — manual entry first; OkHttp path stays dormant until a real-device/mobile-data pass retrieves aisle pages.
 
 ## Context
 

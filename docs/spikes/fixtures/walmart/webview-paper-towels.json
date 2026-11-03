@@ -1,0 +1,47 @@
+{
+  "_comment": "TRIMMED from 2026-11-03 WebView capture. Tokens, UUIDs, ZIP, store IDs removed. Structure preserved.",
+  "label": "walmart-paper-towels",
+  "title": "paper towels - Walmart.com",
+  "host": "walmart.com",
+  "isRobotWall": false,
+  "hasNextData": true,
+  "htmlLength": 2164474,
+  "aisleMentions": 28,
+  "bayMentions": 0,
+  "priceCount": 350,
+  "priceSamples": [
+    "$0.00",
+    "$23.58",
+    "$23.58",
+    "$17.82",
+    "$17.82",
+    "$17.82",
+    "$2.42",
+    "$7.32",
+    "$17.82",
+    "$2.42",
+    "$7.32",
+    "$2.42",
+    "$7.32",
+    "$23.58",
+    "$2.40"
+  ],
+  "sizeSamples": [
+    "164 Sheets",
+    "164 Sheets",
+    "123 Sheets",
+    "123 Sheets",
+    "123 Sheets",
+    "100 ct",
+    "100 ct",
+    "100 ct",
+    "123 Sheets",
+    "164 Sheets"
+  ],
+  "hasStoreContext": true,
+  "aisle_found": "J29",
+  "nextDataHits": [
+    "Location\":[{\"displayValue\":\"J29\",\"aisle\":{\"zone\":\"J\",\"aisle\":29}}],\"",
+    "Location\":[{\"displayValue\":\"J29\",\"aisle\":{\"zone\":\"J\",\"aisle\":29}}],\""
+  ]
+}

@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "com.fastshoppr.spike.app-debug-36:/layout_activity_store_probe.xml.flat",
+        "source": "com.fastshoppr.spike.app-main-38:/layout/activity_store_probe.xml"
+    },
+    {
+        "merged": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-debug-36:\\layout_activity_store_probe.xml.flat",
+        "source": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-main-38:\\layout\\activity_store_probe.xml"
+    },
+    {
+        "merged": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-debug-36:\\layout_activity_ink.xml.flat",
+        "source": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-main-38:\\layout\\activity_ink.xml"
+    },
+    {
+        "merged": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-debug-36:\\layout_activity_main.xml.flat",
+        "source": "C:\\Users\\workylappy\\.gradle\\daemon\\8.10.2\\com.fastshoppr.spike.app-main-38:\\layout\\activity_main.xml"
+    },
+    {
+        "merged": "com.fastshoppr.spike.app-debug-36:/layout_activity_main.xml.flat",
+        "source": "com.fastshoppr.spike.app-main-38:/layout/activity_main.xml"
+    }
+]

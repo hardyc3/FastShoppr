@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.fastshoppr.spike.app-mergeDebugResources-34:/values-port/values-port.xml",
+            "map": [
+                {
+                    "source": "C:\\Users\\workylappy\\.gradle\\caches\\8.8\\transforms\\be476ebc014d084423cb1e11c5cc240f\\transformed\\appcompat-1.7.0\\res\\values-port\\values-port.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "55",
+                        "endOffsets": "106"
+                    }
+                }
+            ]
+        }
+    ]
+}

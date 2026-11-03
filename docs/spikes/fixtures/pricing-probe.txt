@@ -1,0 +1,11 @@
+STORE: walmart
+URL: https://www.walmart.com/blocked?url=L3NlYXJjaD9xPXBhcGVyK3Rvd2Vscw==&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b
+RAW: "{\"title\":\"Robot or human?\",\"finalUrl\":\"https://www.walmart.com/blocked?url=L3NlYXJjaD9xPXBhcGVyK3Rvd2Vscw==&uuid=REDACTED-UUID&vid=REDACTED-UUID&g=b\",\"bodySample\":\"Robot or human?\\n\\nActivate and hold the button to confirm that you’re human. Thank You!\\n\\nTerms of Use\\nPrivacy Policy\\nDo Not Sell My Personal Information\\nRequest My Personal Information\\n\\n©2026 Walmart Stores, Inc.\\n\\nmmmmmmmmmmlli\\nmmmmmmmmmmlli\",\"isBlocked\":true,\"priceCount\":0,\"priceSamples\":[],\"hasStoreContext\":false,\"sizeSamples\":[]}"
+
+STORE: homedepot
+URL: https://www.homedepot.com/s/paper%20towels
+RAW: "{\"title\":\"Error Page\",\"finalUrl\":\"https://www.homedepot.com/s/paper%20towels\",\"bodySample\":\"#1 Home Improvement Retailer\\nOops!! Something went wrong. Please refresh page\\nRefresh\\nHow doers get more done™\\nNeed Help? Visit our Customer Service Center\",\"isBlocked\":true,\"priceCount\":0,\"priceSamples\":[],\"hasStoreContext\":false,\"sizeSamples\":[]}"
+
+STORE: target
+URL: https://www.target.com/s?searchTerm=paper+towels
+RAW: "{\"title\":\"\\\"paper towels\\\" : Target\",\"finalUrl\":\"https://www.target.com/s?searchTerm=paper+towels\",\"bodySample\":\"skip to main content\\nskip to footer\\nAsk Target\\nDeals\\nTarget Circle\\nGet top deals, latest trends, and more.\\nEmail address\\nSign up\\nPrivacy policy\\nTerms\\nFooter\",\"isBlocked\":false,\"priceCount\":0,\"priceSamples\":[],\"hasStoreContext\":false,\"sizeSamples\":[]}"

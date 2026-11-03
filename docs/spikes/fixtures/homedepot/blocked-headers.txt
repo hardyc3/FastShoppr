@@ -1,0 +1,6 @@
+HTTP/2 403
+server: AkamaiGHost
+content-type: text/html
+
+# Sanitized 2026-11-03. Cookies, tokens, IPs, and timing headers removed.
+# Original response was a 2259-byte Akamai bot-challenge error page.

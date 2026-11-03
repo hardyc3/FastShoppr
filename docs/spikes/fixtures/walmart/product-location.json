@@ -1,0 +1,25 @@
+{
+  "_comment": "SYNTHETIC FIXTURE — reconstructed 2026-11-03 for structure reference. NOT a live capture. No cookies/tokens. Store identity fictional.",
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "data": {
+          "product": {
+            "usItemId": "SYN-W-0001",
+            "name": "SYNTHETIC Great Value Whole Milk 1 gal",
+            "fulfillmentSummary": {
+              "type": "STORE",
+              "storeId": "0000",
+              "storeName": "SYNTHETIC Walmart Supercenter",
+              "location": {
+                "aisle": "A12",
+                "section": "Dairy",
+                "bay": null
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

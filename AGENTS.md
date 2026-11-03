@@ -27,6 +27,8 @@ Do not start a later phase until the current phase is marked complete and review
 4. Any referenced spec documents
 5. `docs/specs/12-decisions.md` before proposing an architectural change
 
+For workstation setup and toolchain verification, see `docs/setup.md`.
+
 ## Required commands
 
 These commands are established in Phase 1. Until the Gradle project exists, do not invent build output.
@@ -48,7 +50,7 @@ A phase is not complete unless the relevant commands pass.
 - Min SDK: 30
 - Compile/target SDK: 36
 - JDK: 21
-- Build: Gradle Kotlin DSL + version catalog
+- Build: Gradle 
 - Architecture: simple MVVM + repository layer
 - DI: Hilt (Java annotation processing)
 - Local data: Room + SharedPreferences
@@ -158,7 +160,7 @@ These are non-negotiable:
 - Query only public retailer pages.
 - Identify the app in the HTTP user agent.
 - Rate limit to at most one request per second per store.
-- Cache lookup results for 7 days by default.
+- Cache lookup results for 60 days by default.
 - Stop and surface a clear error on HTTP 403, 429, or a bot challenge.
 - Do not bypass logins, CAPTCHAs, paywalls, or access controls.
 - Do not perform bulk catalog scraping.

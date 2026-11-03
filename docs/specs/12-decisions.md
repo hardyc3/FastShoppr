@@ -174,3 +174,19 @@ Format:
 - Decision: Implement exactly one phase per session, then stop for review. Do not start the next phase automatically.
 - Rationale: Small reviewable chunks reduce drift and make failures easy to isolate.
 - Consequences: Phase status in `README.md` and the phase file must be updated. The next phase remains `not-started`.
+
+## D-021 — Phase 0 findings: retailer bot walls block automated lookup
+
+- Date: 2026-11-03
+- Status: accepted (amends D-004 and D-005)
+- Decision: Automated aisle extraction is not viable from this environment for either MVP store. Walmart redirects plain HTTP clients and the emulator WebView to a PerimeterX "Robot or human?" page. Home Depot returns HTTP 403 (Akamai) to plain HTTP clients and shows its error page in WebView. Keep the D-004/D-005 designs as the intended architecture, but treat live lookup as **conditional go** only: it must run as a user-initiated foreground WebView session with manual override, and otherwise the app falls back to manual aisle entry and cached results. OkHttp+Jsoup for Home Depot is kept only if a future verification pass from a real device gets real aisle pages; otherwise Home Depot also ships manual-entry-first.
+- Rationale: Verified 2026-11-03 from WSL (curl) and an API 36 emulator (WebView and OkHttp). Both stores present bot challenges; bypassing them is out of scope and against the store data access policy. Synthetic fixtures document the parser logic but prove nothing about live pages.
+- Consequences: Phase 6 ships with manual aisle entry as the guaranteed path. Lookup is an enhancement, not a requirement. Fixtures must be re-verified on a real device before trusting the parser. Price extraction (Phase 11) is likewise blocked: automated price lookup is a no-go until a real device passes the challenges; plan manual prices.
+
+## D-022 — Walmart WebView extraction verified on emulator; Home Depot remains blocked
+
+- Date: 2026-11-03
+- Status: accepted (amends D-021)
+- Decision: Walmart lookup is **conditionally viable** via the D-004 design: on 2026-11-03 an emulator WebView session loaded walmart.com and three search pages (milk, eggs, paper towels) once past PX; aisles extracted from `__NEXT_DATA__` (`"Location":[{"displayValue":"A29","aisle":{"zone":"A","aisle":29}}]` — milk→A29, eggs→AC4, paper towels→J29), prices and default store context visible. PX pass is intermittent (≈50% of sessions; plain HTTP always blocked). Home Depot remains **blocked** (HTTP 403 Akamai from curl, OkHttp, and interactive WebView). Lookup stays: user-initiated, foreground WebView only, cached, manual override always available, never unattended. Walmart aisle parsing keys off `LocationDisplayValue`/`"Location":[...]` in `__NEXT_DATA__`; fixture tests must use sanitized, trimmed captures.
+- Rationale: Phase 0 evidence (fixtures `walmart/webview-*.json`, report §1/§2). D-021's blanket "no automated path" was too strong for Walmart; HD unchanged.
+- Consequences: Phase 6 may implement Walmart assisted lookup (flag-gated, user-triggered). HD ships manual-entry-first; HD HTTP stays dead until a real-device/mobile-data pass. Phase 11 pricing extraction viable for Walmart/Target where pages load; HD no-go; manual prices remain the guaranteed path everywhere. Nothing here authorizes background or headless lookup.

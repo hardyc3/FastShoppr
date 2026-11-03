@@ -1,0 +1,48 @@
+{
+  "_comment": "TRIMMED from 2026-11-03 WebView capture. Tokens, UUIDs, ZIP, store IDs removed. Structure preserved.",
+  "label": "walmart-eggs",
+  "title": "eggs - Walmart.com",
+  "host": "walmart.com",
+  "isRobotWall": false,
+  "hasNextData": true,
+  "htmlLength": 2035015,
+  "aisleMentions": 6,
+  "bayMentions": 28,
+  "priceCount": 199,
+  "priceSamples": [
+    "$0.00",
+    "$6.57",
+    "$6.57",
+    "$9.12",
+    "$9.12",
+    "$5.12",
+    "$5.12",
+    "$9.12",
+    "$9.12",
+    "$6.64",
+    "$6.64",
+    "$2.76",
+    "$2.76",
+    "$1.67",
+    "$1.67"
+  ],
+  "sizeSamples": [
+    "12 Ct",
+    "12 Ct",
+    "12 ct",
+    "12 ct",
+    "12 ct",
+    "12 ct",
+    "31 oz",
+    "31 oz",
+    "12 Ct",
+    "12 Ct"
+  ],
+  "hasStoreContext": true,
+  "aisle_found": "AC4",
+  "nextDataHits": [
+    "Location\":[{\"displayValue\":\"AC4\",\"aisle\":{\"zone\":\"AC\",\"aisle\":4}}],\"",
+    "Location\":[{\"displayValue\":\"AC4\",\"aisle\":{\"zone\":\"AC\",\"aisle\":4}}],\"",
+    "Location\":[{\"displayValue\":\"AC4\",\"aisle\":{\"zone\":\"AC\",\"aisle\":4}}],\""
+  ]
+}

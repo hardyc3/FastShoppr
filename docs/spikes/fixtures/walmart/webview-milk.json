@@ -1,0 +1,48 @@
+{
+  "_comment": "TRIMMED from 2026-11-03 WebView capture. Tokens, UUIDs, ZIP, store IDs removed. Structure preserved.",
+  "label": "walmart-milk",
+  "title": "milk - Walmart.com",
+  "host": "walmart.com",
+  "isRobotWall": false,
+  "hasNextData": true,
+  "htmlLength": 2623846,
+  "aisleMentions": 22,
+  "bayMentions": 6,
+  "priceCount": 222,
+  "priceSamples": [
+    "$0.00",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.32",
+    "$5.42",
+    "$5.42",
+    "$3.17",
+    "$3.17",
+    "$3.28",
+    "$3.28"
+  ],
+  "sizeSamples": [
+    "6 Pack",
+    "6 Pack",
+    "2 oz",
+    "2 oz",
+    "2 LB",
+    "2 LB",
+    "8 oz",
+    "8 oz",
+    "8 oz",
+    "8 oz"
+  ],
+  "hasStoreContext": true,
+  "aisle_found": "A29",
+  "nextDataHits": [
+    "Location\":[{\"displayValue\":\"A29\",\"aisle\":{\"zone\":\"A\",\"aisle\":29}}],\"",
+    "Location\":[{\"displayValue\":\"A29\",\"aisle\":{\"zone\":\"A\",\"aisle\":29}}],\"",
+    "Location\":[{\"displayValue\":\"A29\",\"aisle\":{\"zone\":\"A\",\"aisle\":29}}],\""
+  ]
+}

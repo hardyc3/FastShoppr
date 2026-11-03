@@ -30,6 +30,7 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 ## Out of scope
 
 - Coupons, loyalty pricing, or membership prices.
+- Phase 0 findings (D-021/D-022): prices visible on Walmart/Target WebView sessions; Home Depot blocked; automation is never unattended; manual prices remain the guaranteed path.
 - Checkout or ordering.
 - Receipt scanning.
 - Price history charts.

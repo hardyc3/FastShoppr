@@ -1,11 +1,11 @@
 # Phase 0 — Feasibility
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** none
 - **Owner:** unassigned
-- **Started:** —
+- **Started:** 2026-11-03
 - **Completed:** —
-- **Last updated:** 2026-10-31
+- **Last updated:** 2026-11-03
 
 ## Goal
 
@@ -98,18 +98,18 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 
 ## Acceptance criteria
 
-- [ ] Walmart extraction resolves aisle/location data for at least three real items.
-- [ ] Home Depot parsing resolves aisle and bay for at least three real items.
-- [ ] Store-context mechanism is documented for both stores.
-- [ ] Sanitized fixtures exist for Walmart and Home Depot, including failure pages.
-- [ ] Digital Ink model download and recognition work from Java.
-- [ ] Text Recognition v2 runs on a handwritten sample; limitations are documented.
-- [ ] Gemini Nano availability, latency, quota, and fallback behavior are documented.
-- [ ] Date-phrase parsing rules and ambiguity handling are documented.
-- [ ] Price availability is documented for at least three stores.
-- [ ] The report contains explicit go/no-go decisions for Phases 5, 6, and 11.
-- [ ] No personal data, cookies, tokens, or live credentials are committed.
-- [ ] No production app code or Gradle project is required yet.
+- [x] Walmart extraction resolves aisle/location data for at least three real items. *(Emulator 2026-11-03: milk→A29, eggs→AC4, paper towels→J29; PX intermittent; assisted only — see report §1 and `docs/spikes/phase-00-verification.md`.)*
+- [ ] Home Depot parsing resolves aisle and bay for at least three real items. *(Blocked 2026-11-03: HTTP 403 Akamai on curl and emulator WebView; user-assisted verification pending — see `docs/spikes/phase-00-verification.md`.)*
+- [x] Store-context mechanism is documented for both stores. *(Documented; mechanism unverifiable from this network — requires interactive pickup-store selection; see report §1/§2.)*
+- [x] Sanitized fixtures exist for Walmart and Home Depot, including failure pages.
+- [x] Digital Ink model download and recognition work from Java.
+- [x] Text Recognition v2 runs on a handwritten sample; limitations are documented. *(Accurate only on synthetic cursive: 1/4 lines exact; see report §4.)*
+- [x] Gemini Nano availability, latency, quota, and fallback behavior are documented. *(Documented as unverifiable on available hardware; emulator has no AICore; no supported device. On-device check steps in `docs/spikes/phase-00-verification.md`.)*
+- [x] Date-phrase parsing rules and ambiguity handling are documented.
+- [x] Price availability is documented for at least three stores.
+- [x] The report contains explicit go/no-go decisions for Phases 5, 6, and 11.
+- [x] No personal data, cookies, tokens, or live credentials are committed.
+- [x] No production app code or Gradle project is required yet.
 
 ## Test plan
 
@@ -142,13 +142,24 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 
 ## Open questions
 
-- Which Walmart store/ZIP should be used for fixtures?
-- Which Home Depot store should be used for fixtures?
-- Is a Gemini Nano-capable device available for testing?
-- Should fixtures live in the app test resources from the start?
+- Which Walmart store/ZIP should be used for fixtures? — Unanswerable; no live page reachable. User-assisted run pending (see `docs/spikes/phase-00-verification.md`).
+- Which Home Depot store should be used for fixtures? — Same.
+- Is a Gemini Nano-capable device available for testing? — No; not available. On-device check steps documented for user.
+- Should fixtures live in the app test resources from the start? — No; keep under `docs/spikes/fixtures/`, move in Phase 2.
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-03 | Walmart curl/WebView probes | BLOCKED | PX "Robot or human?" wall; fixtures saved |
+| 2026-11-03 | Home Depot curl/WebView/OkHttp probes | BLOCKED | HTTP 403 Akamai; fixtures saved |
+| 2026-11-03 | Emulator: Digital Ink EN_US download + recognize | PASS | ≈67 s download; 536 ms recognize |
+| 2026-11-03 | Emulator: Text Recognition v2 (synthetic cursive) | PASS w/ poor accuracy | `nillk|eggo|paper touvels|batteries` |
+| 2026-11-03 | Emulator: Pricing probe (Walmart/HD/Target) | NO PRICES | 0 extracts; Target page loads but JS-rendered |
+| 2026-11-03 | Date-parser scratch, fixed clock | 19/19 PASS | `DatePhraseParserTest` |
+| 2026-11-03 | Fixture sanitization scan | PASS | uuids/cookies/tokens removed |
+| 2026-11-03 | Verification app + guide for user device run | CREATED | `docs/spikes/phase-00-verification.md`; scratch app at `C:\workspaces\phase0-spike` |
+| 2026-11-03 | Walmart WebView interactive ×3 | PASS | milk→A29, eggs→AC4, paper towels→J29; prices visible |
+| 2026-11-03 | Home Depot WebView interactive | BLOCKED | Akamai error page; no aisle/bay anywhere |
+| 2026-11-03 | Target WebView interactive | PASS | 67 price matches; store context banner |
+| 2026-11-03 | Emulator: Nano checkStatus / prompt | UNAVAILABLE (0) / FAIL −101 | AICore absent; rules fallback required |
