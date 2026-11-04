@@ -1,0 +1,67 @@
+# Android / Gradle build output
+.gradle/
+build/
+*/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+*.class
+*.hprof
+output-metadata.json
+lint-results*.xml
+lint-results*.html
+reports/
+
+# Signing and secrets
+*.jks
+*.keystore
+*.p12
+keystore.properties
+secrets.properties
+api-keys.properties
+
+# IDE and editor files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+*.sublime-*
+*.swp
+*~
+
+# Logs and temporary files
+*.log
+*.err
+*.tmp
+*.temp
+*.bak
+tmp_*
+*.pid
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Throwaway Phase 0 scratch workspaces (not part of the repo)
+FastShoppr-spike/
+phase0-spike/
+
+# Local browser profiles and captured browser state
+chrome-cdp/
+chrome-profile/
+shot-*/
+*-user-data/

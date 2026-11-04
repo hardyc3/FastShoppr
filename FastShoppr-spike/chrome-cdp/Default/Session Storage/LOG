@@ -1,8 +1,0 @@
-2026/11/03-11:18:02.141 b10 Creating DB C:\workspaces\FastShoppr-spike\chrome-cdp\Default\Session Storage since it was missing.
-2026/11/03-11:18:02.845 b10 Reusing MANIFEST C:\workspaces\FastShoppr-spike\chrome-cdp\Default\Session Storage/MANIFEST-000001
-2026/11/03-11:50:35.481 3b2c Level-0 table #5: started
-2026/11/03-11:50:35.487 3b2c Level-0 table #5: 22356 bytes OK
-2026/11/03-11:50:35.491 3b2c Delete type=0 #3
-2026/11/03-11:56:46.903 b10 Level-0 table #7: started
-2026/11/03-11:56:46.909 b10 Level-0 table #7: 12737 bytes OK
-2026/11/03-11:56:46.912 b10 Delete type=0 #4
