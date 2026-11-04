@@ -1,0 +1,31 @@
+Sanitized excerpt from a live Walmart home-page capture on 2026-11-02.
+Source shape: https://www.walmart.com/ (HTTP 200, no store search).
+The capture contained request-derived store/location context. All store IDs, ZIP codes,
+coordinates, session IDs, and tracking parameters have been removed or redacted.
+
+"priceInfo":{
+  "currentPrice":{"price":89},
+  "priceDetails":{
+    "currency":"USD",
+    "priceLines":[
+      {"lineType":"DISCOUNTED_PRICE","values":[{"key":"PRICE","value":"89.00"}]},
+      {"lineType":"COMPARISON","values":[{"key":"WAS_PRICE","value":"129.99"}]}
+    ]
+  }
+}
+
+"adsContext":{
+  "locationContext":{
+    "zipCode":"[REDACTED]",
+    "stateCode":"[REDACTED]",
+    "storeId":"[REDACTED]",
+    "pickupStore":"[REDACTED]",
+    "deliveryStore":"[REDACTED]",
+    "intent":"SHIPPING",
+    "latitude":"[REDACTED]",
+    "longitude":"[REDACTED]"
+  }
+}
+
+Observed: online price is present in static HTML. No aisle/bay field was found in the
+home page. Search and product URLs redirected to /blocked with a CAPTCHA page.

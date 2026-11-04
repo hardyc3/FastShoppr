@@ -1,0 +1,17 @@
+Observed rendered product text captured 2026-11-02.
+Source: https://www.homedepot.com/p/Scott-White-Toilet-Tissue-1000-Sheet-12-Rolls-Per-Pack-10060/312631958
+Capture method: search-provider rendered page excerpt, NOT a direct OkHttp response.
+Direct OkHttp/curl requests to the same URL returned HTTP 403 (Akamai Access Denied).
+Store name and ZIP were replaced with placeholders before committing.
+
+Product: Scott White Toilet Tissue (1000-Sheet 12 Rolls Per Pack)
+Internet #: 312631958
+Model #: 10060
+Price: $14.48 ($1.21/roll)
+Store: [STORE]
+Availability: 18 in stock Aisle 53, Bay 009
+Pickup: [STORE], today
+
+Expected extraction: aisle=53, bay=009, productName="Scott White Toilet Tissue (1000-Sheet 12 Rolls Per Pack)".
+This excerpt is evidence that the public page can show aisle/bay. It is not a raw HTML
+fixture and must not be used as an OkHttp/Jsoup unit-test fixture.

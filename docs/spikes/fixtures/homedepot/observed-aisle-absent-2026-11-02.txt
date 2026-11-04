@@ -1,0 +1,15 @@
+Observed rendered product text captured 2026-11-02.
+Source: https://www.homedepot.com/p/Charmin-Essentials-Soft-Toilet-Paper-Rolls-18-Mega-Rolls-003077204537/321303444
+Capture method: search-provider rendered page excerpt, NOT a direct OkHttp response.
+Direct OkHttp/curl requests to the same URL returned HTTP 403 (Akamai Access Denied).
+
+Product: Charmin Essentials Soft Toilet Paper Rolls (18 Mega Rolls)
+Internet #: 321303444
+Model #: 003077204537
+Price: $19.97/case ($1.11/roll)
+Availability: Out of Stock
+Pickup: not shown at the observed store
+
+Expected extraction: no aisle/bay. Result should be NotFound("No in-store aisle shown")
+or NEEDS_REVIEW, never an inferred aisle.
+This excerpt is not a raw HTML fixture and must not be used as an OkHttp/Jsoup unit-test fixture.

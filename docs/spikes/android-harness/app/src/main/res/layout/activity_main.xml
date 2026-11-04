@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Phase 0 feasibility harness"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="24dp"
+        android:text="Throwaway project. Results are displayed only; nothing is uploaded."
+        android:textSize="14sp" />
+
+    <Button
+        android:id="@+id/walmart_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Walmart WebView probe" />
+
+    <Button
+        android:id="@+id/ink_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Digital Ink probe" />
+
+    <Button
+        android:id="@+id/text_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Text Recognition probe" />
+
+    <Button
+        android:id="@+id/gemini_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Gemini Nano probe" />
+
+</LinearLayout>
