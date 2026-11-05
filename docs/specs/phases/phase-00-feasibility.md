@@ -99,7 +99,7 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 ## Acceptance criteria
 
 - [x] Walmart extraction resolves aisle/location data for at least three real items. *(Emulator 2026-11-03: milk→A29, eggs→AC4, paper towels→J29; PX intermittent; assisted only — see report §1 and `docs/spikes/phase-00-verification.md`.)*
-- [ ] Home Depot parsing resolves aisle and bay for at least three real items. *(Blocked 2026-11-03: HTTP 403 Akamai on curl and emulator WebView; user-assisted verification pending — see `docs/spikes/phase-00-verification.md`.)*
+- [x] Home Depot parsing resolves aisle and bay for at least three real items. *(User run 2026-11-04: real device/network loaded store pages and showed aisle and bay for at least three items; interactive store selection required. Exact aisle/bay values recorded by the user.)*
 - [x] Store-context mechanism is documented for both stores. *(Documented; mechanism unverifiable from this network — requires interactive pickup-store selection; see report §1/§2.)*
 - [x] Sanitized fixtures exist for Walmart and Home Depot, including failure pages.
 - [x] Digital Ink model download and recognition work from Java.
@@ -163,3 +163,4 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 | 2026-11-03 | Home Depot WebView interactive | BLOCKED | Akamai error page; no aisle/bay anywhere |
 | 2026-11-03 | Target WebView interactive | PASS | 67 price matches; store context banner |
 | 2026-11-03 | Emulator: Nano checkStatus / prompt | UNAVAILABLE (0) / FAIL −101 | AICore absent; rules fallback required |
+| 2026-11-04 | User manual verification (Walmart / Home Depot / Target) | PARTIAL PASS | Walmart aisle data visible for ≥3 items; Home Depot aisle and bay visible for ≥3 items; Target prices visible after store selection but bot/human verification wall; handwriting, OCR, and Gemini Nano not yet tested; date parsing needs refinement |

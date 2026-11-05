@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-03
 - **Author:** spike session (agent) + workstation verification
-- **Status:** findings substantially complete; user-assisted verification remains for network/device variance and Home Depot; Gemini Nano untestable on available hardware
+- **Status:** user verification partially complete (Walmart, Home Depot, and Target run); handwriting, OCR, and Gemini Nano still untested; date parsing needs refinement
 - **Scratch code:** `C:\workspaces\phase0-spike` (Windows side, outside repo, throwaway; not committed)
 - **Fixtures:** `docs/spikes/fixtures/` (see `fixtures/README.md` for provenance)
 - **Manual verification guide:** `docs/spikes/phase-00-verification.md`
@@ -70,9 +70,9 @@ Fixtures: `homedepot/blocked.html` (real, curl), `homedepot/blocked-headers.txt`
 
 **Parser prototype (synthetic fixtures only):** `product-aisle.html` → extracted `aisle=12, bay=004` from `__NEXT_DATA__` (`props.pageProps.product.fulfillment.pickup`); `product-no-aisle.html` → correctly reports ship-to-home. Extraction rule recorded: read `__NEXT_DATA__`, take `fulfillment.pickup.{aisle,bay}`; absent ⇒ ship-to-home; never invent values.
 
-**Store context:** unverified. HD requires an interactive store selection; mechanism (cookie vs query param) unobservable — page never loaded. Try on a phone on **mobile data** (Akamai blocks often differ by network); see `docs/spikes/phase-00-verification.md` §3.
+**Store context:** user run confirmed that interactive pickup-store selection is required before aisle and bay appear. Cookie vs query-parameter mechanism is still not isolated, but aisle/bay extraction worked after store selection.
 
-**Home Depot verdict: no aisle/bay from any automated path. Aisle extraction for Home Depot is unverified and currently impossible on this network.**
+**Home Depot verdict:** blocked on the original network, but a 2026-11-04 user run on a real device/network loaded store pages and showed aisle and bay for at least three items. Interactive pickup-store selection remains required; exact aisle/bay values were recorded by the user.
 
 ## 3. ML Kit — Digital Ink — works from Java
 
@@ -117,6 +117,8 @@ Pure Java, fixed clock (`2026-11-03`, Tuesday). Implementation: `phase0-spike/da
 
 **Ambiguity:** `next week`, `next month`, `this weekend` parse to the common reading and are flagged `NEEDS_CONFIRMATION`; UI shows resolved date for correction. Exact phrases never prompt.
 
+**User review (2026-11-04):** core parsing behaved as hoped; refinement still needed before production, but no blocker was identified.
+
 ## 7. Pricing availability (three stores)
 
 | Store | Method | Local price visible? | Store context? | Size/unit? |
@@ -127,7 +129,7 @@ Pure Java, fixed clock (`2026-11-03`, Tuesday). Implementation: `phase0-spike/da
 
 Walmart and Target both render prices **with a store-scoped context**; extraction is identical in kind to the aisle extraction above (WebView + JS). Home Depot exposes nothing without passing Akamai.
 
-**Phase 11 impact:** automated price extraction is feasible **where pages load** (Walmart — intermittently; Target — reliably in this test), not viable for Home Depot. Still: PX makes Walmart automation flaky; keep manual prices as the guaranteed path; treat extraction as optional assist with user override. Do not scrape around blocks.
+**Phase 11 impact:** automated price extraction is feasible **where pages load** (Walmart — intermittently; Target — after store selection in this test), not viable for Home Depot. A 2026-11-04 Target run also hit a bot/human verification wall, so Target extraction must be assisted/manual rather than unattended. Still: PX makes Walmart automation flaky; keep manual prices as the guaranteed path; treat extraction as optional assist with user override. Do not scrape around blocks.
 
 ## 8. Go / No-Go decisions
 
@@ -170,7 +172,7 @@ No production app code, no Gradle project in the repo, no dependencies added any
 | 3. Digital Ink recognition + camera OCR | ✅ Digital Ink (download + 536 ms). ✅ OCR v2 (poor cursive; photo path added for user) |
 | 4. Gemini Nano availability + rules fallback | ⚠️ Emulator: UNAVAILABLE (0), errorCode -101. Rules fallback documented; device check pending |
 | 5. Date-phrase parsing table | ✅ 19/19 unit checks |
-| 6. Price-availability findings | ✅ Walmart & Target: prices visible with store context; Home Depot: none |
+| 6. Price-availability findings | ⚠️ Walmart & Target: prices visible with store context; Target also hit a bot/human verification wall; Home Depot: none on the original network, aisle/bay visible in user run |
 
 **Phase status:** acceptance criteria for Walmart extraction are met; Home Depot extraction and on-device Gemini Nano verification are not. Phase cannot be `done` until the user runs `docs/spikes/phase-00-verification.md` (or explicitly waives those criteria).
 

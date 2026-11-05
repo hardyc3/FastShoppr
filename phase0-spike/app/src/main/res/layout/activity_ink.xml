@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical" android:layout_width="match_parent" android:layout_height="match_parent">
+    <LinearLayout android:orientation="horizontal" android:padding="8dp" android:layout_width="match_parent" android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btnRecognize"
+            android:layout_width="0dp"
+            android:layout_height="111dp"
+            android:layout_weight="1"
+            android:text="Recognize" />
+        <Button android:id="@+id/btnClear" android:text="Clear" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"/>
+    </LinearLayout>
+    <com.fastshoppr.spike.InkView android:id="@+id/inkView" android:layout_weight="3" android:layout_width="match_parent" android:layout_height="0dp" android:background="#FFFFFF"/>
+    <ScrollView android:layout_weight="2" android:layout_width="match_parent" android:layout_height="0dp">
+        <TextView android:id="@+id/inkResult" android:textSize="13sp" android:padding="8dp" android:layout_width="match_parent" android:layout_height="wrap_content"/>
+    </ScrollView>
+</LinearLayout>
