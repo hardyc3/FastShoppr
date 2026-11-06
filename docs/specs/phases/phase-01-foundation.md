@@ -157,6 +157,7 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
 | 2026-11-05 | `gradlew.bat assembleDebug` | PASS | Gradle 8.13, JDK 21, AGP 8.13.2, compile/target SDK 36. |
+| 2026-11-05 | `gradlew.bat assembleRelease` | PASS | R8 minify + resource shrink; unsigned release APK built. |
 | 2026-11-05 | `gradlew.bat testDebugUnitTest` | PASS | `SystemClockTest`. |
 | 2026-11-05 | `gradlew.bat lintDebug` | PASS | 0 lint issues. |
 | 2026-11-05 | `gradlew.bat spotlessCheck` | PASS | google-java-format 1.28.0, license header, import order. |
@@ -166,5 +167,5 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 
 Known limitation: Room requires at least one entity, so version 1 contains
 `ShellPlaceholderEntity` (`shell_placeholder`) until Phase 2 replaces it with the
-real schema. Phase 0 is still marked `in-progress` in its phase file and in
-`docs/specs/README.md`; Phase 1 was started on explicit user instruction.
+real schema. Phase 0 completion was recorded on 2026-11-05 so the Phase 1
+dependency is satisfied.

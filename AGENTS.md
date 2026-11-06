@@ -31,7 +31,7 @@ For workstation setup and toolchain verification, see `docs/setup.md`.
 
 ## Required commands
 
-These commands are established in Phase 1. Until the Gradle project exists, do not invent build output.
+The Gradle wrapper is committed. Run these commands from the repository root; use `gradlew.bat` on Windows.
 
 ```bash
 ./gradlew assembleDebug

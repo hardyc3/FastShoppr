@@ -1,11 +1,11 @@
 # Phase 0 — Feasibility
 
-- **Status:** `in-progress`
+- **Status:** `done`
 - **Depends on:** none
 - **Owner:** unassigned
 - **Started:** 2026-11-03
-- **Completed:** —
-- **Last updated:** 2026-11-03
+- **Completed:** 2026-11-05
+- **Last updated:** 2026-11-05
 
 ## Goal
 
@@ -164,3 +164,4 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 | 2026-11-03 | Target WebView interactive | PASS | 67 price matches; store context banner |
 | 2026-11-03 | Emulator: Nano checkStatus / prompt | UNAVAILABLE (0) / FAIL −101 | AICore absent; rules fallback required |
 | 2026-11-04 | User manual verification (Walmart / Home Depot / Target) | PARTIAL PASS | Walmart aisle data visible for ≥3 items; Home Depot aisle and bay visible for ≥3 items; Target prices visible after store selection but bot/human verification wall; handwriting, OCR, and Gemini Nano not yet tested; date parsing needs refinement |
+| 2026-11-05 | Phase status closeout | PASS | All acceptance criteria checked; known limitations recorded in `docs/spikes/phase-00-report.md`; Phase 1 depends on this phase. |

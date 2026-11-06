@@ -4,9 +4,9 @@ This document describes the workstation setup needed to build, run, and test
 FastShoppr on any computer. It applies to every phase. It is not a phase
 deliverable and does not authorize starting a phase.
 
-> Phase 0 has no Gradle project yet. Until Phase 1 creates the wrapper, use the
-> standalone Gradle installation only for throwaway spike code. Do not commit
-> build output, `local.properties`, keystores, or spike projects.
+> The Gradle wrapper is committed. Use `./gradlew` (or `gradlew.bat` on
+> Windows) from the repository root. Do not commit build output,
+> `local.properties`, keystores, or spike projects.
 
 ## Required versions
 
@@ -19,7 +19,7 @@ deliverable and does not authorize starting a phase.
 | Android SDK Platform-Tools | Latest stable | Provides `adb`. |
 | Android Emulator | Latest stable | Requires hardware virtualization. |
 | Emulator system image | API 36 Google APIs | `x86_64` on Intel/AMD, `arm64-v8a` on Apple Silicon. |
-| Gradle | **8.10.2** for now | Phase 1 adds the committed Gradle wrapper. Use `./gradlew` after that. AGP 8.8.2 requires Gradle ≥ 8.10.2 (Phase 0 finding). |
+| Gradle | **8.13** | Committed wrapper. Do not install a separate Gradle version. AGP 8.13.2 requires Gradle ≥ 8.13. |
 | Git | Any current version | Required for normal workflow. |
 
 `google_apis` is preferred over `google_apis_playstore` for automation. It
@@ -236,16 +236,10 @@ adb devices
 adb shell getprop ro.build.version.sdk   # 36
 ```
 
-For Gradle, after Phase 1 adds the wrapper:
+For Gradle, use the committed wrapper:
 
 ```bash
-./gradlew --version     # JVM must be 21.x
-```
-
-Before the wrapper exists:
-
-```bash
-gradle --version        # JVM must be 21.x
+./gradlew --version     # JVM must be 21.x; Gradle must be 8.13
 ```
 
 ## Project build, run, and test commands
