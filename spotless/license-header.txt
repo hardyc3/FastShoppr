@@ -1,0 +1,5 @@
+/*
+ * FastShoppr
+ *
+ * Copyright (c) 2026 FastShoppr contributors.
+ */

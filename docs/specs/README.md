@@ -38,7 +38,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | Phase | Name | Status | Depends on |
 |---|---|---|---|
 | 0 | Feasibility | `in-progress` | — |
-| 1 | Foundation | `not-started` | 0 |
+| 1 | Foundation | `done` | 0 |
 | 2 | Domain & persistence | `not-started` | 1 |
 | 3 | Manual lists | `not-started` | 2 |
 | 4 | Handwriting input | `not-started` | 3 |

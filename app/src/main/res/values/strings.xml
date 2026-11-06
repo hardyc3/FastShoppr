@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FastShoppr</string>
+
+    <string name="home_welcome">Build a shopping list once, then walk each store in aisle order.</string>
+    <string name="get_started">Get started</string>
+    <string name="open_calendar">Open calendar</string>
+    <string name="open_settings">Open settings</string>
+
+    <string name="lists_title">Shopping lists</string>
+    <string name="lists_body">Your shopping lists will appear here. This is a Phase 1 placeholder.</string>
+    <string name="open_first_list">Open a placeholder list</string>
+
+    <string name="list_detail_title">List detail</string>
+    <string name="list_detail_body">Placeholder details for list %1$s. Items and store sections arrive in later phases.</string>
+    <string name="open_typed_capture">Add typed items</string>
+    <string name="open_ink_capture">Add handwritten items</string>
+    <string name="open_camera_capture">Add items from a photo</string>
+    <string name="open_lookup">Organize this list</string>
+
+    <string name="capture_typed_title">Typed items</string>
+    <string name="capture_typed_body">Typed item entry will be implemented in Phase 3.</string>
+    <string name="capture_ink_title">Handwritten items</string>
+    <string name="capture_ink_body">Handwriting recognition will be implemented in Phase 4.</string>
+    <string name="capture_camera_title">Photo items</string>
+    <string name="capture_camera_body">Camera and image recognition will be implemented in Phase 4.</string>
+
+    <string name="review_title">Review captured items</string>
+    <string name="review_body">Bulk review and editing will be implemented in Phase 4.</string>
+
+    <string name="lookup_title">Organize list</string>
+    <string name="lookup_body">Store lookup and aisle routing will be implemented in Phase 6.</string>
+
+    <string name="calendar_title">Calendar</string>
+    <string name="calendar_body">Shopping dates and recurring schedules will be implemented in Phase 8.</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_body">Schedule, notifications, and privacy settings will be implemented in later phases. The app theme follows the system light or dark setting.</string>
+
+    <string name="action_continue_to_review">Continue to review</string>
+    <string name="action_continue_to_lookup">Continue to organize</string>
+    <string name="action_back_to_list">Back to list</string>
+    <string name="action_open_lists">Open shopping lists</string>
+    <string name="action_back">Back</string>
+</resources>

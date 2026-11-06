@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/home">
+
+    <fragment
+        android:id="@+id/home"
+        android:name="com.fastshoppr.app.ui.home.HomeFragment"
+        android:label="@string/app_name">
+        <action
+            android:id="@+id/action_home_to_lists"
+            app:destination="@id/lists" />
+        <action
+            android:id="@+id/action_home_to_calendar"
+            app:destination="@id/calendar" />
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settings" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/lists"
+        android:name="com.fastshoppr.app.ui.lists.ListsFragment"
+        android:label="@string/lists_title" />
+
+    <fragment
+        android:id="@+id/list_detail"
+        android:name="com.fastshoppr.app.ui.listdetail.ListDetailFragment"
+        android:label="@string/list_detail_title">
+        <argument
+            android:name="listId"
+            android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/calendar"
+        android:name="com.fastshoppr.app.ui.calendar.CalendarFragment"
+        android:label="@string/calendar_title" />
+
+    <fragment
+        android:id="@+id/capture_typed"
+        android:name="com.fastshoppr.app.ui.capture.TypedCaptureFragment"
+        android:label="@string/capture_typed_title">
+        <argument
+            android:name="listId"
+            android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/capture_ink"
+        android:name="com.fastshoppr.app.ui.capture.InkCaptureFragment"
+        android:label="@string/capture_ink_title">
+        <argument
+            android:name="listId"
+            android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/capture_camera"
+        android:name="com.fastshoppr.app.ui.capture.CameraCaptureFragment"
+        android:label="@string/capture_camera_title">
+        <argument
+            android:name="listId"
+            android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/review"
+        android:name="com.fastshoppr.app.ui.capture.ReviewFragment"
+        android:label="@string/review_title">
+        <argument
+            android:name="captureId"
+            android:defaultValue="placeholder-capture"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/lookup"
+        android:name="com.fastshoppr.app.ui.lookup.LookupFragment"
+        android:label="@string/lookup_title">
+        <argument
+            android:name="listId"
+            android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settings"
+        android:name="com.fastshoppr.app.ui.settings.SettingsFragment"
+        android:label="@string/settings_title" />
+</navigation>

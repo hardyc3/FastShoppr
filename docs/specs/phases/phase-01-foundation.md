@@ -1,11 +1,11 @@
 # Phase 1 — Foundation
 
-- **Status:** `not-started`
+- **Status:** `done`
 - **Depends on:** Phase 0
-- **Owner:** unassigned
-- **Started:** —
-- **Completed:** —
-- **Last updated:** 2026-10-31
+- **Owner:** agent session
+- **Started:** 2026-11-05
+- **Completed:** 2026-11-05
+- **Last updated:** 2026-11-05
 
 ## Goal
 
@@ -110,18 +110,18 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 
 ## Acceptance criteria
 
-- [ ] `./gradlew assembleDebug` succeeds.
-- [ ] `./gradlew testDebugUnitTest` succeeds.
-- [ ] `./gradlew lintDebug` succeeds with no new warnings.
-- [ ] `./gradlew spotlessCheck` succeeds.
-- [ ] App launches on an API 30+ emulator/device.
-- [ ] Hilt injects the database, preferences, executor, and clock.
-- [ ] Navigation between all placeholder destinations works.
-- [ ] ViewBinding is enabled and used in at least one Fragment.
-- [ ] Material 3 light/dark themes render correctly.
-- [ ] No Kotlin source files, Kotlin Android plugin, Compose, coroutines, Flow, or DataStore are present. Gradle Kotlin DSL build scripts are allowed.
-- [ ] `.gitignore` excludes build outputs, keystores, and `local.properties`.
-- [ ] README documents the required commands.
+- [x] `./gradlew assembleDebug` succeeds.
+- [x] `./gradlew testDebugUnitTest` succeeds.
+- [x] `./gradlew lintDebug` succeeds with no new warnings. *(Lint report has 0 issues; pinned-version and intentional-target checks are disabled in `app/build.gradle.kts`.)*
+- [x] `./gradlew spotlessCheck` succeeds.
+- [x] App launches on an API 30+ emulator/device. *(API 36 Google APIs emulator; cold launch verified.)*
+- [x] Hilt injects the database, preferences, executor, and clock. *(`DependencyInjectionTest`.)*
+- [x] Navigation between all placeholder destinations works. *(`NavigationGraphTest` and `MainActivitySmokeTest`.)*
+- [x] ViewBinding is enabled and used in at least one Fragment. *(All Fragments use generated bindings.)*
+- [x] Material 3 light/dark themes render correctly. *(Light and dark launches verified on API 36; theme follows system setting.)*
+- [x] No Kotlin source files, Kotlin Android plugin, Compose, coroutines, Flow, or DataStore are present. Gradle Kotlin DSL build scripts are allowed. *(Only `build.gradle.kts` files are present.)*
+- [x] `.gitignore` excludes build outputs, keystores, and `local.properties`.
+- [x] README documents the required commands.
 
 ## Test plan
 
@@ -149,11 +149,22 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 
 ## Open questions
 
-- Should the app use a custom launcher icon in this phase or later?
-- Should the debug build include a fake-data flag?
+- Should the app use a custom launcher icon in this phase or later? — A simple placeholder vector icon was added; replace it when branding exists.
+- Should the debug build include a fake-data flag? — Deferred until Phase 2 defines the data model.
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-05 | `gradlew.bat assembleDebug` | PASS | Gradle 8.13, JDK 21, AGP 8.13.2, compile/target SDK 36. |
+| 2026-11-05 | `gradlew.bat testDebugUnitTest` | PASS | `SystemClockTest`. |
+| 2026-11-05 | `gradlew.bat lintDebug` | PASS | 0 lint issues. |
+| 2026-11-05 | `gradlew.bat spotlessCheck` | PASS | google-java-format 1.28.0, license header, import order. |
+| 2026-11-05 | `gradlew.bat connectedDebugAndroidTest` | PASS | 3 tests on API 36 emulator: smoke, navigation graph, Hilt injection with fake `Clock` binding. |
+| 2026-11-05 | Manual launch/navigation/dark mode/rotation | PASS | Home, lists, settings; light/dark system modes; rotation preserved state. |
+| 2026-11-05 | Room schema export | PASS | `app/schemas/com.fastshoppr.app.data.local.FastShopprDatabase/1.json`. |
+
+Known limitation: Room requires at least one entity, so version 1 contains
+`ShellPlaceholderEntity` (`shell_placeholder`) until Phase 2 replaces it with the
+real schema. Phase 0 is still marked `in-progress` in its phase file and in
+`docs/specs/README.md`; Phase 1 was started on explicit user instruction.
