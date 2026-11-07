@@ -27,6 +27,7 @@ Store
   longitude: Double?
   isCustom: Boolean
   isDefault: Boolean
+  isArchived: Boolean
   hoursJson: String?           // serialized weekly hours, nullable
   createdAt: Long
   updatedAt: Long
@@ -36,6 +37,7 @@ Rules:
 
 - The five chain brands are seeded or created on demand.
 - `isCustom` is true only for user-defined local stores (post-MVP UI).
+- `isArchived` hides a store from active selection while keeping its referenced history.
 - A store is selected per item; the nearest store is the default suggestion.
 - Location coordinates are stored locally and never logged or transmitted.
 
@@ -49,16 +51,17 @@ ShoppingList
   scheduleId: String?          // null for one-off lists
   isAutoCreated: Boolean
   isArchived: Boolean
+  deletedAt: Long?
   createdAt: Long
   updatedAt: Long
 ```
 
 Rules:
 
-- Exactly one active list per `shoppingDate`.
+- Exactly one active list per `shoppingDate`. This is enforced in a repository transaction over active, non-deleted lists.
 - Auto-created lists use the schedule's date and default stores.
 - Archiving a list keeps history and removes it from the active list.
-- Deleting a list deletes its items and capture sessions in one transaction.
+- Deleting a list soft-deletes its items and capture sessions in one transaction by stamping their `deletedAt` with the list's deletion timestamp.
 
 ### ListItem
 
@@ -83,6 +86,7 @@ ListItem
   source: ItemSource
   isChecked: Boolean
   sortPosition: Int            // stable insertion order tie-breaker
+  deletedAt: Long?
   createdAt: Long
   updatedAt: Long
 ```
@@ -108,6 +112,7 @@ CaptureSession
   recognizedLinesJson: String  // serialized recognition output
   createdAt: Long
   completedAt: Long?
+  deletedAt: Long?
 ```
 
 Rules:
@@ -231,17 +236,18 @@ Store            1 --- * PriceQuote
 
 Deletion rules:
 
-- Deletion is a soft delete with a cleanup after 30 days. The User should be able to restore deleted lists durring the 30 day window.
-- Deleting a list soft deletes its items and capture sessions.
-- Deleting a store is blocked while items or cache entries reference it; archive instead.
-- Deleting an item soft removes its capture reference but keeps the capture session until cleanup.
+- Deletion is a soft delete with a cleanup after 30 days. The user can restore deleted lists during the 30-day window.
+- Deleting a list stamps the same `deletedAt` on the list, its items, and its capture sessions; restoring the list restores only records deleted with it.
+- Restoring a list fails if another active list already exists for that `shoppingDate`.
+- Deleting a store is blocked while items or cache entries reference it; archive instead. Archived stores are excluded from active store queries.
+- Deleting an item soft-deletes the item but keeps its capture session until cleanup.
 
 ## Date semantics
 
 - `ShoppingList.shoppingDate` is the trip date.
 - `ListItem.targetDate` determines membership. It must equal the containing list's date.
 - A deferral changes `targetDate` and moves the item to the target list in one transaction.
-- Creating a list for a date that already exists returns the existing list.
+- Creating a list for a date with an existing active, non-deleted list returns the existing list.
 - "Wait a week" resolves to a target date, then selects the nearest list on or after that date.
 - Overdue items remain on their original list until the user chooses an action.
 - The overdue prompt options are: move unchecked items to the next list, keep them on the past list, or mark them missed.
@@ -309,7 +315,11 @@ Add indexes for:
 - `ListItem.storeId`
 - `ListItem.targetDate`
 - `ListItem.lookupStatus`
-- `ShoppingList.shoppingDate` (unique for active lists)
+- `ListItem.deletedAt`
+- `ShoppingList.shoppingDate` (indexed; active-only uniqueness is enforced in a repository transaction)
+- `ShoppingList.deletedAt`
+- `CaptureSession.listId`
+- `CaptureSession.deletedAt`
 - `AisleCache.storeId + normalizedQuery`
 - `PriceQuote.storeId + normalizedQuery`
 

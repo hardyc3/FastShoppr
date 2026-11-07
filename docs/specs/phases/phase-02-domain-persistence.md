@@ -1,11 +1,11 @@
 # Phase 2 — Domain and Persistence
 
-- **Status:** `not-started`
+- **Status:** `done`
 - **Depends on:** Phase 1
-- **Owner:** unassigned
-- **Started:** —
-- **Completed:** —
-- **Last updated:** 2026-11-03
+- **Owner:** agent session
+- **Started:** 2026-11-06
+- **Completed:** 2026-11-06
+- **Last updated:** 2026-11-06
 
 ## Goal
 
@@ -106,18 +106,18 @@ This phase establishes the data invariants that every later feature depends on: 
 
 ## Acceptance criteria
 
-- [ ] Domain models and enums exist and are immutable.
-- [ ] Room database version 2 builds and exports its schema.
-- [ ] Migration 1 -> 2 passes.
-- [ ] Creating a list for an existing date returns the existing list.
-- [ ] Adding an item persists it with `rawText`, `displayName`, `normalizedText`, `targetDate`, and `storeId`.
-- [ ] Moving an item to another date moves it to the target list transactionally.
-- [ ] Deleting a list removes its items and capture sessions.
-- [ ] Aisle comparator passes ascending, descending, unknown-last, and tie-break tests.
-- [ ] Store seed data exists exactly once.
-- [ ] `SettingsPreferences` reads and writes all defined keys.
-- [ ] No Kotlin, Compose, coroutines, Flow, or DataStore is introduced.
-- [ ] Unit tests and DAO tests pass.
+- [x] Domain models and enums exist and are immutable.
+- [x] Room database version 2 builds and exports its schema. *(`app/schemas/com.fastshoppr.app.data.local.FastShopprDatabase/2.json`)*
+- [x] Migration 1 -> 2 passes. *(`MigrationTest.migratesVersionOneToVersionTwo`)*
+- [x] Creating a list for an existing date returns the existing list. *(`RoomDataLayerTest.getOrCreateReturnsExistingListForDate`)*
+- [x] Adding an item persists it with `rawText`, `displayName`, `normalizedText`, `targetDate`, and `storeId`. *(`AddItemUseCaseTest`, `PersistenceTest`)*
+- [x] Moving an item to another date moves it to the target list transactionally. *(`RoomDataLayerTest.moveItemMovesToListTransactionallyAndCreatesMissingList`)*
+- [x] Deleting a list removes its items and capture sessions. *Soft-deleted via `deletedAt` per D-023; verified by `RoomDataLayerTest.softDeleteCascadesRestoreAndPurge`.*
+- [x] Aisle comparator passes ascending, descending, unknown-last, and tie-break tests. *(`AisleComparatorTest`, `ListItemComparatorTest`, `SortItemsUseCaseTest`)*
+- [x] Store seed data exists exactly once. *(`RoomDataLayerTest.seedsFiveChainStoresExactlyOnce`, `PersistenceTest`)*
+- [x] `SettingsPreferences` reads and writes all defined keys. *(`SettingsPreferencesTest`)*
+- [x] No Kotlin, Compose, coroutines, Flow, or DataStore is introduced. *(Only a test-only transitive kotlinx-serialization version alignment was added for Room Testing; no Kotlin app source or Gradle Kotlin plugin.)*
+- [x] Unit tests and DAO tests pass. *(31 unit tests, 15 instrumentation tests)*
 
 ## Test plan
 
@@ -148,11 +148,24 @@ This phase establishes the data invariants that every later feature depends on: 
 
 ## Open questions
 
-- Should archived lists be included in the calendar by default?
-- Should item `quantity` be a free-form string or structured in a later phase?
+- Should archived lists be included in the calendar by default? **Deferred to Phase 8.** Phase 2 exposes active and archived LiveData queries so the calendar can choose later.
+- Should item `quantity` be a free-form string or structured in a later phase? **Free-form `String?` for the MVP**, matching `02-data-model.md`.
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-06 | `gradlew.bat assembleDebug` | PASS | Java 21, AGP 8.13.2, compile/target SDK 36. |
+| 2026-11-06 | `gradlew.bat testDebugUnitTest` | PASS | 31 tests, 0 failures. Comparator, normalization, model validation, use cases. |
+| 2026-11-06 | `gradlew.bat lintDebug` | PASS | `No issues found.` |
+| 2026-11-06 | `gradlew.bat spotlessCheck` | PASS | google-java-format, license header, import order. |
+| 2026-11-06 | `ANDROID_SERIAL=emulator-5554 gradlew.bat connectedDebugAndroidTest` | PASS | 15 tests on API 36 `emulator-5554`: migration, DAO/repository, persistence, preferences, app smoke/navigation. |
+| 2026-11-06 | Manual demo via instrumentation harness | PASS | `RoomDataLayerTest` + `PersistenceTest` create a dated list, add/store/sort-check items, move an item to a future date, soft-delete/restore, and reopen a file-backed database to confirm persistence. |
+| 2026-11-06 | Room schema export | PASS | Version 2 JSON exported and committed under `app/schemas/`. |
+
+Known limitations carried forward:
+
+- Soft delete (D-023) and active-only date uniqueness (D-024) are now data-layer rules; Phase 3 UI must use the repository/use-case APIs rather than DAOs directly.
+- Store archive exists in the data layer (D-025); store archive/delete UI and custom stores remain later work.
+- `CreateScheduleUseCase` returns `DecisionRequired` for conflicting future dates (D-026); Phase 8 supplies the confirmation UI.
+- The connected tests were run on the API 36 emulator because the attached physical Samsung device intermittently entered AOD/doze and stopped the activity under test. The same command passes when targeting `emulator-5554` via `ANDROID_SERIAL`.

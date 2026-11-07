@@ -39,7 +39,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 |---|---|---|---|
 | 0 | Feasibility | `done` | — |
 | 1 | Foundation | `done` | 0 |
-| 2 | Domain & persistence | `not-started` | 1 |
+| 2 | Domain & persistence | `done` | 1 |
 | 3 | Manual lists | `not-started` | 2 |
 | 4 | Handwriting input | `not-started` | 3 |
 | 5 | On-device AI | `not-started` | 4 |

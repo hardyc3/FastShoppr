@@ -65,7 +65,7 @@ A phase is not complete unless the relevant commands pass.
 - HTML parsing: Jsoup
 - JSON: Gson
 - Location: Play Services Location
-- Testing: JUnit 4, Mockito, AndroidX Test, Espresso
+- Testing: JUnit 4, Mockito, AndroidX Test, Espresso, Room Testing (`MigrationTestHelper`)
 - Package namespace: `com.fastshoppr.app`
 
 Use the latest stable compatible versions and pin them in `gradle/libs.versions.toml`. Do not add a dependency without checking that it is already declared or documenting why it is needed.
@@ -154,6 +154,7 @@ These are non-negotiable:
 8. Aisle values are stored as strings and sorted with the documented comparator in `02-data-model.md`.
 9. Unknown or unresolved aisles are placed last, regardless of sort direction.
 10. All timestamps are stored as UTC epoch milliseconds.
+11. Deletes are soft deletes: `deletedAt` marks deleted lists, items, and capture sessions; active queries exclude them; purge happens after a 30-day restore window.
 
 ## Store data access policy
 

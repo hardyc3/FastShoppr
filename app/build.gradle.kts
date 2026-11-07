@@ -50,6 +50,10 @@ android {
         }
     }
 
+    sourceSets {
+        getByName("androidTest").assets.srcDir("$projectDir/schemas")
+    }
+
     lint {
         disable +=
             setOf(
@@ -64,6 +68,16 @@ android {
 tasks.withType<org.gradle.api.tasks.compile.JavaCompile>().configureEach {
     if (name == "compileDebugJavaWithJavac" || name == "compileReleaseJavaWithJavac") {
         options.compilerArgs.add("-Aroom.schemaLocation=$projectDir/schemas")
+    }
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlinx" &&
+            requested.name.startsWith("kotlinx-serialization")
+        ) {
+            useVersion(libs.versions.kotlinxSerialization.get())
+        }
     }
 }
 
@@ -95,6 +109,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestAnnotationProcessor(libs.hilt.compiler)
 }

@@ -4,10 +4,11 @@ FastShoppr is a local-first Android shopping-list app written in Java. Lists are
 organized by store and sorted by aisle so a shopping trip can be completed in one
 pass.
 
-This repository currently contains the Phase 1 foundation: a Java 21 Android app
-with XML Views, ViewBinding, a Material 3 theme, NavHost placeholder screens,
-Hilt dependency injection, Room, SharedPreferences, WorkManager, and the quality
-commands later phases build on.
+This repository currently contains Phases 0–2: the Java 21 Android foundation
+plus the domain and persistence layer. The app has XML Views, ViewBinding, a
+Material 3 theme, NavHost placeholder screens, Hilt dependency injection, a
+Room schema with migrations and seed data, SharedPreferences settings, use
+cases, and the quality commands later phases build on.
 
 ## Requirements
 

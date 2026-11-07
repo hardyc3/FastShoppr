@@ -7,7 +7,16 @@ package com.fastshoppr.app.di;
 
 import android.content.Context;
 import androidx.room.Room;
+import com.fastshoppr.app.data.local.DatabaseSeedCallback;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
+import com.fastshoppr.app.data.local.Migrations;
+import com.fastshoppr.app.data.local.dao.AisleCacheDao;
+import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
+import com.fastshoppr.app.data.local.dao.ListItemDao;
+import com.fastshoppr.app.data.local.dao.ShoppingListDao;
+import com.fastshoppr.app.data.local.dao.ShoppingScheduleDao;
+import com.fastshoppr.app.data.local.dao.StoreDao;
+import com.fastshoppr.app.domain.time.Clock;
 import dagger.Module;
 import dagger.Provides;
 import dagger.hilt.InstallIn;
@@ -23,7 +32,40 @@ public final class DatabaseModule {
 
   @Provides
   @Singleton
-  static FastShopprDatabase provideDatabase(@ApplicationContext Context context) {
-    return Room.databaseBuilder(context, FastShopprDatabase.class, FastShopprDatabase.NAME).build();
+  static FastShopprDatabase provideDatabase(@ApplicationContext Context context, Clock clock) {
+    return Room.databaseBuilder(context, FastShopprDatabase.class, FastShopprDatabase.NAME)
+        .addMigrations(Migrations.MIGRATION_1_2)
+        .addCallback(new DatabaseSeedCallback(clock))
+        .build();
+  }
+
+  @Provides
+  static StoreDao provideStoreDao(FastShopprDatabase database) {
+    return database.storeDao();
+  }
+
+  @Provides
+  static ShoppingListDao provideShoppingListDao(FastShopprDatabase database) {
+    return database.shoppingListDao();
+  }
+
+  @Provides
+  static ListItemDao provideListItemDao(FastShopprDatabase database) {
+    return database.listItemDao();
+  }
+
+  @Provides
+  static CaptureSessionDao provideCaptureSessionDao(FastShopprDatabase database) {
+    return database.captureSessionDao();
+  }
+
+  @Provides
+  static ShoppingScheduleDao provideShoppingScheduleDao(FastShopprDatabase database) {
+    return database.shoppingScheduleDao();
+  }
+
+  @Provides
+  static AisleCacheDao provideAisleCacheDao(FastShopprDatabase database) {
+    return database.aisleCacheDao();
   }
 }

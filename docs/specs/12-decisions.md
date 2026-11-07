@@ -190,3 +190,35 @@ Format:
 - Decision: Walmart lookup is **conditionally viable** via the D-004 design: on 2026-11-03 an emulator WebView session loaded walmart.com and three search pages (milk, eggs, paper towels) once past PX; aisles extracted from `__NEXT_DATA__` (`"Location":[{"displayValue":"A29","aisle":{"zone":"A","aisle":29}}]` — milk→A29, eggs→AC4, paper towels→J29), prices and default store context visible. PX pass is intermittent (≈50% of sessions; plain HTTP always blocked). Home Depot remains **blocked** (HTTP 403 Akamai from curl, OkHttp, and interactive WebView). Lookup stays: user-initiated, foreground WebView only, cached, manual override always available, never unattended. Walmart aisle parsing keys off `LocationDisplayValue`/`"Location":[...]` in `__NEXT_DATA__`; fixture tests must use sanitized, trimmed captures.
 - Rationale: Phase 0 evidence (fixtures `walmart/webview-*.json`, report §1/§2). D-021's blanket "no automated path" was too strong for Walmart; HD unchanged.
 - Consequences: Phase 6 may implement Walmart assisted lookup (flag-gated, user-triggered). HD ships manual-entry-first; HD HTTP stays dead until a real-device/mobile-data pass. Phase 11 pricing extraction viable for Walmart/Target where pages load; HD no-go; manual prices remain the guaranteed path everywhere. Nothing here authorizes background or headless lookup.
+
+## D-023 — Soft delete with a 30-day restore window
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision: Deleting a list, item, or capture session stamps `deletedAt` instead of removing the row. Deleting a list stamps the same timestamp on its items and capture sessions. Records can be restored for 30 days and are then physically purged. Foreign-key cascades remain for the final purge.
+- Rationale: Implements the deletion rule already present in `02-data-model.md` and protects users from accidental data loss.
+- Consequences: Normal queries filter `deletedAt IS NULL`. Entities gained a nullable `deletedAt` column in schema version 2. Restoring a list is blocked when another active list exists for the same shopping date.
+
+## D-024 — Active-only shopping-date uniqueness
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision: `ShoppingList.shoppingDate` is a non-unique index. `getOrCreate` runs in a Room transaction and returns the existing active, non-deleted list for the date; archived or deleted lists do not block a new list for that date.
+- Rationale: Matches "unique among active lists" without a database partial index that Room cannot express, and allows a fresh list after an old one was archived.
+- Consequences: All list creation must go through the repository transaction. Restoring a deleted list must check for a conflicting active list first.
+
+## D-025 — Store archive flag
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision: Add `isArchived` to `Store`. Active store queries exclude archived stores. Deleting a store is blocked while any item or aisle-cache entry references it; archive is the supported alternative.
+- Rationale: The data model requires archive-by-default for referenced stores but did not define a field for it.
+- Consequences: Store deletion remains available only for unreferenced stores. Store seeding uses fixed IDs with insert-or-ignore so archived seed stores are not recreated or overwritten.
+
+## D-026 — Schedule creation conflict resolution
+
+- Date: 2026-11-06
+- Status: accepted
+- Decision: When exactly one active schedule exists and a create request targets the same next shopping date, return the existing schedule. When it targets a different date, return a decision-required result so the UI can ask whether to disable the existing schedule and create a new one or move the existing schedule to the new date and interval.
+- Rationale: The user must choose between replacing the cadence and editing the current one; silently replacing or rejecting the request would lose intent.
+- Consequences: `CreateScheduleUseCase` exposes `ConflictAction` values (`ASK`, `DISABLE_EXISTING`, `MOVE_EXISTING`) and a sealed `CreateScheduleResult`. Phase 8 supplies the confirmation UI.
