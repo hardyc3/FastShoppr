@@ -9,5 +9,6 @@ public enum ItemSource {
   TYPED,
   DIGITAL_INK,
   CAMERA_OCR,
-  GALLERY_OCR
+  GALLERY_OCR,
+  CAPTURE
 }

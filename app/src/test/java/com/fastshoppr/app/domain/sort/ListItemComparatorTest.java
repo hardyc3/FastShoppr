@@ -44,6 +44,23 @@ public final class ListItemComparatorTest {
     assertEquals(List.of("b", "a", "c", "d"), ids(items));
   }
 
+  @Test
+  public void unresolvedBaysSortLastInAscendingAndDescending() {
+    List<ListItem> items =
+        new ArrayList<>(
+            List.of(
+                item("a", "5", "10", 0),
+                item("b", "5", "2", 1),
+                item("c", "5", null, 2),
+                item("d", "5", null, 3)));
+
+    items.sort(new ListItemComparator(SortDirection.ASC));
+    assertEquals(List.of("b", "a", "c", "d"), ids(items));
+
+    items.sort(new ListItemComparator(SortDirection.DESC));
+    assertEquals(List.of("a", "b", "d", "c"), ids(items));
+  }
+
   private static List<String> ids(List<ListItem> items) {
     return items.stream().map(ListItem::getId).toList();
   }

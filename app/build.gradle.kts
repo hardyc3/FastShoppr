@@ -97,6 +97,8 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.work.runtime)
+    implementation("com.google.mlkit:digital-ink-recognition:19.0.0")
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     implementation(libs.hilt.android)
     annotationProcessor(libs.hilt.compiler)

@@ -160,10 +160,13 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
   @Override
   public void onItemDefer(ListItem item) {
+    ListDetailUiState state = viewModel.getState().getValue();
+    String listName =
+        state == null || state.getListName() == null
+            ? getString(R.string.list_name_default)
+            : state.getListName();
     DatePickerUtil.showDatePicker(
-        this,
-        item.getTargetDate(),
-        date -> viewModel.deferItem(item.getId(), date, getString(R.string.list_name_default)));
+        this, item.getTargetDate(), date -> viewModel.deferItem(item.getId(), date, listName));
   }
 
   @Override

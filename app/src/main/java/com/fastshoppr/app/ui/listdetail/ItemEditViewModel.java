@@ -14,6 +14,7 @@ import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
+import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.UpdateItemUseCase;
@@ -25,6 +26,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
 @HiltViewModel
@@ -35,8 +37,10 @@ public final class ItemEditViewModel extends ViewModel {
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
+  private final ShoppingListRepository shoppingListRepository;
   private final UpdateItemUseCase updateItemUseCase;
   private final MoveItemToDateUseCase moveItemToDateUseCase;
+  private final ExecutorService executor;
   private final SavedStateHandle savedStateHandle;
 
   private final String itemId;
@@ -61,14 +65,18 @@ public final class ItemEditViewModel extends ViewModel {
       ListItemRepository itemRepository,
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
+      ShoppingListRepository shoppingListRepository,
       UpdateItemUseCase updateItemUseCase,
       MoveItemToDateUseCase moveItemToDateUseCase,
+      ExecutorService executor,
       SavedStateHandle savedStateHandle) {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
+    this.shoppingListRepository = shoppingListRepository;
     this.updateItemUseCase = updateItemUseCase;
     this.moveItemToDateUseCase = moveItemToDateUseCase;
+    this.executor = executor;
     this.savedStateHandle = savedStateHandle;
     this.itemId = Objects.requireNonNull(savedStateHandle.get(NavArguments.ITEM_ID));
     this.itemLiveData = itemRepository.observeById(itemId);
@@ -95,13 +103,7 @@ public final class ItemEditViewModel extends ViewModel {
     rebuild();
   }
 
-  public void save(
-      String rawText,
-      String displayName,
-      String quantity,
-      String aisle,
-      String bay,
-      String targetListName) {
+  public void save(String rawText, String displayName, String quantity, String aisle, String bay) {
     String trimmedRawText = rawText == null ? "" : rawText.trim();
     if (trimmedRawText.isEmpty()) {
       postError(UiError.RAW_TEXT_REQUIRED);
@@ -116,10 +118,16 @@ public final class ItemEditViewModel extends ViewModel {
       return;
     }
 
-    CompletableFuture<ListItem> moved =
-        targetDate.equals(item.getTargetDate())
-            ? CompletableFuture.completedFuture(item)
-            : moveItemToDateUseCase.move(itemId, targetDate, targetListName);
+    CompletableFuture<ListItem> moved;
+    if (targetDate.equals(item.getTargetDate())) {
+      moved = CompletableFuture.completedFuture(item);
+    } else {
+      moved =
+          CompletableFuture.supplyAsync(
+                  () -> shoppingListRepository.getById(item.getListId()).getName(), executor)
+              .thenCompose(
+                  targetListName -> moveItemToDateUseCase.move(itemId, targetDate, targetListName));
+    }
 
     moved
         .thenCompose(

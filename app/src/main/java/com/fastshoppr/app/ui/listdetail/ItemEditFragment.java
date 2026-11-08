@@ -150,8 +150,7 @@ public final class ItemEditFragment extends Fragment {
         textOf(binding.displayNameInput.getText()),
         textOf(binding.quantityInput.getText()),
         textOf(binding.aisleInput.getText()),
-        textOf(binding.bayInput.getText()),
-        getString(R.string.list_name_default));
+        textOf(binding.bayInput.getText()));
   }
 
   private static String textOf(CharSequence text) {

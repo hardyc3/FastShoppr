@@ -37,7 +37,7 @@ public final class ListItemComparator implements Comparator<ListItem> {
     boolean leftBayUnresolved = AisleComparator.isUnresolved(left.getBay());
     boolean rightBayUnresolved = AisleComparator.isUnresolved(right.getBay());
     if (leftBayUnresolved != rightBayUnresolved) {
-      return applyDirection(leftBayUnresolved ? 1 : -1);
+      return leftBayUnresolved ? 1 : -1;
     }
     if (!leftBayUnresolved) {
       comparison = AisleComparator.compareResolvedValues(left.getBay(), right.getBay());
