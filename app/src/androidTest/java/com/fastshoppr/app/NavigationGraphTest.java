@@ -37,9 +37,6 @@ public final class NavigationGraphTest {
             assertNotNull(host);
 
             NavController navController = host.getNavController();
-            assertDestination(navController, R.id.home);
-
-            navController.navigate(R.id.lists);
             assertDestination(navController, R.id.lists);
 
             navController.navigate(R.id.list_detail, NavArguments.forList("list-1"));

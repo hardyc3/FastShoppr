@@ -16,6 +16,8 @@ public interface ListItemRepository {
 
   LiveData<List<ListItem>> observeByListAndStore(String listId, String storeId);
 
+  LiveData<ListItem> observeById(String id);
+
   List<ListItem> getByList(String listId);
 
   ListItem getById(String id);

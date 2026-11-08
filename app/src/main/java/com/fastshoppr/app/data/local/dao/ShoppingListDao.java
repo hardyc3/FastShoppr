@@ -11,6 +11,7 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 import com.fastshoppr.app.data.local.entity.ShoppingListEntity;
+import com.fastshoppr.app.data.local.entity.ShoppingListSummaryEntity;
 import java.util.List;
 
 @Dao
@@ -27,9 +28,32 @@ public interface ShoppingListDao {
   List<ShoppingListEntity> getActive();
 
   @Query(
+      "SELECT l.*, "
+          + "(SELECT COUNT(*) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS itemCount, "
+          + "(SELECT COUNT(DISTINCT i.storeId) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS storeCount "
+          + "FROM shopping_lists l "
+          + "WHERE l.isArchived = 0 AND l.deletedAt IS NULL ORDER BY l.shoppingDate ASC")
+  LiveData<List<ShoppingListSummaryEntity>> observeActiveSummaries();
+
+  @Query(
       "SELECT * FROM shopping_lists "
           + "WHERE isArchived = 1 AND deletedAt IS NULL ORDER BY shoppingDate DESC")
   LiveData<List<ShoppingListEntity>> observeArchived();
+
+  @Query(
+      "SELECT l.*, "
+          + "(SELECT COUNT(*) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS itemCount, "
+          + "(SELECT COUNT(DISTINCT i.storeId) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS storeCount "
+          + "FROM shopping_lists l "
+          + "WHERE l.isArchived = 1 AND l.deletedAt IS NULL ORDER BY l.shoppingDate DESC")
+  LiveData<List<ShoppingListSummaryEntity>> observeArchivedSummaries();
+
+  @Query("SELECT * FROM shopping_lists WHERE id = :id AND deletedAt IS NULL")
+  LiveData<ShoppingListEntity> observeById(String id);
 
   @Query("SELECT * FROM shopping_lists WHERE id = :id AND deletedAt IS NULL")
   ShoppingListEntity getById(String id);

@@ -17,6 +17,7 @@ import com.fastshoppr.app.domain.error.ConflictException;
 import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import java.time.LocalDate;
@@ -61,10 +62,31 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
   }
 
   @Override
+  public LiveData<List<ShoppingListSummary>> observeActiveSummaries() {
+    return Transformations.map(
+        listDao.observeActiveSummaries(),
+        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+  }
+
+  @Override
   public LiveData<List<ShoppingList>> observeArchived() {
     return Transformations.map(
         listDao.observeArchived(),
         entities -> entities.stream().map(ShoppingListMapper::toDomain).toList());
+  }
+
+  @Override
+  public LiveData<List<ShoppingListSummary>> observeArchivedSummaries() {
+    return Transformations.map(
+        listDao.observeArchivedSummaries(),
+        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+  }
+
+  @Override
+  public LiveData<ShoppingList> observeById(String id) {
+    return Transformations.map(
+        listDao.observeById(id),
+        entity -> entity == null ? null : ShoppingListMapper.toDomain(entity));
   }
 
   @Override

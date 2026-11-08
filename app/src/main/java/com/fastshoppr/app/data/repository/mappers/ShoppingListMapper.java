@@ -6,7 +6,9 @@
 package com.fastshoppr.app.data.repository.mappers;
 
 import com.fastshoppr.app.data.local.entity.ShoppingListEntity;
+import com.fastshoppr.app.data.local.entity.ShoppingListSummaryEntity;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
@@ -40,5 +42,9 @@ public final class ShoppingListMapper {
         entity.deletedAt,
         entity.createdAt,
         entity.updatedAt);
+  }
+
+  public static ShoppingListSummary toSummary(ShoppingListSummaryEntity entity) {
+    return new ShoppingListSummary(toDomain(entity.list), entity.itemCount, entity.storeCount);
   }
 }

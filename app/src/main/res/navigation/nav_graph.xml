@@ -2,7 +2,7 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/home">
+    app:startDestination="@id/lists">
 
     <fragment
         android:id="@+id/home"
@@ -31,6 +31,16 @@
         <argument
             android:name="listId"
             android:defaultValue="placeholder-list"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/item_edit"
+        android:name="com.fastshoppr.app.ui.listdetail.ItemEditFragment"
+        android:label="@string/item_edit_title">
+        <argument
+            android:name="itemId"
+            android:defaultValue="placeholder-item"
             app:argType="string" />
     </fragment>
 

@@ -35,6 +35,9 @@ public interface ListItemDao {
   List<ListItemEntity> getByListIncludingDeleted(String listId);
 
   @Query("SELECT * FROM list_items WHERE id = :id AND deletedAt IS NULL")
+  LiveData<ListItemEntity> observeById(String id);
+
+  @Query("SELECT * FROM list_items WHERE id = :id AND deletedAt IS NULL")
   ListItemEntity getById(String id);
 
   @Query("SELECT * FROM list_items WHERE id = :id")

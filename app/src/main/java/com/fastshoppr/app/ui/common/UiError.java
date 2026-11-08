@@ -1,0 +1,20 @@
+/*
+ * FastShoppr
+ *
+ * Copyright (c) 2026 FastShoppr contributors.
+ */
+package com.fastshoppr.app.ui.common;
+
+public enum UiError {
+  LOAD_FAILED,
+  CREATE_FAILED,
+  LIST_NOT_FOUND,
+  ITEM_NOT_FOUND,
+  ADD_FAILED,
+  SAVE_FAILED,
+  DELETE_FAILED,
+  DEFER_FAILED,
+  ARCHIVE_FAILED,
+  RAW_TEXT_REQUIRED,
+  RAW_TEXT_TOO_LONG
+}

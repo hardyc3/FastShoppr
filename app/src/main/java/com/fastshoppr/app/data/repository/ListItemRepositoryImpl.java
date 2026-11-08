@@ -66,6 +66,12 @@ public final class ListItemRepositoryImpl implements ListItemRepository {
   }
 
   @Override
+  public LiveData<ListItem> observeById(String id) {
+    return Transformations.map(
+        itemDao.observeById(id), entity -> entity == null ? null : ListItemMapper.toDomain(entity));
+  }
+
+  @Override
   public List<ListItem> getByList(String listId) {
     return itemDao.getByList(listId).stream().map(ListItemMapper::toDomain).toList();
   }
