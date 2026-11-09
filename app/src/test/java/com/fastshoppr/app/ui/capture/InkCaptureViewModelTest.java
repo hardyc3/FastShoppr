@@ -46,8 +46,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class InkCaptureViewModelTest {
 
-  @Rule public final InstantTaskExecutorRule instantTaskExecutorRule =
-      new InstantTaskExecutorRule();
+  @Rule
+  public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   @Mock private CaptureRepository captureRepository;
 
@@ -88,8 +88,7 @@ public final class InkCaptureViewModelTest {
         100,
         200,
         List.of(
-            new InkStroke(
-                List.of(new InkPoint(10f, 20f, 1000L), new InkPoint(14f, 24f, 1100L)))));
+            new InkStroke(List.of(new InkPoint(10f, 20f, 1000L), new InkPoint(14f, 24f, 1100L)))));
   }
 
   @Test

@@ -52,8 +52,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class ReviewViewModelTest {
 
-  @Rule public final InstantTaskExecutorRule instantTaskExecutorRule =
-      new InstantTaskExecutorRule();
+  @Rule
+  public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   @Mock private CaptureRepository captureRepository;
   @Mock private ListItemRepository listItemRepository;
@@ -70,8 +70,14 @@ public final class ReviewViewModelTest {
     events.clear();
     CaptureSession session =
         new CaptureSession(
-            "cap-1", "list-1", ItemSource.CAMERA_OCR, "/cache/captures/img.jpg", "json", 1000L,
-            null, null);
+            "cap-1",
+            "list-1",
+            ItemSource.CAMERA_OCR,
+            "/cache/captures/img.jpg",
+            "json",
+            1000L,
+            null,
+            null);
     ShoppingList list =
         new ShoppingList(
             "list-1", "Weekly shop", LocalDate.of(2026, 11, 8), null, false, false, null, 1, 1);
@@ -112,9 +118,7 @@ public final class ReviewViewModelTest {
 
     when(captureRepository.getById("cap-1")).thenReturn(session);
     when(captureRepository.decodeRecognizedLines("json"))
-        .thenReturn(
-            List.of(
-                new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f)));
+        .thenReturn(List.of(new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f)));
     when(listRepository.getById("list-1")).thenReturn(list);
     when(storeRepository.getActive()).thenReturn(List.of(homeDepot, walmart));
     when(listItemRepository.nextSortPosition(anyString(), anyString())).thenReturn(0, 1);
@@ -160,7 +164,8 @@ public final class ReviewViewModelTest {
 
     viewModel.loadCapture();
 
-    ReviewViewModel.ReviewUiEvent.LoadFailed failure = findEvent(ReviewViewModel.ReviewUiEvent.LoadFailed.class);
+    ReviewViewModel.ReviewUiEvent.LoadFailed failure =
+        findEvent(ReviewViewModel.ReviewUiEvent.LoadFailed.class);
     assertNotNull(failure);
     assertEquals(UiError.CAPTURE_NOT_FOUND, failure.error());
   }

@@ -61,7 +61,8 @@ public final class InkCaptureFragment extends Fragment {
     if (binding == null) {
       return;
     }
-    boolean busy = state.recognizing() || state.modelState() == InkCaptureViewModel.ModelState.DOWNLOADING;
+    boolean busy =
+        state.recognizing() || state.modelState() == InkCaptureViewModel.ModelState.DOWNLOADING;
     binding.btnFinish.setEnabled(!busy);
     binding.btnUndo.setEnabled(!state.recognizing());
     binding.btnClear.setEnabled(!state.recognizing());

@@ -12,12 +12,9 @@
     <string name="list_detail_title">List detail</string>
 
     <string name="capture_typed_title">Typed items</string>
-    <string name="capture_typed_body">Typed item entry will be implemented in Phase 3.</string>
+    <string name="capture_typed_body">Typed entry lives on the list detail screen. Use the "Add item" field in each store section, then continue here. In a later phase this screen will open the review step directly.</string>
     <string name="capture_ink_title">Handwritten items</string>
-    <string name="capture_ink_body">Handwriting recognition will be implemented in Phase 4.</string>
     <string name="capture_camera_title">Photo items</string>
-    <string name="capture_camera_body">Camera and image recognition will be implemented in Phase 4.</string>
-
     <string name="capture_ink_toolbar_title">Handwriting</string>
     <string name="capture_camera_toolbar_title">Photo</string>
     <string name="capture_review_toolbar_title">Review</string>
@@ -32,8 +29,6 @@
     <string name="camera_permission_always_deny">Always deny</string>
 
     <string name="review_title">Review captured items</string>
-    <string name="review_body">Bulk review and editing will be implemented in Phase 4.</string>
-
     <string name="select_all">Select all</string>
     <string name="delete_selected">Delete selected</string>
     <string name="merge_selected">Merge selected</string>

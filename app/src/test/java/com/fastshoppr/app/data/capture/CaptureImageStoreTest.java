@@ -82,8 +82,7 @@ public final class CaptureImageStoreTest {
     ContentResolver resolver = mock(ContentResolver.class);
     Uri source = mock(Uri.class);
     when(context.getContentResolver()).thenReturn(resolver);
-    when(resolver.openInputStream(source))
-        .thenReturn(new ByteArrayInputStream(payload));
+    when(resolver.openInputStream(source)).thenReturn(new ByteArrayInputStream(payload));
     CaptureImageStore store = new CaptureImageStore(context, capturesDir);
 
     File copy = store.copyToCache(source);

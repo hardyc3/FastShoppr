@@ -5,15 +5,14 @@
  */
 package com.fastshoppr.app;
 
-import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.Espresso.pressBackUnconditionally;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
-import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
+import static androidx.test.espresso.matcher.ViewMatchers.isEnabled;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
@@ -35,9 +34,9 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
+import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
@@ -182,13 +181,14 @@ public final class CaptureFlowsTest {
 
       waitForText(R.string.camera_permission_message);
       onFocusedView(withId(R.id.btnAllowCamera)).check(matches(isDisplayed()));
-      onFocusedView(withId(R.id.btnGallery)).check(matches(isDisplayed())).check(matches(isEnabled()));
+      onFocusedView(withId(R.id.btnGallery))
+          .check(matches(isDisplayed()))
+          .check(matches(isEnabled()));
       onFocusedView(withId(R.id.btnCapture)).check(matches(not(isEnabled())));
 
       pressBackUnconditionally();
       waitForContentDescription("Add item to Walmart");
-      onFocusedView(withContentDescription("Add item to Walmart"))
-          .check(matches(isDisplayed()));
+      onFocusedView(withContentDescription("Add item to Walmart")).check(matches(isDisplayed()));
     }
   }
 

@@ -45,8 +45,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public final class CameraCaptureViewModelTest {
 
-  @Rule public final InstantTaskExecutorRule instantTaskExecutorRule =
-      new InstantTaskExecutorRule();
+  @Rule
+  public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   @Mock private CaptureRepository captureRepository;
   @Mock private ImageTextRecognitionRepository textRecognitionRepository;
@@ -118,8 +118,7 @@ public final class CameraCaptureViewModelTest {
     CaptureSession session = captor.getValue();
     assertEquals(ItemSource.GALLERY_OCR, session.getSource());
     assertTrue(session.getImageUri().endsWith("picked.jpg"));
-    assertNotNull(
-        findEvent(CameraCaptureViewModel.CameraUiEvent.NavigateToReview.class));
+    assertNotNull(findEvent(CameraCaptureViewModel.CameraUiEvent.NavigateToReview.class));
   }
 
   @Test

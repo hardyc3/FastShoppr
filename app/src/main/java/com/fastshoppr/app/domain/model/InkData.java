@@ -20,9 +20,7 @@ public final class InkData {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
     this.strokes =
-        strokes == null
-            ? List.of()
-            : Collections.unmodifiableList(new ArrayList<>(strokes));
+        strokes == null ? List.of() : Collections.unmodifiableList(new ArrayList<>(strokes));
   }
 
   public int getCanvasWidth() {

@@ -43,7 +43,9 @@ public final class InkCanvasView extends View {
     paint.setStrokeCap(Paint.Cap.ROUND);
     paint.setStrokeWidth(
         TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, STROKE_WIDTH_DP, context.getResources().getDisplayMetrics()));
+            TypedValue.COMPLEX_UNIT_DIP,
+            STROKE_WIDTH_DP,
+            context.getResources().getDisplayMetrics()));
     minPointDistancePx =
         TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
@@ -57,8 +59,9 @@ public final class InkCanvasView extends View {
     if (context.getTheme().resolveAttribute(android.R.attr.colorControlHighlight, value, true)
         && value.resourceId != 0) {
       paint.setColor(context.getColor(value.resourceId));
-    } else if (context.getTheme().resolveAttribute(
-        com.google.android.material.R.attr.colorOnSurface, value, true)
+    } else if (context
+            .getTheme()
+            .resolveAttribute(com.google.android.material.R.attr.colorOnSurface, value, true)
         && value.resourceId != 0) {
       paint.setColor(context.getColor(value.resourceId));
     } else {

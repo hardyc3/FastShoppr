@@ -11,8 +11,8 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -88,7 +88,8 @@ public final class CameraCaptureFragment extends Fragment {
     binding.toolbar.setNavigationOnClickListener(
         v -> Navigation.findNavController(v).popBackStack());
 
-    binding.btnAllowCamera.setOnClickListener(v -> permissionLauncher.launch(Manifest.permission.CAMERA));
+    binding.btnAllowCamera.setOnClickListener(
+        v -> permissionLauncher.launch(Manifest.permission.CAMERA));
     binding.btnCapture.setOnClickListener(v -> capturePhoto());
     binding.btnRetake.setOnClickListener(
         v -> {

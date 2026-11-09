@@ -77,7 +77,8 @@ public final class MlKitInkRecognitionRepository implements InkRecognitionReposi
       pendingPreparation = new CompletableFuture<>();
       CompletableFuture<Void> preparation = pendingPreparation;
       RemoteModelManager manager = RemoteModelManager.getInstance();
-      manager.isModelDownloaded(remoteModel)
+      manager
+          .isModelDownloaded(remoteModel)
           .addOnSuccessListener(
               downloaded -> {
                 if (downloaded) {

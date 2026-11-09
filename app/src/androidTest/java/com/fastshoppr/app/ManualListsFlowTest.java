@@ -5,13 +5,11 @@
  */
 package com.fastshoppr.app;
 
-import static androidx.test.espresso.Espresso.closeSoftKeyboard;
 import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.action.ViewActions.clearText;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.pressImeActionButton;
-import static androidx.test.espresso.action.ViewActions.typeText;
+import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
 import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
@@ -22,9 +20,12 @@ import static org.hamcrest.Matchers.allOf;
 import android.content.Intent;
 import android.os.SystemClock;
 import android.view.View;
+import android.widget.EditText;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -71,28 +72,27 @@ public final class ManualListsFlowTest {
         new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
-      onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed()));
+      waitFor(
+          () -> onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed())));
       onFocusedView(withId(R.id.create_list_button)).perform(click());
       onFocusedView(withText(android.R.string.ok)).perform(click());
 
-      onFocusedView(withText(R.string.list_name_default)).check(matches(isDisplayed()));
+      waitForText("Shopping list");
       onFocusedView(withId(R.id.store_selector_button)).perform(click());
       onFocusedView(withText("Home Depot")).perform(click());
       onFocusedView(withText(android.R.string.ok)).perform(click());
       waitForText("Store: Home Depot");
       waitForContentDescription("Add item to Walmart");
       onFocusedView(withContentDescription("Add item to Walmart"))
-          .perform(typeText("milk"), pressImeActionButton());
+          .perform(replaceText("milk"), clickAddItemButton());
       waitForText("milk");
-      closeSoftKeyboard();
 
       scrollToPosition(2);
       onFocusedView(withId(R.id.item_overflow)).perform(click());
       onFocusedView(withText(R.string.set_aisle)).perform(click());
-      onFocusedView(withId(R.id.dialog_aisle_input)).perform(typeText("A12"));
+      onFocusedView(withId(R.id.dialog_aisle_input)).perform(replaceText("A12"));
       onFocusedView(withText(R.string.save)).perform(click());
       waitForText("Aisle A12");
-      closeSoftKeyboard();
 
       scrollToPosition(1);
       onFocusedView(withId(R.id.item_checkbox)).perform(click());
@@ -106,12 +106,12 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.item_overflow)).perform(click());
       onFocusedView(withText(R.string.edit_item)).perform(click());
       onFocusedView(withId(R.id.raw_text_input)).check(matches(withText("milk")));
-      onFocusedView(withId(R.id.raw_text_input)).perform(clearText(), typeText("milk 2%"));
+      onFocusedView(withId(R.id.raw_text_input)).perform(replaceText("milk 2%"));
       onFocusedView(withId(R.id.save_item_button)).perform(click());
       waitForText("milk 2%");
 
       scrollToPosition(2);
-      onFocusedView(withContentDescription("Add item to Walmart")).perform(typeText("eggs"));
+      onFocusedView(withContentDescription("Add item to Walmart")).perform(replaceText("eggs"));
       waitForText("eggs");
       scenario.recreate();
       waitForContentDescription("Add item to Walmart");
@@ -139,6 +139,35 @@ public final class ManualListsFlowTest {
       @Override
       public void describeTo(Description description) {
         description.appendText("view is in the focused window");
+      }
+    };
+  }
+
+  private static ViewAction clickAddItemButton() {
+    return new ViewAction() {
+      @Override
+      public Matcher<View> getConstraints() {
+        return isAssignableFrom(EditText.class);
+      }
+
+      @Override
+      public String getDescription() {
+        return "click the add item button of the same row";
+      }
+
+      @Override
+      public void perform(UiController uiController, View view) {
+        View ancestor = view;
+        while (ancestor.getParent() instanceof View) {
+          ancestor = (View) ancestor.getParent();
+          View button = ancestor.findViewById(R.id.add_item_button);
+          if (button != null) {
+            button.performClick();
+            uiController.loopMainThreadUntilIdle();
+            return;
+          }
+        }
+        throw new AssertionError("add item row has no add_item_button");
       }
     };
   }

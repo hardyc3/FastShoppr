@@ -283,9 +283,11 @@ public final class ReviewFragment extends Fragment {
       bindConfidence(holder, line);
 
       holder.storeButton.setText(fragment.storeLabel(line.storeId));
-      holder.storeButton.setOnClickListener(v -> fragment.showStorePicker(holder.getBindingAdapterPosition()));
+      holder.storeButton.setOnClickListener(
+          v -> fragment.showStorePicker(holder.getBindingAdapterPosition()));
       holder.dateButton.setText(fragment.dateLabel(line.targetDate));
-      holder.dateButton.setOnClickListener(v -> fragment.showDatePicker(holder.getBindingAdapterPosition()));
+      holder.dateButton.setOnClickListener(
+          v -> fragment.showDatePicker(holder.getBindingAdapterPosition()));
     }
 
     private void bindConfidence(ViewHolder holder, ReviewViewModel.ReviewLine line) {

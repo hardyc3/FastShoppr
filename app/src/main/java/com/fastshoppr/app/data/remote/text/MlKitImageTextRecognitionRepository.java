@@ -112,8 +112,7 @@ public final class MlKitImageTextRecognitionRepository implements ImageTextRecog
     try {
       ExifInterface exif = new ExifInterface(file.getAbsolutePath());
       int orientation =
-          exif.getAttributeInt(
-              ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+          exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
       return switch (orientation) {
         case ExifInterface.ORIENTATION_ROTATE_90 -> 90;
         case ExifInterface.ORIENTATION_ROTATE_180 -> 180;

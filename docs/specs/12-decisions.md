@@ -222,3 +222,11 @@ Format:
 - Decision: When exactly one active schedule exists and a create request targets the same next shopping date, return the existing schedule. When it targets a different date, return a decision-required result so the UI can ask whether to disable the existing schedule and create a new one or move the existing schedule to the new date and interval.
 - Rationale: The user must choose between replacing the cadence and editing the current one; silently replacing or rejecting the request would lose intent.
 - Consequences: `CreateScheduleUseCase` exposes `ConflictAction` values (`ASK`, `DISABLE_EXISTING`, `MOVE_EXISTING`) and a sealed `CreateScheduleResult`. Phase 8 supplies the confirmation UI.
+
+## D-027 — Mandatory review for every capture; auto-save skip deferred
+
+- Date: 2026-11-09
+- Status: accepted (amends D-016 and `04-ocr-and-input.md`)
+- Decision: Every capture (ink, camera, gallery) opens the review screen before any `ListItem` is created, regardless of recognition confidence. Confidence drives a visible flag only (ink > 0.8, OCR > 0.7 thresholds for low-confidence marking). The `04-ocr-and-input.md` high-confidence auto-save path (ink > 80%, OCR > 70% skip review) is explicitly deferred and not implemented.
+- Rationale: Phase 4 implemented mandatory review with confidence badges. Camera/OCR handwriting accuracy is the weakest input path, and an unintentional skip keeps the user in control of what reaches `rawText`. One uniform flow is simpler to test and demo than a two-path flow.
+- Consequences: `rawText` always equals the reviewed line. No per-capture "auto-saved" banner. Iterating to a skip path can be revisited later only via a new decision entry and spec update; `ReviewFragment`/`ReviewViewModel` remain the single save path.

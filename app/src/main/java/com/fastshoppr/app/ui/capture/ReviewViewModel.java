@@ -382,8 +382,7 @@ public final class ReviewViewModel extends ViewModel {
                         .targetDate(targetDate)
                         .source(itemSource)
                         .isChecked(false)
-                        .sortPosition(
-                            listItemRepository.nextSortPosition(listId, line.storeId))
+                        .sortPosition(listItemRepository.nextSortPosition(listId, line.storeId))
                         .createdAt(now)
                         .updatedAt(now)
                         .build();
@@ -424,13 +423,14 @@ public final class ReviewViewModel extends ViewModel {
 
   private void parseLines() {
     lines.clear();
-    List<RecognizedLine> recognized = captureRepository.decodeRecognizedLines(
-        currentCapture.getRecognizedLinesJson());
+    List<RecognizedLine> recognized =
+        captureRepository.decodeRecognizedLines(currentCapture.getRecognizedLinesJson());
     for (RecognizedLine recognizedLine : recognized) {
       if (recognizedLine.getText().isBlank()) {
         continue;
       }
-      ReviewLine line = new ReviewLine(recognizedLine.getText(), true, recognizedLine.getConfidence());
+      ReviewLine line =
+          new ReviewLine(recognizedLine.getText(), true, recognizedLine.getConfidence());
       line.storeId = defaultStoreId();
       line.targetDate = defaultTargetDate();
       lines.add(line);

@@ -30,8 +30,7 @@ public final class RecognitionConfidenceTest {
   @Test
   public void unknownConfidenceCountsAsLow() {
     assertTrue(
-        RecognitionConfidence.isLow(
-            RecognizedLine.UNKNOWN_CONFIDENCE, ItemSource.DIGITAL_INK));
+        RecognitionConfidence.isLow(RecognizedLine.UNKNOWN_CONFIDENCE, ItemSource.DIGITAL_INK));
     assertTrue(RecognitionConfidence.isLow(-1f, ItemSource.CAMERA_OCR));
   }
 
@@ -44,7 +43,9 @@ public final class RecognitionConfidenceTest {
         new RecognizedLine("milk", Float.NaN).getConfidence(),
         0.0001f);
     assertEquals(
-        RecognizedLine.UNKNOWN_CONFIDENCE, new RecognizedLine("milk", -1f).getConfidence(), 0.0001f);
+        RecognizedLine.UNKNOWN_CONFIDENCE,
+        new RecognizedLine("milk", -1f).getConfidence(),
+        0.0001f);
   }
 
   @Test
