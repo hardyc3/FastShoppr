@@ -6,22 +6,36 @@
 package com.fastshoppr.app.ui.capture;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentReviewBinding;
+import com.fastshoppr.app.domain.model.ItemSource;
+import com.fastshoppr.app.domain.model.Store;
+import com.fastshoppr.app.ui.common.DatePickerUtil;
+import com.fastshoppr.app.ui.common.SingleEvent;
+import com.fastshoppr.app.ui.common.StorePickerDialog;
+import com.fastshoppr.app.ui.common.UiErrorText;
+import com.fastshoppr.app.ui.common.UiMessageText;
+import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.List;
+import java.util.Locale;
 
 @AndroidEntryPoint
 public final class ReviewFragment extends Fragment {
@@ -45,142 +59,201 @@ public final class ReviewFragment extends Fragment {
     super.onViewCreated(view, savedInstanceState);
     viewModel = new ViewModelProvider(this).get(ReviewViewModel.class);
 
-    viewModel
-        .getEvents()
-        .observe(
-            getViewLifecycleOwner(),
-            singleEvent -> {
-              ReviewViewModel.ReviewUiEvent content = singleEvent.getContentIfNotHandled();
-              if (content == null) {
-                return;
-              }
-              if (content instanceof ReviewViewModel.ReviewUiEvent.LineAdded) {
-                int index = viewModel.getLines().size() - 1;
-                adapter.notifyItemInserted(index);
-                binding.recyclerView.scrollToPosition(index);
-              } else if (content instanceof ReviewViewModel.ReviewUiEvent.LinesChanged) {
-                adapter.notifyDataSetChanged();
-              } else if (content instanceof ReviewViewModel.ReviewUiEvent.SelectionChanged) {
-                binding.checkSelectAll.setChecked(
-                    viewModel.getSelectedCount() == viewModel.getLines().size());
-                binding.checkSelectAll.setVisibility(
-                    viewModel.getLines().isEmpty() ? View.GONE : View.VISIBLE);
-              } else if (content instanceof ReviewViewModel.ReviewUiEvent.SaveCompleted) {
-                requireActivity()
-                    .getSupportFragmentManager()
-                    .popBackStack(
-                        R.id.lists, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
-              } else if (content instanceof ReviewViewModel.ReviewUiEvent.Discarded) {
-                requireActivity()
-                    .getSupportFragmentManager()
-                    .popBackStack(
-                        R.id.lists, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE);
-              }
-            });
+    binding.toolbar.setTitle(R.string.capture_review_toolbar_title);
+    binding.toolbar.setNavigationContentDescription(R.string.action_back);
+    binding.toolbar.setNavigationOnClickListener(
+        v -> Navigation.findNavController(v).popBackStack());
 
-    adapter =
-        new ReviewAdapter(
-            viewModel.getLines(),
-            new ReviewAdapter.OnLineChanged() {
-              @Override
-              public void onLineChanged(int position, boolean selected) {}
-            },
-            new ReviewAdapter.OnDeleteSelected() {
-              @Override
-              public void onDeleteSelected() {
-                viewModel.deleteSelected();
-              }
-            },
-            new ReviewAdapter.OnMergeSelected() {
-              @Override
-              public void onMergeSelected() {
-                viewModel.mergeSelected();
-              }
-            },
-            new ReviewAdapter.OnAddLine() {
-              @Override
-              public void onAddLine() {
-                viewModel.addLine("");
-              }
-            },
-            new ReviewAdapter.OnSplitLine() {
-              @Override
-              public void onSplitLine() {
-                int selectedIndex = getSelectedIndex();
-                if (selectedIndex >= 0) {
-                  viewModel.splitLine(selectedIndex);
-                }
-              }
-            });
+    adapter = new ReviewAdapter(this, viewModel);
     binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
     binding.recyclerView.setAdapter(adapter);
 
     binding.checkSelectAll.setOnCheckedChangeListener(
-        new CompoundButton.OnCheckedChangeListener() {
-          @Override
-          public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-            if (isChecked) {
-              viewModel.selectAll();
-            } else {
-              viewModel.deselectAll();
-            }
-            adapter.notifyDataSetChanged();
+        (buttonView, isChecked) -> {
+          if (isChecked) {
+            viewModel.selectAll();
+          } else {
+            viewModel.deselectAll();
           }
         });
-
     binding.btnDeleteSelected.setOnClickListener(v -> viewModel.deleteSelected());
-
     binding.btnMergeSelected.setOnClickListener(v -> viewModel.mergeSelected());
-
     binding.btnAddLine.setOnClickListener(v -> viewModel.addLine(""));
-
-    binding.btnSplit.setOnClickListener(
-        v -> {
-          int selectedIndex = getSelectedIndex();
-          if (selectedIndex >= 0) {
-            viewModel.splitLine(selectedIndex);
-          }
-        });
-
+    binding.btnSplit.setOnClickListener(v -> onSplitClicked());
     binding.btnSave.setOnClickListener(v -> viewModel.saveSelected());
-
     binding.btnDiscard.setOnClickListener(v -> viewModel.discard());
 
+    viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
     viewModel.loadCapture();
   }
 
-  private int getSelectedIndex() {
+  private void onSplitClicked() {
     List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
     for (int index = 0; index < lines.size(); index++) {
       if (lines.get(index).selected) {
-        return index;
+        viewModel.splitLine(index, cursorForPosition(index));
+        return;
+      }
+    }
+  }
+
+  private int cursorForPosition(int position) {
+    RecyclerView.ViewHolder holder =
+        binding.recyclerView.findViewHolderForAdapterPosition(position);
+    if (holder instanceof ReviewAdapter.ViewHolder viewHolder) {
+      EditText field = viewHolder.textField;
+      if (field.isFocused()) {
+        return field.getSelectionStart();
       }
     }
     return -1;
   }
 
+  private void handleEvent(SingleEvent<ReviewViewModel.ReviewUiEvent> event) {
+    ReviewViewModel.ReviewUiEvent content = event.getContentIfNotHandled();
+    if (content == null || binding == null) {
+      return;
+    }
+    if (content instanceof ReviewViewModel.ReviewUiEvent.CaptureLoaded) {
+      onCaptureLoaded();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.LoadFailed loadFailed) {
+      Snackbar.make(
+              binding.getRoot(), UiErrorText.stringRes(loadFailed.error()), Snackbar.LENGTH_SHORT)
+          .show();
+      Navigation.findNavController(requireView()).popBackStack();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.LinesChanged) {
+      adapter.notifyDataSetChanged();
+      syncSelectAll();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.SelectionChanged) {
+      adapter.notifyDataSetChanged();
+      syncSelectAll();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.SaveCompleted
+        || content instanceof ReviewViewModel.ReviewUiEvent.Discarded) {
+      navigateBackAfterReview();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.ShowError error) {
+      Snackbar.make(binding.getRoot(), UiErrorText.stringRes(error.error()), Snackbar.LENGTH_SHORT)
+          .show();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.ShowMessage message) {
+      Snackbar.make(
+              binding.getRoot(), UiMessageText.stringRes(message.message()), Snackbar.LENGTH_SHORT)
+          .show();
+    }
+  }
+
+  private void onCaptureLoaded() {
+    if (binding == null) {
+      return;
+    }
+    adapter.notifyDataSetChanged();
+    syncSelectAll();
+    ItemSource source = viewModel.getSource();
+    boolean photoSource = source == ItemSource.CAMERA_OCR || source == ItemSource.GALLERY_OCR;
+    binding.reviewNote.setVisibility(photoSource ? View.VISIBLE : View.GONE);
+  }
+
+  private void syncSelectAll() {
+    if (binding == null) {
+      return;
+    }
+    binding.checkSelectAll.setVisibility(viewModel.getLines().isEmpty() ? View.GONE : View.VISIBLE);
+    boolean allSelected =
+        !viewModel.getLines().isEmpty()
+            && viewModel.getSelectedCount() == viewModel.getLines().size();
+    if (binding.checkSelectAll.isChecked() != allSelected) {
+      binding.checkSelectAll.setOnCheckedChangeListener(null);
+      binding.checkSelectAll.setChecked(allSelected);
+      binding.checkSelectAll.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> {
+            if (isChecked) {
+              viewModel.selectAll();
+            } else {
+              viewModel.deselectAll();
+            }
+          });
+    }
+  }
+
+  private void navigateBackAfterReview() {
+    Navigation.findNavController(requireView()).popBackStack();
+  }
+
+  void showStorePicker(int position) {
+    ReviewViewModel.ReviewLine line = lineAt(position);
+    if (line == null) {
+      return;
+    }
+    StorePickerDialog.show(
+        requireContext(),
+        viewModel.getStores(),
+        line.storeId,
+        store -> viewModel.setLineStore(position, store.getId()));
+  }
+
+  void showDatePicker(int position) {
+    ReviewViewModel.ReviewLine line = lineAt(position);
+    if (line == null) {
+      return;
+    }
+    DatePickerUtil.showDatePicker(
+        this, parseDate(line.targetDate), date -> viewModel.setLineDate(position, date));
+  }
+
+  String storeLabel(@Nullable String storeId) {
+    for (Store store : viewModel.getStores()) {
+      if (store.getId().equals(storeId)) {
+        return store.getName();
+      }
+    }
+    return getString(R.string.select_store);
+  }
+
+  String dateLabel(@Nullable String value) {
+    if (value == null || value.isBlank()) {
+      return getString(R.string.field_target_date);
+    }
+    try {
+      LocalDate date = LocalDate.parse(value.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
+      return date.format(
+          DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()));
+    } catch (RuntimeException exception) {
+      return getString(R.string.field_target_date);
+    }
+  }
+
+  private ReviewViewModel.ReviewLine lineAt(int position) {
+    List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
+    if (position < 0 || position >= lines.size()) {
+      return null;
+    }
+    return lines.get(position);
+  }
+
+  private LocalDate parseDate(@Nullable String value) {
+    if (value != null && !value.isBlank()) {
+      try {
+        return LocalDate.parse(value.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
+      } catch (RuntimeException exception) {
+        return LocalDate.now();
+      }
+    }
+    return LocalDate.now();
+  }
+
+  @Override
+  public void onDestroyView() {
+    super.onDestroyView();
+    binding = null;
+    adapter = null;
+  }
+
   public static final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder> {
 
-    private final List<ReviewViewModel.ReviewLine> lines;
-    private final OnLineChanged onLineChanged;
-    private final OnDeleteSelected onDeleteSelected;
-    private final OnMergeSelected onMergeSelected;
-    private final OnAddLine onAddLine;
-    private final OnSplitLine onSplitLine;
+    private final ReviewFragment fragment;
+    private final ReviewViewModel viewModel;
 
-    public ReviewAdapter(
-        List<ReviewViewModel.ReviewLine> lines,
-        OnLineChanged onLineChanged,
-        OnDeleteSelected onDeleteSelected,
-        OnMergeSelected onMergeSelected,
-        OnAddLine onAddLine,
-        OnSplitLine onSplitLine) {
-      this.lines = lines;
-      this.onLineChanged = onLineChanged;
-      this.onDeleteSelected = onDeleteSelected;
-      this.onMergeSelected = onMergeSelected;
-      this.onAddLine = onAddLine;
-      this.onSplitLine = onSplitLine;
+    ReviewAdapter(ReviewFragment fragment, ReviewViewModel viewModel) {
+      this.fragment = fragment;
+      this.viewModel = viewModel;
     }
 
     @NonNull
@@ -189,81 +262,112 @@ public final class ReviewFragment extends Fragment {
       View view =
           LayoutInflater.from(parent.getContext())
               .inflate(R.layout.item_review_line, parent, false);
-      return new ViewHolder(view);
+      return new ViewHolder(view, viewModel);
     }
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-      ReviewViewModel.ReviewLine line = lines.get(position);
+      ReviewViewModel.ReviewLine line = viewModel.getLines().get(position);
+
+      holder.checkBox.setOnCheckedChangeListener(null);
       holder.checkBox.setChecked(line.selected);
-      holder.textField.setText(line.text);
-      holder.confidenceText.setText(
-          String.format("%.1f", line.confidence)
-              + " "
-              + holder.context.getString(R.string.low_confidence));
       holder.checkBox.setOnCheckedChangeListener(
-          new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-              int adapterPosition = holder.getAdapterPosition();
-              if (adapterPosition == RecyclerView.NO_POSITION) {
-                return;
-              }
-              ReviewViewModel.ReviewLine line = lines.get(adapterPosition);
-              line.selected = isChecked;
-              onLineChanged.onLineChanged(adapterPosition, isChecked);
+          (buttonView, isChecked) -> {
+            int adapterPosition = holder.getBindingAdapterPosition();
+            if (adapterPosition != RecyclerView.NO_POSITION) {
+              viewModel.setLineSelected(adapterPosition, isChecked);
             }
           });
-      holder.textField.setOnEditorActionListener(
-          (v, actionId, event) -> {
-            line.text = holder.textField.getText().toString();
-            int editorPosition = holder.getAdapterPosition();
-            if (editorPosition != RecyclerView.NO_POSITION) {
-              onLineChanged.onLineChanged(editorPosition, false);
-            }
-            return true;
-          });
+
+      holder.bindText(line);
+      bindConfidence(holder, line);
+
+      holder.storeButton.setText(fragment.storeLabel(line.storeId));
+      holder.storeButton.setOnClickListener(v -> fragment.showStorePicker(holder.getBindingAdapterPosition()));
+      holder.dateButton.setText(fragment.dateLabel(line.targetDate));
+      holder.dateButton.setOnClickListener(v -> fragment.showDatePicker(holder.getBindingAdapterPosition()));
+    }
+
+    private void bindConfidence(ViewHolder holder, ReviewViewModel.ReviewLine line) {
+      if (line.manual) {
+        holder.confidenceText.setVisibility(View.GONE);
+        return;
+      }
+      holder.confidenceText.setVisibility(View.VISIBLE);
+      if (viewModel.isLowConfidence(line)) {
+        holder.confidenceText.setText(R.string.low_confidence);
+        holder.confidenceText.setTextColor(
+            resolveColor(holder.context, androidx.appcompat.R.attr.colorError));
+      } else {
+        holder.confidenceText.setTextColor(
+            resolveColor(holder.context, com.google.android.material.R.attr.colorOnSurface));
+        holder.confidenceText.setText(
+            String.format(Locale.getDefault(), "%.0f%%", line.confidence * 100f));
+      }
+    }
+
+    private static int resolveColor(android.content.Context context, int attr) {
+      TypedValue value = new TypedValue();
+      if (context.getTheme().resolveAttribute(attr, value, true) && value.resourceId != 0) {
+        return context.getColor(value.resourceId);
+      }
+      return value.data;
     }
 
     @Override
     public int getItemCount() {
-      return lines.size();
+      return viewModel.getLines().size();
     }
 
     public static final class ViewHolder extends RecyclerView.ViewHolder {
 
-      private final android.content.Context context;
-      private final android.widget.CheckBox checkBox;
-      private final EditText textField;
-      private final TextView confidenceText;
+      final android.content.Context context;
+      final android.widget.CheckBox checkBox;
+      final EditText textField;
+      final android.widget.TextView confidenceText;
+      final com.google.android.material.button.MaterialButton storeButton;
+      final com.google.android.material.button.MaterialButton dateButton;
+      private final ReviewViewModel viewModel;
+      @Nullable private TextWatcher watcher;
 
-      public ViewHolder(@NonNull View view) {
+      ViewHolder(@NonNull View view, ReviewViewModel viewModel) {
         super(view);
+        this.viewModel = viewModel;
         context = view.getContext();
         checkBox = view.findViewById(R.id.checkBox);
         textField = view.findViewById(R.id.textField);
         confidenceText = view.findViewById(R.id.confidenceText);
+        storeButton = view.findViewById(R.id.storeButton);
+        dateButton = view.findViewById(R.id.dateButton);
       }
-    }
 
-    public interface OnLineChanged {
-      void onLineChanged(int position, boolean selected);
-    }
+      void bindText(ReviewViewModel.ReviewLine line) {
+        if (watcher != null) {
+          textField.removeTextChangedListener(watcher);
+        }
+        textField.setText(line.text);
+        watcher =
+            new TextWatcher() {
+              @Override
+              public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
-    public interface OnDeleteSelected {
-      void onDeleteSelected();
-    }
+              @Override
+              public void onTextChanged(CharSequence s, int start, int before, int count) {}
 
-    public interface OnMergeSelected {
-      void onMergeSelected();
-    }
-
-    public interface OnAddLine {
-      void onAddLine();
-    }
-
-    public interface OnSplitLine {
-      void onSplitLine();
+              @Override
+              public void afterTextChanged(Editable s) {
+                int adapterPosition = getBindingAdapterPosition();
+                if (adapterPosition == RecyclerView.NO_POSITION) {
+                  return;
+                }
+                List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
+                if (adapterPosition < lines.size()) {
+                  lines.get(adapterPosition).text = s.toString();
+                }
+              }
+            };
+        textField.addTextChangedListener(watcher);
+      }
     }
   }
 }

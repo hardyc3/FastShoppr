@@ -143,4 +143,29 @@
     <string name="retake">Retake</string>
     <string name="cancel">Cancel</string>
     <string name="bay_hint">e.g. 3</string>
+
+    <string name="capture_write_by_hand">Write by hand</string>
+    <string name="capture_take_photo">Take photo</string>
+    <string name="capture_gallery">Gallery</string>
+    <string name="capture_change_source_description">Change capture method</string>
+    <string name="camera_allow">Allow camera access</string>
+    <string name="capture_retry">Retry</string>
+    <string name="capture_pick_another">Pick another image</string>
+    <string name="capture_type_items">Type items</string>
+    <string name="capture_no_text_title">No text recognized</string>
+    <string name="ink_model_checking">Preparing handwriting recognition…</string>
+    <string name="ink_model_downloading">Downloading handwriting model…</string>
+    <string name="ink_recognizing">Recognizing handwriting…</string>
+    <string name="ocr_recognizing">Reading image text…</string>
+    <string name="review_note">Handwriting recognition is best-effort. Review anytime from list detail.</string>
+    <string name="review_no_lines_selected">Select at least one line to save.</string>
+    <string name="review_change_store_description">Change store for this line</string>
+    <string name="review_change_date_description">Change shopping date for this line</string>
+    <string name="recognition_failed">Could not recognize text. Try again.</string>
+    <string name="ink_model_not_ready">Handwriting recognition is not ready yet. Try again, use a photo, or type items.</string>
+    <string name="capture_not_found">Capture not found.</string>
+    <string name="ink_strokes_required">Write at least one line first.</string>
+    <string name="split_failed">Could not split this line.</string>
+    <string name="camera_unavailable">Camera not available. Use gallery or type items instead.</string>
+    <string name="camera_capture_failed">Could not capture photo. Try again.</string>
 </resources>

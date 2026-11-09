@@ -62,10 +62,20 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
     binding.storeSelectorButton.setOnClickListener(v -> showStorePicker());
     binding.sortToggleButton.setOnClickListener(v -> viewModel.toggleSortDirection());
+    binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
+    binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
+    binding.captureGalleryButton.setOnClickListener(v -> openCapture(R.id.capture_camera, true));
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
     viewModel.refresh();
+  }
+
+  private void openCapture(int destinationId, boolean launchGallery) {
+    String listId = requireArguments().getString(NavArguments.LIST_ID);
+    Bundle args =
+        launchGallery ? NavArguments.forListLaunchGallery(listId) : NavArguments.forList(listId);
+    Navigation.findNavController(requireView()).navigate(destinationId, args);
   }
 
   private void render(ListDetailUiState state) {

@@ -6,6 +6,7 @@ plugins {
 android {
     namespace = "com.fastshoppr.app"
     compileSdk = 36
+    buildToolsVersion = "36.1.0"
 
     defaultConfig {
         applicationId = "com.fastshoppr.app"
@@ -47,6 +48,7 @@ android {
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
+            isReturnDefaultValues = true
         }
     }
 
@@ -97,8 +99,14 @@ dependencies {
     implementation(libs.androidx.navigation.ui)
     implementation(libs.androidx.recyclerview)
     implementation(libs.androidx.work.runtime)
-    implementation("com.google.mlkit:digital-ink-recognition:19.0.0")
-    implementation("com.google.mlkit:text-recognition:16.0.1")
+    implementation(libs.digital.ink.recognition)
+    implementation(libs.text.recognition)
+    implementation(libs.gson)
+    implementation(libs.camera.core)
+    implementation(libs.camera.camera2)
+    implementation(libs.camera.lifecycle)
+    implementation(libs.camera.view)
+    implementation(libs.androidx.exifinterface)
 
     implementation(libs.hilt.android)
     annotationProcessor(libs.hilt.compiler)
@@ -108,6 +116,7 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
+    testImplementation(libs.androidx.arch.core.testing)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)

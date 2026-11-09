@@ -7,6 +7,7 @@ package com.fastshoppr.app.domain.repository;
 
 import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.RecognizedLine;
 import java.util.List;
 
 public interface CaptureRepository {
@@ -26,4 +27,10 @@ public interface CaptureRepository {
   void softDelete(String id);
 
   int purgeDeletedBefore(long cutoffMillis);
+
+  /** Serializes recognition output for {@code recognizedLinesJson}. */
+  String encodeRecognizedLines(List<RecognizedLine> lines);
+
+  /** Parses {@code recognizedLinesJson}; malformed input yields an empty list. */
+  List<RecognizedLine> decodeRecognizedLines(String json);
 }

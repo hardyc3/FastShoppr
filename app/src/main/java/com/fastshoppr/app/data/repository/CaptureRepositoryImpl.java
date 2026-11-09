@@ -12,8 +12,11 @@ import com.fastshoppr.app.data.local.entity.CaptureSessionEntity;
 import com.fastshoppr.app.data.repository.mappers.CaptureSessionMapper;
 import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.time.Clock;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,11 +26,17 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
 
   private final CaptureSessionDao captureDao;
   private final Clock clock;
+  private final Gson gson;
 
   @Inject
   public CaptureRepositoryImpl(CaptureSessionDao captureDao, Clock clock) {
+    this(captureDao, clock, new Gson());
+  }
+
+  CaptureRepositoryImpl(CaptureSessionDao captureDao, Clock clock, Gson gson) {
     this.captureDao = captureDao;
     this.clock = clock;
+    this.gson = gson;
   }
 
   @Override
@@ -80,5 +89,24 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
   @Override
   public int purgeDeletedBefore(long cutoffMillis) {
     return captureDao.purgeDeletedBefore(cutoffMillis);
+  }
+
+  @Override
+  public String encodeRecognizedLines(List<RecognizedLine> lines) {
+    return gson.toJson(lines == null ? List.of() : lines);
+  }
+
+  @Override
+  public List<RecognizedLine> decodeRecognizedLines(String json) {
+    if (json == null || json.isBlank()) {
+      return List.of();
+    }
+    try {
+      List<RecognizedLine> lines =
+          gson.fromJson(json, new TypeToken<List<RecognizedLine>>() {}.getType());
+      return lines == null ? List.of() : lines;
+    } catch (RuntimeException exception) {
+      return List.of();
+    }
   }
 }

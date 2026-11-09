@@ -26,6 +26,11 @@ public final class UiErrorText {
       case ARCHIVE_FAILED -> R.string.list_archive_failed;
       case RAW_TEXT_REQUIRED -> R.string.raw_text_required;
       case RAW_TEXT_TOO_LONG -> R.string.raw_text_too_long;
+      case RECOGNITION_FAILED -> R.string.recognition_failed;
+      case INK_MODEL_NOT_READY -> R.string.ink_model_not_ready;
+      case CAPTURE_NOT_FOUND -> R.string.capture_not_found;
+      case NO_STORES -> R.string.no_stores;
+      case NO_LINES_SELECTED -> R.string.review_no_lines_selected;
     };
   }
 }

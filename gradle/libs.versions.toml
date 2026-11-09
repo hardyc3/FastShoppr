@@ -23,6 +23,10 @@ espresso = "3.7.0"
 kotlinxSerialization = "1.8.1"
 digitalInkRecognition = "19.0.0"
 textRecognition = "16.0.1"
+gson = "2.11.0"
+camerax = "1.6.2"
+exifinterface = "1.4.1"
+archCoreTesting = "2.2.0"
 
 [libraries]
 androidx-core = { module = "androidx.core:core", version.ref = "core" }
@@ -54,6 +58,13 @@ androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core",
 androidx-test-espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version.ref = "espresso" }
 digital-ink-recognition = { module = "com.google.mlkit:digital-ink-recognition", version.ref = "digitalInkRecognition" }
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "textRecognition" }
+gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
+camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
+camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }
+camera-lifecycle = { module = "androidx.camera:camera-lifecycle", version.ref = "camerax" }
+camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "exifinterface" }
+androidx-arch-core-testing = { module = "androidx.arch.core:core-testing", version.ref = "archCoreTesting" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
