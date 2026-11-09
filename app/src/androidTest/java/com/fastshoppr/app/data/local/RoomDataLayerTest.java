@@ -84,7 +84,7 @@ public final class RoomDataLayerTest {
     itemRepository =
         new ListItemRepositoryImpl(database, itemDao, listDao, new FakeClock(), idGenerator);
     storeRepository = new StoreRepositoryImpl(database, storeDao, new FakeClock());
-    captureRepository = new CaptureRepositoryImpl(captureDao, new FakeClock());
+    captureRepository = new CaptureRepositoryImpl(database, captureDao, itemDao, new FakeClock());
     storeDao.getActive();
   }
 

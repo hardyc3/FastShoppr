@@ -19,7 +19,6 @@ import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
-import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
@@ -88,7 +87,6 @@ public final class ReviewViewModel extends ViewModel {
   }
 
   private final CaptureRepository captureRepository;
-  private final ListItemRepository listItemRepository;
   private final StoreRepository storeRepository;
   private final ShoppingListRepository listRepository;
   private final CaptureImageStore imageStore;
@@ -114,7 +112,6 @@ public final class ReviewViewModel extends ViewModel {
   @Inject
   public ReviewViewModel(
       CaptureRepository captureRepository,
-      ListItemRepository listItemRepository,
       StoreRepository storeRepository,
       ShoppingListRepository listRepository,
       CaptureImageStore imageStore,
@@ -123,7 +120,6 @@ public final class ReviewViewModel extends ViewModel {
       ExecutorService executor,
       SavedStateHandle savedStateHandle) {
     this.captureRepository = captureRepository;
-    this.listItemRepository = listItemRepository;
     this.storeRepository = storeRepository;
     this.listRepository = listRepository;
     this.imageStore = imageStore;
@@ -347,7 +343,6 @@ public final class ReviewViewModel extends ViewModel {
     }
     for (ReviewLine line : toSave) {
       if (line.text.trim().length() > MAX_TEXT_LENGTH) {
-        isSaving = false;
         postEvent(new ReviewUiEvent.ShowError(UiError.RAW_TEXT_TOO_LONG));
         return;
       }
@@ -364,61 +359,65 @@ public final class ReviewViewModel extends ViewModel {
     String imagePath = currentCapture.getImageUri();
     long now = clock.nowMillis();
 
-    CompletableFuture<Void> save =
-        CompletableFuture.runAsync(
+    List<ListItem> items = new ArrayList<>();
+    for (ReviewLine line : toSave) {
+      LocalDate targetDate = parseTargetDate(line.targetDate);
+      if (targetDate == null) {
+        targetDate = defaultDate;
+      }
+      items.add(
+          ListItem.builder()
+              .id(idGenerator.newId())
+              .listId(listId)
+              .storeId(line.storeId)
+              .rawText(line.text.trim())
+              .displayName(null)
+              .targetDate(targetDate)
+              .source(itemSource)
+              .isChecked(false)
+              .sortPosition(0)
+              .createdAt(now)
+              .updatedAt(now)
+              .build());
+    }
+
+    CompletableFuture.runAsync(
             () -> {
-              for (ReviewLine line : toSave) {
-                LocalDate targetDate = parseTargetDate(line.targetDate);
-                if (targetDate == null) {
-                  targetDate = defaultDate;
-                }
-                ListItem item =
-                    ListItem.builder()
-                        .id(idGenerator.newId())
-                        .listId(listId)
-                        .storeId(line.storeId)
-                        .rawText(line.text.trim())
-                        .displayName(null)
-                        .targetDate(targetDate)
-                        .source(itemSource)
-                        .isChecked(false)
-                        .sortPosition(listItemRepository.nextSortPosition(listId, line.storeId))
-                        .createdAt(now)
-                        .updatedAt(now)
-                        .build();
-                listItemRepository.insert(item);
-              }
-              captureRepository.complete(captureIdToComplete, now);
+              captureRepository.saveReviewed(captureIdToComplete, items, now);
               imageStore.delete(imagePath);
             },
-            executor);
-    save.whenComplete(
-        (ignored, error) -> {
-          isSaving = false;
-          if (error != null) {
-            postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
-            return;
-          }
-          postEvent(new ReviewUiEvent.SaveCompleted());
-        });
+            executor)
+        .whenComplete(
+            (ignored, error) -> {
+              isSaving = false;
+              if (error != null) {
+                postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
+                return;
+              }
+              postEvent(new ReviewUiEvent.SaveCompleted());
+            });
   }
 
   public void discard() {
     CaptureSession session = currentCapture;
-    executor.execute(
-        () -> {
-          if (session != null) {
-            try {
-              captureRepository.softDelete(session.getId());
-              imageStore.delete(session.getImageUri());
-            } catch (RuntimeException exception) {
-              return;
-            }
-          }
-        });
-    lines.clear();
-    selectedCount = 0;
-    postEvent(new ReviewUiEvent.Discarded());
+    CompletableFuture.runAsync(
+            () -> {
+              if (session != null) {
+                captureRepository.softDelete(session.getId());
+                imageStore.delete(session.getImageUri());
+              }
+            },
+            executor)
+        .whenComplete(
+            (ignored, error) -> {
+              if (error != null) {
+                postEvent(new ReviewUiEvent.ShowError(UiError.DISCARD_FAILED));
+                return;
+              }
+              lines.clear();
+              selectedCount = 0;
+              postEvent(new ReviewUiEvent.Discarded());
+            });
   }
 
   private void parseLines() {

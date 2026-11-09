@@ -23,13 +23,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * ML Kit Text Recognition v2 (Latin) implementation for camera and gallery images. Runs fully on
  * device; images are never uploaded or logged.
  */
-@Singleton
 public final class MlKitImageTextRecognitionRepository implements ImageTextRecognitionRepository {
 
   private static final int MAX_IMAGE_DIMENSION = 2048;
@@ -63,7 +61,7 @@ public final class MlKitImageTextRecognitionRepository implements ImageTextRecog
     return future;
   }
 
-  /** Releases the cached recognizer. Safe to call more than once. */
+  @Override
   public void close() {
     synchronized (lock) {
       if (recognizer != null) {

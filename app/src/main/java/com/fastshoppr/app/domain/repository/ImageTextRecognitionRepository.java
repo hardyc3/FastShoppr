@@ -17,4 +17,7 @@ public interface ImageTextRecognitionRepository {
    * when no text is recognized.
    */
   CompletableFuture<List<RecognizedLine>> recognize(String imagePath);
+
+  /** Releases recognizer resources. Safe to call more than once. */
+  void close();
 }

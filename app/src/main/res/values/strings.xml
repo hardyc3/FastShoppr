@@ -159,6 +159,7 @@
     <string name="recognition_failed">Could not recognize text. Try again.</string>
     <string name="ink_model_not_ready">Handwriting recognition is not ready yet. Try again, use a photo, or type items.</string>
     <string name="capture_not_found">Capture not found.</string>
+    <string name="capture_discard_failed">Could not discard capture. Try again.</string>
     <string name="ink_strokes_required">Write at least one line first.</string>
     <string name="split_failed">Could not split this line.</string>
     <string name="camera_unavailable">Camera not available. Use gallery or type items instead.</string>

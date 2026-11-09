@@ -22,6 +22,7 @@ public final class UiErrorText {
       case ADD_FAILED -> R.string.item_add_failed;
       case SAVE_FAILED -> R.string.item_save_failed;
       case DELETE_FAILED -> R.string.item_delete_failed;
+      case DISCARD_FAILED -> R.string.capture_discard_failed;
       case DEFER_FAILED -> R.string.item_defer_failed;
       case ARCHIVE_FAILED -> R.string.list_archive_failed;
       case RAW_TEXT_REQUIRED -> R.string.raw_text_required;

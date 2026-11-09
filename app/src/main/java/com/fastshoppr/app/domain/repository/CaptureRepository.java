@@ -7,6 +7,7 @@ package com.fastshoppr.app.domain.repository;
 
 import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import java.util.List;
 
@@ -23,6 +24,12 @@ public interface CaptureRepository {
   void insert(CaptureSession session);
 
   void complete(String id, long completedAt);
+
+  /**
+   * Atomically inserts reviewed items and completes the capture. Rolls back on any failure so no
+   * partial item set is committed.
+   */
+  void saveReviewed(String captureId, List<ListItem> items, long completedAt);
 
   void softDelete(String id);
 

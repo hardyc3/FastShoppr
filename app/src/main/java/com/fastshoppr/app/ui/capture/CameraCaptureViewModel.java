@@ -228,6 +228,7 @@ public final class CameraCaptureViewModel extends ViewModel {
 
   @Override
   protected void onCleared() {
+    textRecognitionRepository.close();
     if (!sessionCreated) {
       replacePendingImage();
     }

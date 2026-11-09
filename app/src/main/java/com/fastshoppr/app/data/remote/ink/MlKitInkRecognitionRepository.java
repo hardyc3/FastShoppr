@@ -27,13 +27,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * ML Kit Digital Ink implementation. Strokes never leave the device; only the model download uses
  * the network.
  */
-@Singleton
 public final class MlKitInkRecognitionRepository implements InkRecognitionRepository {
 
   private static final String LANGUAGE_TAG = "en-US";

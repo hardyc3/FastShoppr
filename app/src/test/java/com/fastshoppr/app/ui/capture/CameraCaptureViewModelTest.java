@@ -163,6 +163,7 @@ public final class CameraCaptureViewModelTest {
     viewModel.onCleared();
 
     verify(imageStore).delete("/cache/captures/photo.jpg");
+    verify(textRecognitionRepository).close();
   }
 
   @Test

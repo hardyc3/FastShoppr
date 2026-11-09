@@ -10,10 +10,11 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -28,7 +29,6 @@ import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
-import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.testing.DirectExecutorService;
@@ -56,7 +56,6 @@ public final class ReviewViewModelTest {
   public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   @Mock private CaptureRepository captureRepository;
-  @Mock private ListItemRepository listItemRepository;
   @Mock private StoreRepository storeRepository;
   @Mock private ShoppingListRepository listRepository;
   @Mock private CaptureImageStore imageStore;
@@ -121,12 +120,10 @@ public final class ReviewViewModelTest {
         .thenReturn(List.of(new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f)));
     when(listRepository.getById("list-1")).thenReturn(list);
     when(storeRepository.getActive()).thenReturn(List.of(homeDepot, walmart));
-    when(listItemRepository.nextSortPosition(anyString(), anyString())).thenReturn(0, 1);
 
     viewModel =
         new ReviewViewModel(
             captureRepository,
-            listItemRepository,
             storeRepository,
             listRepository,
             imageStore,
@@ -208,37 +205,38 @@ public final class ReviewViewModelTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void saveSelectedCreatesItemsPreservingRawTextAndCompletesCapture() {
     viewModel.loadCapture();
 
     viewModel.saveSelected();
 
-    ArgumentCaptor<ListItem> captor = ArgumentCaptor.forClass(ListItem.class);
-    verify(listItemRepository, times(2)).insert(captor.capture());
-    List<ListItem> saved = captor.getAllValues();
+    ArgumentCaptor<List<ListItem>> captor = ArgumentCaptor.forClass(List.class);
+    verify(captureRepository).saveReviewed(eq("cap-1"), captor.capture(), eq(1000L));
+    List<ListItem> saved = captor.getValue();
+    assertEquals(2, saved.size());
     assertEquals("milk", saved.get(0).getRawText());
     assertEquals(saved.get(0).getRawText(), saved.get(0).getDisplayName());
     assertEquals("eggs", saved.get(1).getRawText());
     assertEquals(ItemSource.CAMERA_OCR, saved.get(0).getSource());
     assertEquals(LocalDate.of(2026, 11, 8), saved.get(0).getTargetDate());
     assertEquals("store-1", saved.get(0).getStoreId());
-    assertEquals(0, saved.get(0).getSortPosition());
-    assertEquals(1, saved.get(1).getSortPosition());
-    verify(captureRepository).complete(eq("cap-1"), eq(1000L));
     verify(imageStore).delete("/cache/captures/img.jpg");
     assertNotNull(findEvent(ReviewViewModel.ReviewUiEvent.SaveCompleted.class));
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void saveSkipsBlankLinesAndRemovesThem() {
     viewModel.loadCapture();
     viewModel.getLines().get(0).text = "   ";
 
     viewModel.saveSelected();
 
-    ArgumentCaptor<ListItem> captor = ArgumentCaptor.forClass(ListItem.class);
-    verify(listItemRepository).insert(captor.capture());
-    assertEquals("eggs", captor.getValue().getRawText());
+    ArgumentCaptor<List<ListItem>> captor = ArgumentCaptor.forClass(List.class);
+    verify(captureRepository).saveReviewed(eq("cap-1"), captor.capture(), eq(1000L));
+    assertEquals(1, captor.getValue().size());
+    assertEquals("eggs", captor.getValue().get(0).getRawText());
     assertEquals(1, viewModel.getLines().size());
   }
 
@@ -253,8 +251,7 @@ public final class ReviewViewModelTest {
     ReviewViewModel.ReviewUiEvent.ShowError error =
         findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
     assertEquals(UiError.NO_LINES_SELECTED, error.error());
-    verify(listItemRepository, never()).insert(any());
-    verify(captureRepository, never()).complete(anyString(), eq(1000L));
+    verify(captureRepository, never()).saveReviewed(anyString(), any(), anyLong());
   }
 
   @Test
@@ -268,7 +265,23 @@ public final class ReviewViewModelTest {
         findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
     assertNotNull(error);
     assertEquals(UiError.RAW_TEXT_TOO_LONG, error.error());
-    verify(listItemRepository, never()).insert(any());
+    verify(captureRepository, never()).saveReviewed(anyString(), any(), anyLong());
+  }
+
+  @Test
+  public void saveFailureReportsErrorAndDoesNotDeleteImage() {
+    viewModel.loadCapture();
+    doThrow(new RuntimeException("db down"))
+        .when(captureRepository)
+        .saveReviewed(eq("cap-1"), any(), eq(1000L));
+
+    viewModel.saveSelected();
+
+    ReviewViewModel.ReviewUiEvent.ShowError error =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
+    assertNotNull(error);
+    assertEquals(UiError.SAVE_FAILED, error.error());
+    verify(imageStore, never()).delete("/cache/captures/img.jpg");
   }
 
   @Test
@@ -280,6 +293,20 @@ public final class ReviewViewModelTest {
     verify(captureRepository).softDelete("cap-1");
     verify(imageStore).delete("/cache/captures/img.jpg");
     assertNotNull(findEvent(ReviewViewModel.ReviewUiEvent.Discarded.class));
+  }
+
+  @Test
+  public void discardFailureReportsErrorAndDoesNotNavigate() {
+    viewModel.loadCapture();
+    doThrow(new RuntimeException("delete failed")).when(captureRepository).softDelete("cap-1");
+
+    viewModel.discard();
+
+    ReviewViewModel.ReviewUiEvent.ShowError error =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
+    assertNotNull(error);
+    assertEquals(UiError.DISCARD_FAILED, error.error());
+    assertTrue(findEvent(ReviewViewModel.ReviewUiEvent.Discarded.class) == null);
   }
 
   @Test
