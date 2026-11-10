@@ -5,11 +5,9 @@
  */
 package com.fastshoppr.app.domain.usecase;
 
+import com.fastshoppr.app.domain.model.ItemLocation;
 import com.fastshoppr.app.domain.model.ListItem;
-import com.fastshoppr.app.domain.model.LookupSource;
-import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
-import com.fastshoppr.app.domain.text.TextNormalizer;
 import com.fastshoppr.app.domain.time.Clock;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -33,15 +31,13 @@ public final class SetItemAisleUseCase {
     return CompletableFuture.supplyAsync(
         () -> {
           ListItem existing = itemRepository.getById(itemId);
-          String cleanedAisle = TextNormalizer.trimToNull(aisle);
-          String cleanedBay = TextNormalizer.trimToNull(bay);
-          boolean hasManualLocation = cleanedAisle != null || cleanedBay != null;
+          ItemLocation location = ItemLocation.of(aisle, bay);
           ListItem updated =
               ListItem.builderFrom(existing)
-                  .aisle(cleanedAisle)
-                  .bay(cleanedBay)
-                  .lookupStatus(hasManualLocation ? LookupStatus.FOUND : LookupStatus.PENDING)
-                  .lookupSource(hasManualLocation ? LookupSource.MANUAL : null)
+                  .aisle(location.aisle())
+                  .bay(location.bay())
+                  .lookupStatus(location.lookupStatus())
+                  .lookupSource(location.lookupSource())
                   .updatedAt(clock.nowMillis())
                   .build();
           itemRepository.update(updated);

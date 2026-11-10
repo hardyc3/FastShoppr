@@ -31,6 +31,7 @@ import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.usecase.SaveReviewedItemsUseCase;
 import com.fastshoppr.app.testing.DirectExecutorService;
 import com.fastshoppr.app.testing.FixedClock;
 import com.fastshoppr.app.testing.FixedIdGenerator;
@@ -127,8 +128,11 @@ public final class ReviewViewModelTest {
             storeRepository,
             listRepository,
             imageStore,
-            new FixedIdGenerator(),
-            new FixedClock(1000L),
+            new SaveReviewedItemsUseCase(
+                captureRepository,
+                new FixedIdGenerator(),
+                new FixedClock(1000L),
+                new DirectExecutorService()),
             new DirectExecutorService(),
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, "cap-1")));
     viewModel.getEvents().observeForever(event -> record(event.getContentIfNotHandled()));
@@ -145,11 +149,11 @@ public final class ReviewViewModelTest {
     viewModel.loadCapture();
 
     assertEquals(2, viewModel.getLines().size());
-    assertEquals("milk", viewModel.getLines().get(0).text);
-    assertEquals(0.95f, viewModel.getLines().get(0).confidence, 0.0001f);
-    assertTrue(viewModel.getLines().get(0).selected);
-    assertEquals("store-1", viewModel.getLines().get(0).storeId);
-    assertEquals("2026-11-08", viewModel.getLines().get(0).targetDate);
+    assertEquals("milk", viewModel.getLines().get(0).getText());
+    assertEquals(0.95f, viewModel.getLines().get(0).getConfidence(), 0.0001f);
+    assertTrue(viewModel.getLines().get(0).isSelected());
+    assertEquals("store-1", viewModel.getLines().get(0).getStoreId());
+    assertEquals("2026-11-08", viewModel.getLines().get(0).getTargetDate());
     assertEquals(ItemSource.CAMERA_OCR, viewModel.getSource());
     assertTrue(hasEvent(ReviewViewModel.ReviewUiEvent.CaptureLoaded.class));
   }
@@ -170,27 +174,27 @@ public final class ReviewViewModelTest {
   @Test
   public void mergeSelectedJoinsInVisualOrderAtFirstPosition() {
     viewModel.loadCapture();
-    viewModel.getLines().get(0).selected = true;
-    viewModel.getLines().get(1).selected = true;
+    viewModel.setLineSelected(0, true);
+    viewModel.setLineSelected(1, true);
 
     viewModel.mergeSelected();
 
     assertEquals(1, viewModel.getLines().size());
-    assertEquals("milk eggs", viewModel.getLines().get(0).text);
-    assertTrue(viewModel.getLines().get(0).selected);
+    assertEquals("milk eggs", viewModel.getLines().get(0).getText());
+    assertTrue(viewModel.getLines().get(0).isSelected());
   }
 
   @Test
   public void splitLineSplitsAtFirstSpaceWithoutCursor() {
     viewModel.loadCapture();
-    viewModel.getLines().get(0).text = "paper towels";
+    viewModel.setLineText(0, "paper towels");
 
     viewModel.splitLine(0, -1);
 
     assertEquals(3, viewModel.getLines().size());
-    assertEquals("paper", viewModel.getLines().get(0).text);
-    assertEquals("towels", viewModel.getLines().get(1).text);
-    assertEquals("eggs", viewModel.getLines().get(2).text);
+    assertEquals("paper", viewModel.getLines().get(0).getText());
+    assertEquals("towels", viewModel.getLines().get(1).getText());
+    assertEquals("eggs", viewModel.getLines().get(2).getText());
   }
 
   @Test
@@ -229,7 +233,7 @@ public final class ReviewViewModelTest {
   @SuppressWarnings("unchecked")
   public void saveSkipsBlankLinesAndRemovesThem() {
     viewModel.loadCapture();
-    viewModel.getLines().get(0).text = "   ";
+    viewModel.setLineText(0, "   ");
 
     viewModel.saveSelected();
 
@@ -257,7 +261,7 @@ public final class ReviewViewModelTest {
   @Test
   public void saveRejectsOverlongLines() {
     viewModel.loadCapture();
-    viewModel.getLines().get(0).text = "x".repeat(201);
+    viewModel.setLineText(0, "x".repeat(201));
 
     viewModel.saveSelected();
 
@@ -326,8 +330,8 @@ public final class ReviewViewModelTest {
     viewModel.setLineStore(1, "store-2");
     viewModel.setLineDate(1, LocalDate.of(2026, 12, 1));
 
-    assertEquals("store-2", viewModel.getLines().get(1).storeId);
-    assertEquals("2026-12-01", viewModel.getLines().get(1).targetDate);
+    assertEquals("store-2", viewModel.getLines().get(1).getStoreId());
+    assertEquals("2026-12-01", viewModel.getLines().get(1).getTargetDate());
   }
 
   private boolean hasEvent(Class<? extends ReviewViewModel.ReviewUiEvent> type) {

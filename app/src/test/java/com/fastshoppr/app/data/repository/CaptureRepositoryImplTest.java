@@ -6,20 +6,19 @@
 package com.fastshoppr.app.data.repository;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fastshoppr.app.data.capture.RecognizedLinesCodec;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
 import com.fastshoppr.app.data.local.dao.ListItemDao;
 import com.fastshoppr.app.data.local.entity.ListItemEntity;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
-import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.time.Clock;
 import com.google.gson.Gson;
 import java.time.LocalDate;
@@ -29,41 +28,7 @@ import org.mockito.InOrder;
 
 public final class CaptureRepositoryImplTest {
 
-  private final CaptureRepositoryImpl repository = new CaptureRepositoryImpl(new Gson());
-
-  @Test
-  public void recognizedLinesRoundTripPreservesTextAndConfidence() {
-    List<RecognizedLine> lines =
-        List.of(new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f));
-
-    String json = repository.encodeRecognizedLines(lines);
-    List<RecognizedLine> decoded = repository.decodeRecognizedLines(json);
-
-    assertEquals(2, decoded.size());
-    assertEquals("milk", decoded.get(0).getText());
-    assertEquals(0.95f, decoded.get(0).getConfidence(), 0.0001f);
-    assertEquals("eggs", decoded.get(1).getText());
-    assertEquals(0.2f, decoded.get(1).getConfidence(), 0.0001f);
-  }
-
-  @Test
-  public void encodeNullOrEmptyYieldsEmptyArray() {
-    assertEquals("[]", repository.encodeRecognizedLines(null));
-    assertEquals("[]", repository.encodeRecognizedLines(List.of()));
-  }
-
-  @Test
-  public void decodeMalformedOrNullYieldsEmptyList() {
-    assertTrue(repository.decodeRecognizedLines(null).isEmpty());
-    assertTrue(repository.decodeRecognizedLines("").isEmpty());
-    assertTrue(repository.decodeRecognizedLines("{not json").isEmpty());
-    assertTrue(repository.decodeRecognizedLines("[{\"bogus\":").isEmpty());
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void saveReviewedRequiresDatabaseAndDaos() {
-    repository.saveReviewed("cap-1", List.of(), 1000L);
-  }
+  private static final RecognizedLinesCodec CODEC = new RecognizedLinesCodec(new Gson());
 
   @Test
   public void saveReviewedInsertsItemsThenCompletesAtomically() {
@@ -81,7 +46,7 @@ public final class CaptureRepositoryImplTest {
     when(listItemDao.getMaxSortPosition("list-1", "store-1")).thenReturn(2);
     when(captureDao.complete("cap-1", 1000L)).thenReturn(1);
     CaptureRepositoryImpl txRepository =
-        new CaptureRepositoryImpl(database, captureDao, listItemDao, mock(Clock.class));
+        new CaptureRepositoryImpl(database, captureDao, listItemDao, mock(Clock.class), CODEC);
 
     ListItem item =
         new ListItem(
@@ -130,7 +95,7 @@ public final class CaptureRepositoryImplTest {
     when(listItemDao.getMaxSortPosition("list-1", "store-1")).thenReturn(4);
     when(captureDao.complete("cap-1", 1000L)).thenReturn(1);
     CaptureRepositoryImpl txRepository =
-        new CaptureRepositoryImpl(database, captureDao, listItemDao, mock(Clock.class));
+        new CaptureRepositoryImpl(database, captureDao, listItemDao, mock(Clock.class), CODEC);
 
     ListItem a = reviewedItem("i1", "store-1", "a");
     ListItem b = reviewedItem("i2", "store-1", "b");

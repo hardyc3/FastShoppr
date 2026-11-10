@@ -7,6 +7,7 @@ package com.fastshoppr.app.data.repository;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
+import com.fastshoppr.app.data.capture.RecognizedLinesCodec;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
 import com.fastshoppr.app.data.local.dao.ListItemDao;
@@ -19,8 +20,6 @@ import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.time.Clock;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,33 +33,20 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
   private final CaptureSessionDao captureDao;
   private final ListItemDao listItemDao;
   private final Clock clock;
-  private final Gson gson;
+  private final RecognizedLinesCodec codec;
 
   @Inject
   public CaptureRepositoryImpl(
       FastShopprDatabase database,
       CaptureSessionDao captureDao,
       ListItemDao listItemDao,
-      Clock clock) {
-    this(database, captureDao, listItemDao, clock, new Gson());
-  }
-
-  CaptureRepositoryImpl(
-      FastShopprDatabase database,
-      CaptureSessionDao captureDao,
-      ListItemDao listItemDao,
       Clock clock,
-      Gson gson) {
+      RecognizedLinesCodec codec) {
     this.database = database;
     this.captureDao = captureDao;
     this.listItemDao = listItemDao;
     this.clock = clock;
-    this.gson = gson;
-  }
-
-  /** For tests that only exercise JSON codec behavior. */
-  CaptureRepositoryImpl(Gson gson) {
-    this(null, null, null, null, gson);
+    this.codec = codec;
   }
 
   @Override
@@ -105,9 +91,6 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
 
   @Override
   public void saveReviewed(String captureId, List<ListItem> items, long completedAt) {
-    if (database == null || captureDao == null || listItemDao == null) {
-      throw new IllegalStateException("CaptureRepositoryImpl requires database and DAOs for save");
-    }
     database.runInTransaction(
         () -> {
           Map<String, Integer> maxByStore = new HashMap<>();
@@ -123,31 +106,8 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
                         })
                     + 1;
             maxByStore.put(key, next);
-            ListItem positioned =
-                new ListItem(
-                    item.getId(),
-                    item.getListId(),
-                    item.getStoreId(),
-                    item.getRawText(),
-                    item.getDisplayName(),
-                    item.getNormalizedText(),
-                    item.getQuantity(),
-                    item.getTargetDate(),
-                    item.getAisle(),
-                    item.getBay(),
-                    item.getMatchedProductName(),
-                    item.getMatchedProductUrl(),
-                    item.getMatchConfidence(),
-                    item.getLookupStatus(),
-                    item.getLookupSource(),
-                    item.getLookupError(),
-                    item.getSource(),
-                    item.isChecked(),
-                    next,
-                    item.getDeletedAt(),
-                    item.getCreatedAt(),
-                    item.getUpdatedAt());
-            listItemDao.insert(ListItemMapper.toEntity(positioned));
+            listItemDao.insert(
+                ListItemMapper.toEntity(ListItem.builderFrom(item).sortPosition(next).build()));
           }
           if (captureDao.complete(captureId, completedAt) == 0) {
             throw new NotFoundException("Capture session not found: " + captureId);
@@ -169,20 +129,11 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
 
   @Override
   public String encodeRecognizedLines(List<RecognizedLine> lines) {
-    return gson.toJson(lines == null ? List.of() : lines);
+    return codec.encode(lines);
   }
 
   @Override
   public List<RecognizedLine> decodeRecognizedLines(String json) {
-    if (json == null || json.isBlank()) {
-      return List.of();
-    }
-    try {
-      List<RecognizedLine> lines =
-          gson.fromJson(json, new TypeToken<List<RecognizedLine>>() {}.getType());
-      return lines == null ? List.of() : lines;
-    } catch (RuntimeException exception) {
-      return List.of();
-    }
+    return codec.decode(json);
   }
 }
