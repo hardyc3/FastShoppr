@@ -6,13 +6,9 @@
 package com.fastshoppr.app.ui.capture;
 
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.TextWatcher;
-import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -25,6 +21,7 @@ import com.fastshoppr.app.databinding.FragmentReviewBinding;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
+import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StorePickerDialog;
 import com.fastshoppr.app.ui.common.UiErrorText;
@@ -32,13 +29,10 @@ import com.fastshoppr.app.ui.common.UiMessageText;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.List;
-import java.util.Locale;
 
 @AndroidEntryPoint
-public final class ReviewFragment extends Fragment {
+public final class ReviewFragment extends Fragment implements ReviewAdapter.Listener {
 
   private FragmentReviewBinding binding;
   private ReviewViewModel viewModel;
@@ -64,7 +58,7 @@ public final class ReviewFragment extends Fragment {
     binding.toolbar.setNavigationOnClickListener(
         v -> Navigation.findNavController(v).popBackStack());
 
-    adapter = new ReviewAdapter(this, viewModel);
+    adapter = new ReviewAdapter(this);
     binding.recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
     binding.recyclerView.setAdapter(adapter);
 
@@ -90,7 +84,7 @@ public final class ReviewFragment extends Fragment {
   private void onSplitClicked() {
     List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
     for (int index = 0; index < lines.size(); index++) {
-      if (lines.get(index).selected) {
+      if (lines.get(index).isSelected()) {
         viewModel.splitLine(index, cursorForPosition(index));
         return;
       }
@@ -100,11 +94,8 @@ public final class ReviewFragment extends Fragment {
   private int cursorForPosition(int position) {
     RecyclerView.ViewHolder holder =
         binding.recyclerView.findViewHolderForAdapterPosition(position);
-    if (holder instanceof ReviewAdapter.ViewHolder viewHolder) {
-      EditText field = viewHolder.textField;
-      if (field.isFocused()) {
-        return field.getSelectionStart();
-      }
+    if (holder instanceof ReviewAdapter.ViewHolder viewHolder && viewHolder.textField.isFocused()) {
+      return viewHolder.textField.getSelectionStart();
     }
     return -1;
   }
@@ -122,10 +113,10 @@ public final class ReviewFragment extends Fragment {
           .show();
       Navigation.findNavController(requireView()).popBackStack();
     } else if (content instanceof ReviewViewModel.ReviewUiEvent.LinesChanged) {
-      adapter.notifyDataSetChanged();
+      refreshLines();
       syncSelectAll();
     } else if (content instanceof ReviewViewModel.ReviewUiEvent.SelectionChanged) {
-      adapter.notifyDataSetChanged();
+      refreshLines();
       syncSelectAll();
     } else if (content instanceof ReviewViewModel.ReviewUiEvent.SaveCompleted
         || content instanceof ReviewViewModel.ReviewUiEvent.Discarded) {
@@ -144,7 +135,7 @@ public final class ReviewFragment extends Fragment {
     if (binding == null) {
       return;
     }
-    adapter.notifyDataSetChanged();
+    adapter.submitLines(viewModel.getLines());
     syncSelectAll();
     ItemSource source = viewModel.getSource();
     boolean photoSource = source == ItemSource.CAMERA_OCR || source == ItemSource.GALLERY_OCR;
@@ -177,28 +168,47 @@ public final class ReviewFragment extends Fragment {
     Navigation.findNavController(requireView()).popBackStack();
   }
 
-  void showStorePicker(int position) {
-    ReviewViewModel.ReviewLine line = lineAt(position);
+  private void refreshLines() {
+    if (adapter != null) {
+      adapter.submitLines(viewModel.getLines());
+    }
+  }
+
+  @Override
+  public void onLineSelected(int position, boolean selected) {
+    viewModel.setLineSelected(position, selected);
+  }
+
+  @Override
+  public void onLineTextChanged(int position, String text) {
+    viewModel.setLineText(position, text);
+  }
+
+  @Override
+  public void onStoreClicked(int position) {
+    ReviewViewModel.ReviewLine line = viewModel.getLine(position);
     if (line == null) {
       return;
     }
     StorePickerDialog.show(
         requireContext(),
         viewModel.getStores(),
-        line.storeId,
+        line.getStoreId(),
         store -> viewModel.setLineStore(position, store.getId()));
   }
 
-  void showDatePicker(int position) {
-    ReviewViewModel.ReviewLine line = lineAt(position);
+  @Override
+  public void onDateClicked(int position) {
+    ReviewViewModel.ReviewLine line = viewModel.getLine(position);
     if (line == null) {
       return;
     }
     DatePickerUtil.showDatePicker(
-        this, parseDate(line.targetDate), date -> viewModel.setLineDate(position, date));
+        this, parseDate(line.getTargetDate()), date -> viewModel.setLineDate(position, date));
   }
 
-  String storeLabel(@Nullable String storeId) {
+  @Override
+  public String storeLabel(@Nullable String storeId) {
     for (Store store : viewModel.getStores()) {
       if (store.getId().equals(storeId)) {
         return store.getName();
@@ -207,36 +217,20 @@ public final class ReviewFragment extends Fragment {
     return getString(R.string.select_store);
   }
 
-  String dateLabel(@Nullable String value) {
-    if (value == null || value.isBlank()) {
-      return getString(R.string.field_target_date);
-    }
-    try {
-      LocalDate date = LocalDate.parse(value.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
-      return date.format(
-          DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()));
-    } catch (RuntimeException exception) {
-      return getString(R.string.field_target_date);
-    }
+  @Override
+  public String dateLabel(@Nullable String value) {
+    LocalDate date = DateText.parseIsoOrNull(value);
+    return date == null ? getString(R.string.field_target_date) : DateText.formatMedium(date);
   }
 
-  private ReviewViewModel.ReviewLine lineAt(int position) {
-    List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
-    if (position < 0 || position >= lines.size()) {
-      return null;
-    }
-    return lines.get(position);
+  @Override
+  public boolean isLowConfidence(ReviewViewModel.ReviewLine line) {
+    return viewModel.isLowConfidence(line);
   }
 
   private LocalDate parseDate(@Nullable String value) {
-    if (value != null && !value.isBlank()) {
-      try {
-        return LocalDate.parse(value.trim(), DateTimeFormatter.ISO_LOCAL_DATE);
-      } catch (RuntimeException exception) {
-        return LocalDate.now();
-      }
-    }
-    return LocalDate.now();
+    LocalDate parsed = DateText.parseIsoOrNull(value);
+    return parsed == null ? LocalDate.now() : parsed;
   }
 
   @Override
@@ -244,132 +238,5 @@ public final class ReviewFragment extends Fragment {
     super.onDestroyView();
     binding = null;
     adapter = null;
-  }
-
-  public static final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder> {
-
-    private final ReviewFragment fragment;
-    private final ReviewViewModel viewModel;
-
-    ReviewAdapter(ReviewFragment fragment, ReviewViewModel viewModel) {
-      this.fragment = fragment;
-      this.viewModel = viewModel;
-    }
-
-    @NonNull
-    @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-      View view =
-          LayoutInflater.from(parent.getContext())
-              .inflate(R.layout.item_review_line, parent, false);
-      return new ViewHolder(view, viewModel);
-    }
-
-    @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-      ReviewViewModel.ReviewLine line = viewModel.getLines().get(position);
-
-      holder.checkBox.setOnCheckedChangeListener(null);
-      holder.checkBox.setChecked(line.selected);
-      holder.checkBox.setOnCheckedChangeListener(
-          (buttonView, isChecked) -> {
-            int adapterPosition = holder.getBindingAdapterPosition();
-            if (adapterPosition != RecyclerView.NO_POSITION) {
-              viewModel.setLineSelected(adapterPosition, isChecked);
-            }
-          });
-
-      holder.bindText(line);
-      bindConfidence(holder, line);
-
-      holder.storeButton.setText(fragment.storeLabel(line.storeId));
-      holder.storeButton.setOnClickListener(
-          v -> fragment.showStorePicker(holder.getBindingAdapterPosition()));
-      holder.dateButton.setText(fragment.dateLabel(line.targetDate));
-      holder.dateButton.setOnClickListener(
-          v -> fragment.showDatePicker(holder.getBindingAdapterPosition()));
-    }
-
-    private void bindConfidence(ViewHolder holder, ReviewViewModel.ReviewLine line) {
-      if (line.manual) {
-        holder.confidenceText.setVisibility(View.GONE);
-        return;
-      }
-      holder.confidenceText.setVisibility(View.VISIBLE);
-      if (viewModel.isLowConfidence(line)) {
-        holder.confidenceText.setText(R.string.low_confidence);
-        holder.confidenceText.setTextColor(
-            resolveColor(holder.context, androidx.appcompat.R.attr.colorError));
-      } else {
-        holder.confidenceText.setTextColor(
-            resolveColor(holder.context, com.google.android.material.R.attr.colorOnSurface));
-        holder.confidenceText.setText(
-            String.format(Locale.getDefault(), "%.0f%%", line.confidence * 100f));
-      }
-    }
-
-    private static int resolveColor(android.content.Context context, int attr) {
-      TypedValue value = new TypedValue();
-      if (context.getTheme().resolveAttribute(attr, value, true) && value.resourceId != 0) {
-        return context.getColor(value.resourceId);
-      }
-      return value.data;
-    }
-
-    @Override
-    public int getItemCount() {
-      return viewModel.getLines().size();
-    }
-
-    public static final class ViewHolder extends RecyclerView.ViewHolder {
-
-      final android.content.Context context;
-      final android.widget.CheckBox checkBox;
-      final EditText textField;
-      final android.widget.TextView confidenceText;
-      final com.google.android.material.button.MaterialButton storeButton;
-      final com.google.android.material.button.MaterialButton dateButton;
-      private final ReviewViewModel viewModel;
-      @Nullable private TextWatcher watcher;
-
-      ViewHolder(@NonNull View view, ReviewViewModel viewModel) {
-        super(view);
-        this.viewModel = viewModel;
-        context = view.getContext();
-        checkBox = view.findViewById(R.id.checkBox);
-        textField = view.findViewById(R.id.textField);
-        confidenceText = view.findViewById(R.id.confidenceText);
-        storeButton = view.findViewById(R.id.storeButton);
-        dateButton = view.findViewById(R.id.dateButton);
-      }
-
-      void bindText(ReviewViewModel.ReviewLine line) {
-        if (watcher != null) {
-          textField.removeTextChangedListener(watcher);
-        }
-        textField.setText(line.text);
-        watcher =
-            new TextWatcher() {
-              @Override
-              public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-              @Override
-              public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-              @Override
-              public void afterTextChanged(Editable s) {
-                int adapterPosition = getBindingAdapterPosition();
-                if (adapterPosition == RecyclerView.NO_POSITION) {
-                  return;
-                }
-                List<ReviewViewModel.ReviewLine> lines = viewModel.getLines();
-                if (adapterPosition < lines.size()) {
-                  lines.get(adapterPosition).text = s.toString();
-                }
-              }
-            };
-        textField.addTextChangedListener(watcher);
-      }
-    }
   }
 }

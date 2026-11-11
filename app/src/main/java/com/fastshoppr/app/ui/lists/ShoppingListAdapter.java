@@ -16,10 +16,7 @@ import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.ItemListRowBinding;
 import com.fastshoppr.app.databinding.ItemSectionHeaderBinding;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
+import com.fastshoppr.app.ui.common.DateText;
 
 public final class ShoppingListAdapter extends ListAdapter<ListRow, RecyclerView.ViewHolder> {
 
@@ -126,9 +123,8 @@ public final class ShoppingListAdapter extends ListAdapter<ListRow, RecyclerView
     }
   }
 
-  private static String formatDate(LocalDate date) {
-    return date.format(
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()));
+  private static String formatDate(java.time.LocalDate date) {
+    return DateText.formatMedium(date);
   }
 
   private final class EntryViewHolder extends RecyclerView.ViewHolder {

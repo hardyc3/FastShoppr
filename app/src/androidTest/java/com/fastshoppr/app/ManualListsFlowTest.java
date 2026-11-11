@@ -82,10 +82,11 @@ public final class ManualListsFlowTest {
       onFocusedView(withText("Home Depot")).perform(click());
       onFocusedView(withText(android.R.string.ok)).perform(click());
       waitForText("Store: Home Depot");
+      scrollToPosition(0);
       waitForContentDescription("Add item to Walmart");
       onFocusedView(withContentDescription("Add item to Walmart"))
           .perform(replaceText("milk"), clickAddItemButton());
-      waitForText("milk");
+      waitForItemText("milk");
 
       scrollToPosition(2);
       onFocusedView(withId(R.id.item_overflow)).perform(click());
@@ -108,7 +109,7 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.raw_text_input)).check(matches(withText("milk")));
       onFocusedView(withId(R.id.raw_text_input)).perform(replaceText("milk 2%"));
       onFocusedView(withId(R.id.save_item_button)).perform(click());
-      waitForText("milk 2%");
+      waitForItemText("milk 2%");
 
       scrollToPosition(2);
       onFocusedView(withContentDescription("Add item to Walmart")).perform(replaceText("eggs"));
@@ -174,6 +175,15 @@ public final class ManualListsFlowTest {
 
   private static void waitForText(String text) {
     waitFor(() -> onFocusedView(withText(text)).check(matches(isDisplayed())));
+  }
+
+  /** Matches the raw text of a list item row, ignoring the hidden display name field. */
+  private static Matcher<View> itemTextMatcher(String text) {
+    return allOf(withId(R.id.item_raw_text), withText(text));
+  }
+
+  private static void waitForItemText(String text) {
+    waitFor(() -> onFocusedView(itemTextMatcher(text)).check(matches(isDisplayed())));
   }
 
   private static void waitForContentDescription(String description) {

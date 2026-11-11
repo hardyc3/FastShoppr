@@ -5,6 +5,7 @@
  */
 package com.fastshoppr.app.domain.usecase;
 
+import com.fastshoppr.app.domain.model.ItemLocation;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.LookupSource;
 import com.fastshoppr.app.domain.model.LookupStatus;
@@ -46,18 +47,16 @@ public final class UpdateItemUseCase {
             cleanedDisplayName = rawText;
           }
 
-          String cleanedAisle = TextNormalizer.trimToNull(aisle);
-          String cleanedBay = TextNormalizer.trimToNull(bay);
+          ItemLocation location = ItemLocation.of(aisle, bay);
           boolean locationChanged =
-              !Objects.equals(existing.getAisle(), cleanedAisle)
-                  || !Objects.equals(existing.getBay(), cleanedBay);
+              !Objects.equals(existing.getAisle(), location.aisle())
+                  || !Objects.equals(existing.getBay(), location.bay());
 
           LookupStatus lookupStatus = existing.getLookupStatus();
           LookupSource lookupSource = existing.getLookupSource();
           if (locationChanged) {
-            boolean hasManualLocation = cleanedAisle != null || cleanedBay != null;
-            lookupStatus = hasManualLocation ? LookupStatus.FOUND : LookupStatus.PENDING;
-            lookupSource = hasManualLocation ? LookupSource.MANUAL : null;
+            lookupStatus = location.lookupStatus();
+            lookupSource = location.lookupSource();
           }
 
           int sortPosition = existing.getSortPosition();
@@ -72,8 +71,8 @@ public final class UpdateItemUseCase {
                   .normalizedText(TextNormalizer.normalizeForLookup(cleanedDisplayName))
                   .quantity(quantity)
                   .storeId(storeId)
-                  .aisle(cleanedAisle)
-                  .bay(cleanedBay)
+                  .aisle(location.aisle())
+                  .bay(location.bay())
                   .lookupStatus(lookupStatus)
                   .lookupSource(lookupSource)
                   .sortPosition(sortPosition)

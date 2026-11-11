@@ -22,7 +22,6 @@ import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
-import com.fastshoppr.app.domain.sort.AisleComparator;
 import com.fastshoppr.app.domain.usecase.AddItemUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
@@ -30,13 +29,12 @@ import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
 import com.fastshoppr.app.domain.usecase.ToggleItemCheckedUseCase;
 import com.fastshoppr.app.ui.common.SingleEvent;
+import com.fastshoppr.app.ui.common.StoreOrdering;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import javax.inject.Inject;
@@ -57,7 +55,7 @@ public final class ListDetailViewModel extends ViewModel {
   private final DeleteItemUseCase deleteItemUseCase;
   private final MoveItemToDateUseCase moveItemToDateUseCase;
   private final SetItemAisleUseCase setItemAisleUseCase;
-  private final SortItemsUseCase sortItemsUseCase;
+  private final ListDetailRowsBuilder rowsBuilder;
   private final SavedStateHandle savedStateHandle;
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -105,7 +103,7 @@ public final class ListDetailViewModel extends ViewModel {
     this.deleteItemUseCase = deleteItemUseCase;
     this.moveItemToDateUseCase = moveItemToDateUseCase;
     this.setItemAisleUseCase = setItemAisleUseCase;
-    this.sortItemsUseCase = sortItemsUseCase;
+    this.rowsBuilder = new ListDetailRowsBuilder(sortItemsUseCase);
     this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
     this.sortDirection = settingsRepository.getSortDirection();
@@ -263,10 +261,7 @@ public final class ListDetailViewModel extends ViewModel {
       return;
     }
 
-    List<Store> orderedStores = new ArrayList<>(stores);
-    orderedStores.sort(
-        Comparator.comparingInt((Store store) -> store.getBrand().ordinal())
-            .thenComparing(Store::getName, String.CASE_INSENSITIVE_ORDER));
+    List<Store> orderedStores = StoreOrdering.byBrandThenName(stores);
 
     String selectedStoreId = resolveSelectedStoreId(orderedStores);
     savedStateHandle.set(KEY_SELECTED_STORE, selectedStoreId);
@@ -278,33 +273,8 @@ public final class ListDetailViewModel extends ViewModel {
       }
     }
 
-    List<ListDetailRow> rows = new ArrayList<>();
-    for (Store store : orderedStores) {
-      List<ListItem> storeItems = new ArrayList<>();
-      for (ListItem item : items) {
-        if (item.getStoreId().equals(store.getId())) {
-          storeItems.add(item);
-        }
-      }
-      List<ListItem> sorted = sortItemsUseCase.sort(storeItems, sortDirection);
-      rows.add(new ListDetailRow.StoreHeader(store, sorted.size()));
-
-      List<ListItem> resolved = new ArrayList<>();
-      List<ListItem> unresolved = new ArrayList<>();
-      for (ListItem item : sorted) {
-        if (AisleComparator.isUnresolved(item.getAisle())) {
-          unresolved.add(item);
-        } else {
-          resolved.add(item);
-        }
-      }
-      resolved.forEach(item -> rows.add(new ListDetailRow.Item(item)));
-      if (!unresolved.isEmpty()) {
-        rows.add(new ListDetailRow.AttentionHeader(store.getId()));
-        unresolved.forEach(item -> rows.add(new ListDetailRow.Item(item)));
-      }
-      rows.add(new ListDetailRow.AddItem(store, getDraft(store.getId()), addGeneration));
-    }
+    List<ListDetailRow> rows =
+        rowsBuilder.build(orderedStores, items, sortDirection, this::getDraft, addGeneration);
 
     state.setValue(
         new ListDetailUiState(

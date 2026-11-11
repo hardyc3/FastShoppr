@@ -15,6 +15,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import com.fastshoppr.app.data.capture.RecognizedLinesCodec;
 import com.fastshoppr.app.data.id.UuidGenerator;
 import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
 import com.fastshoppr.app.data.local.dao.ListItemDao;
@@ -38,6 +39,7 @@ import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.testing.FakeClock;
+import com.google.gson.Gson;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
@@ -84,7 +86,9 @@ public final class RoomDataLayerTest {
     itemRepository =
         new ListItemRepositoryImpl(database, itemDao, listDao, new FakeClock(), idGenerator);
     storeRepository = new StoreRepositoryImpl(database, storeDao, new FakeClock());
-    captureRepository = new CaptureRepositoryImpl(database, captureDao, itemDao, new FakeClock());
+    captureRepository =
+        new CaptureRepositoryImpl(
+            database, captureDao, itemDao, new FakeClock(), new RecognizedLinesCodec(new Gson()));
     storeDao.getActive();
   }
 

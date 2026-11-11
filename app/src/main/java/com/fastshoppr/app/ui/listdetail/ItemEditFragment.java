@@ -17,6 +17,7 @@ import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentItemEditBinding;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
+import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StorePickerDialog;
 import com.fastshoppr.app.ui.common.UiError;
@@ -24,9 +25,6 @@ import com.fastshoppr.app.ui.common.UiErrorText;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
 
 @AndroidEntryPoint
 public final class ItemEditFragment extends Fragment {
@@ -158,8 +156,7 @@ public final class ItemEditFragment extends Fragment {
   }
 
   private static String formatDate(LocalDate date) {
-    return date.format(
-        DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault()));
+    return DateText.formatMedium(date);
   }
 
   @Override
