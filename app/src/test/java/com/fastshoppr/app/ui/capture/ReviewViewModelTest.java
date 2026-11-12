@@ -8,20 +8,31 @@ package com.fastshoppr.app.ui.capture;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.SavedStateHandle;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
+import com.fastshoppr.app.domain.ai.ItemNameCleaner;
+import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
+import com.fastshoppr.app.domain.ai.NoOpItemNameCleaner;
+import com.fastshoppr.app.domain.ai.RuleBasedItemNameCleaner;
+import com.fastshoppr.app.domain.model.AiAvailability;
+import com.fastshoppr.app.domain.model.AiCleanupSource;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CleanItemRequest;
+import com.fastshoppr.app.domain.model.CleanItemResult;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
@@ -29,6 +40,7 @@ import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
+import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.SaveReviewedItemsUseCase;
@@ -42,6 +54,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -60,6 +73,7 @@ public final class ReviewViewModelTest {
   @Mock private StoreRepository storeRepository;
   @Mock private ShoppingListRepository listRepository;
   @Mock private CaptureImageStore imageStore;
+  @Mock private SettingsRepository settingsRepository;
 
   private final List<ReviewViewModel.ReviewUiEvent> events = new ArrayList<>();
 
@@ -122,6 +136,10 @@ public final class ReviewViewModelTest {
     when(listRepository.getById("list-1")).thenReturn(list);
     when(storeRepository.getActive()).thenReturn(List.of(homeDepot, walmart));
 
+    createViewModel(new NoOpItemNameCleaner());
+  }
+
+  private void createViewModel(ItemNameCleaner cleaner) {
     viewModel =
         new ReviewViewModel(
             captureRepository,
@@ -133,9 +151,22 @@ public final class ReviewViewModelTest {
                 new FixedIdGenerator(),
                 new FixedClock(1000L),
                 new DirectExecutorService()),
+            settingsRepository,
+            new ItemNameCleanerCoordinator(
+                cleaner, new RuleBasedItemNameCleaner(), settingsRepository),
             new DirectExecutorService(),
+            Runnable::run,
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, "cap-1")));
     viewModel.getEvents().observeForever(event -> record(event.getContentIfNotHandled()));
+  }
+
+  private ItemNameCleaner availableCleaner(CleanItemResult result) {
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    when(cleaner.availability())
+        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Available()));
+    when(cleaner.clean(any(CleanItemRequest.class)))
+        .thenReturn(CompletableFuture.completedFuture(result));
+    return cleaner;
   }
 
   private void record(ReviewViewModel.ReviewUiEvent event) {
@@ -245,6 +276,23 @@ public final class ReviewViewModelTest {
   }
 
   @Test
+  public void saveRejectsOverlongAcceptedDisplayName() {
+    viewModel.loadCapture();
+    viewModel.acceptSuggestionAs(
+        new ReviewViewModel.CleanupSuggestion(
+            0, "milk", "Milk", 0.9f, null, AiCleanupSource.ON_DEVICE_AI),
+        "x".repeat(201));
+
+    viewModel.saveSelected();
+
+    ReviewViewModel.ReviewUiEvent.ShowError error =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
+    assertNotNull(error);
+    assertEquals(UiError.RAW_TEXT_TOO_LONG, error.error());
+    verify(captureRepository, never()).saveReviewed(anyString(), any(), anyLong());
+  }
+
+  @Test
   public void saveWithoutSelectionFails() {
     viewModel.loadCapture();
     viewModel.deselectAll();
@@ -332,6 +380,167 @@ public final class ReviewViewModelTest {
 
     assertEquals("store-2", viewModel.getLines().get(1).getStoreId());
     assertEquals("2026-12-01", viewModel.getLines().get(1).getTargetDate());
+  }
+
+  @Test
+  public void cleanupStaysIdleWhenDisabled() {
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+
+    viewModel.startCleanup();
+
+    assertEquals(ReviewViewModel.CleanupStatus.IDLE, cleanupState().getStatus());
+    assertFalse(cleanupState().isAiEnabled());
+    assertTrue(cleanupState().getSuggestions().isEmpty());
+    verify(cleaner, never()).clean(any());
+  }
+
+  @Test
+  public void cleanupAcceptSetsDisplayNameWithoutChangingRawText() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
+    viewModel.loadCapture();
+
+    viewModel.startCleanup();
+
+    assertEquals(ReviewViewModel.CleanupStatus.FINISHED, cleanupState().getStatus());
+    assertEquals(2, cleanupState().getSuggestions().size());
+    ReviewViewModel.CleanupSuggestion suggestion = suggestionFor("milk");
+    assertNotNull(suggestion);
+    assertEquals("Milk", suggestion.getSuggestedName());
+    assertEquals(AiCleanupSource.ON_DEVICE_AI, suggestion.getSource());
+
+    viewModel.acceptSuggestion(suggestion);
+
+    assertEquals("milk", viewModel.getLine(0).getText());
+    assertEquals("Milk", viewModel.getLine(0).getDisplayName());
+    assertEquals(1, cleanupState().getSuggestions().size());
+    assertNull(suggestionFor("milk"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void savePersistsAcceptedDisplayNameSeparatelyFromRawText() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
+    viewModel.loadCapture();
+    viewModel.startCleanup();
+
+    viewModel.acceptSuggestion(suggestionFor("milk"));
+    viewModel.saveSelected();
+
+    ArgumentCaptor<List<ListItem>> captor = ArgumentCaptor.forClass(List.class);
+    verify(captureRepository).saveReviewed(eq("cap-1"), captor.capture(), eq(1000L));
+    assertEquals("milk", captor.getValue().get(0).getRawText());
+    assertEquals("Milk", captor.getValue().get(0).getDisplayName());
+  }
+
+  @Test
+  public void acceptAllAppliesEverySuggestion() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    when(cleaner.availability())
+        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Available()));
+    when(cleaner.clean(any(CleanItemRequest.class)))
+        .thenAnswer(
+            invocation -> {
+              String rawText = invocation.getArgument(0, CleanItemRequest.class).getRawText();
+              String name = "milk".equals(rawText) ? "Milk" : "Eggs";
+              return CompletableFuture.completedFuture(
+                  new CleanItemResult.Suggested(name, 0.85f, "Cleaned"));
+            });
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+    viewModel.startCleanup();
+
+    viewModel.acceptAllSuggestions();
+
+    assertEquals("Milk", viewModel.getLine(0).getDisplayName());
+    assertEquals("Eggs", viewModel.getLine(1).getDisplayName());
+    assertEquals("milk", viewModel.getLine(0).getText());
+    assertEquals("eggs", viewModel.getLine(1).getText());
+  }
+
+  @Test
+  public void editedSuggestionUsesUserTextAndKeepsRawText() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
+    viewModel.loadCapture();
+    viewModel.startCleanup();
+
+    viewModel.acceptSuggestionAs(suggestionFor("milk"), "Organic milk");
+
+    assertEquals("milk", viewModel.getLine(0).getText());
+    assertEquals("Organic milk", viewModel.getLine(0).getDisplayName());
+  }
+
+  @Test
+  public void dismissedItemsAreNotSuggestedAgain() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Cleaned")));
+    viewModel.loadCapture();
+    viewModel.startCleanup();
+
+    viewModel.dismissSuggestion(suggestionFor("milk"));
+    viewModel.acceptAllSuggestions();
+    viewModel.startCleanup();
+
+    assertTrue(cleanupState().getSuggestions().isEmpty());
+    assertEquals(ReviewViewModel.CleanupStatus.FINISHED, cleanupState().getStatus());
+    ReviewViewModel.ReviewUiEvent.ShowMessage message =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowMessage.class);
+    assertNotNull(message);
+    assertEquals(UiMessage.NO_CLEANUP_CANDIDATES, message.message());
+  }
+
+  @Test
+  public void cleanupCapsEachRunAtFiveItems() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    ItemNameCleaner cleaner =
+        availableCleaner(new CleanItemResult.Suggested("Cleaned", 0.8f, "Rules"));
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+    for (int index = 0; index < 5; index++) {
+      viewModel.addLine("item-" + index);
+    }
+
+    viewModel.startCleanup();
+
+    assertEquals(5, cleanupState().getSuggestions().size());
+    verify(cleaner, times(5)).clean(any(CleanItemRequest.class));
+  }
+
+  @Test
+  public void cleanupFallsBackToRulesWhenAiUnavailable() {
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    when(cleaner.availability())
+        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Unavailable()));
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+    viewModel.addLine("tp");
+
+    viewModel.startCleanup();
+
+    ReviewViewModel.CleanupSuggestion suggestion = suggestionFor("tp");
+    assertNotNull(suggestion);
+    assertEquals("Toilet paper", suggestion.getSuggestedName());
+    assertEquals(AiCleanupSource.RULES, suggestion.getSource());
+    verify(cleaner, never()).clean(any());
+  }
+
+  private ReviewViewModel.CleanupState cleanupState() {
+    return viewModel.getCleanupState().getValue();
+  }
+
+  private ReviewViewModel.CleanupSuggestion suggestionFor(String rawText) {
+    for (ReviewViewModel.CleanupSuggestion suggestion : cleanupState().getSuggestions()) {
+      if (rawText.equals(suggestion.getRawText())) {
+        return suggestion;
+      }
+    }
+    return null;
   }
 
   private boolean hasEvent(Class<? extends ReviewViewModel.ReviewUiEvent> type) {

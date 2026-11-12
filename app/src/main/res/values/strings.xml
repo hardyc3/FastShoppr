@@ -47,7 +47,51 @@
     <string name="calendar_body">Shopping dates and recurring schedules will be implemented in Phase 8.</string>
 
     <string name="settings_title">Settings</string>
-    <string name="settings_body">Schedule, notifications, and privacy settings will be implemented in later phases. The app theme follows the system light or dark setting.</string>
+
+
+    <string name="settings_ai_section">On-device AI</string>
+    <string name="settings_ai_toggle">Improve item names with on-device AI</string>
+    <string name="settings_ai_summary">Uses Gemini Nano on supported devices. Suggestions always need your confirmation, so the written item text never changes on its own.</string>
+    <string name="settings_ai_checking">Checking availability…</string>
+    <string name="settings_ai_available">On-device AI is available on this device.</string>
+    <string name="settings_ai_downloadable">The on-device model is not downloaded yet. Download it to use Gemini Nano.</string>
+    <string name="settings_ai_downloading">Downloading the on-device model…</string>
+    <string name="settings_ai_downloading_bytes">Downloading the on-device model… %1$d MB</string>
+    <string name="settings_ai_unavailable">On-device AI is not available on this device. Item names are cleaned with automatic rules.</string>
+    <string name="settings_ai_quota">On-device AI is temporarily unavailable. Item names are cleaned with automatic rules.</string>
+    <string name="settings_ai_download_failed">Could not download the model. Try again later.</string>
+    <string name="settings_ai_download_action">Download model</string>
+    <string name="settings_ai_privacy_note">AI cleanup runs only while the app is open. Nothing is sent to a cloud service, and prompts are never stored.</string>
+
+    <string name="ai_cleanup_action">Clean up names</string>
+    <plurals name="ai_cleanup_action_count">
+        <item quantity="one">Clean up names (%d)</item>
+        <item quantity="other">Clean up names (%d)</item>
+    </plurals>
+    <string name="ai_cleanup_title">Clean up names</string>
+    <string name="ai_cleanup_working">Cleaning item names…</string>
+    <string name="ai_cleanup_idle">Ready</string>
+    <string name="ai_cleanup_empty">No changes suggested.</string>
+    <plurals name="ai_cleanup_suggestion_count">
+        <item quantity="one">%d suggestion. Review before saving.</item>
+        <item quantity="other">%d suggestions. Review before saving.</item>
+    </plurals>
+    <string name="ai_cleanup_before">Before: %1$s</string>
+    <string name="ai_cleanup_after">After: %1$s</string>
+    <string name="ai_cleanup_source_ai">On-device AI</string>
+    <string name="ai_cleanup_source_rules">Automatic rules</string>
+    <string name="ai_cleanup_meta">%1$s · %2$s confidence</string>
+    <string name="ai_cleanup_accept">Accept</string>
+    <string name="ai_cleanup_edit">Edit</string>
+    <string name="ai_cleanup_dismiss">Dismiss</string>
+    <string name="ai_cleanup_accept_all">Accept all</string>
+    <string name="ai_cleanup_accept_all_title">Accept all suggestions?</string>
+    <string name="ai_cleanup_accept_all_confirm">Every suggested name will be used for the items. Written item text stays the same, and you can still edit before saving.</string>
+    <string name="ai_cleanup_edit_title">Edit suggested name</string>
+    <string name="ai_cleanup_close">Done</string>
+    <string name="ai_cleanup_rules_note">AI cleanup unavailable; using automatic cleaning.</string>
+    <string name="ai_cleanup_accepted_name">Name: %1$s</string>
+    <string name="ai_cleanup_no_candidates">No item names to clean up.</string>
 
     <string name="action_continue_to_review">Continue to review</string>
     <string name="action_continue_to_lookup">Continue to organize</string>

@@ -23,6 +23,7 @@ espresso = "3.7.0"
 kotlinxSerialization = "1.8.1"
 digitalInkRecognition = "19.0.0"
 textRecognition = "16.0.1"
+genaiPrompt = "1.0.0-beta5"
 gson = "2.11.0"
 camerax = "1.6.2"
 exifinterface = "1.4.1"
@@ -58,6 +59,7 @@ androidx-test-espresso-core = { module = "androidx.test.espresso:espresso-core",
 androidx-test-espresso-contrib = { module = "androidx.test.espresso:espresso-contrib", version.ref = "espresso" }
 digital-ink-recognition = { module = "com.google.mlkit:digital-ink-recognition", version.ref = "digitalInkRecognition" }
 text-recognition = { module = "com.google.mlkit:text-recognition", version.ref = "textRecognition" }
+genai-prompt = { module = "com.google.mlkit:genai-prompt", version.ref = "genaiPrompt" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 camera-core = { module = "androidx.camera:camera-core", version.ref = "camerax" }
 camera-camera2 = { module = "androidx.camera:camera-camera2", version.ref = "camerax" }

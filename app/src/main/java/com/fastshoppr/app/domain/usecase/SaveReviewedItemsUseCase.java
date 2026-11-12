@@ -50,7 +50,7 @@ public final class SaveReviewedItemsUseCase {
                     .listId(listId)
                     .storeId(reviewed.storeId())
                     .rawText(reviewed.text())
-                    .displayName(null)
+                    .displayName(reviewed.displayName())
                     .targetDate(reviewed.targetDate())
                     .source(source)
                     .isChecked(false)

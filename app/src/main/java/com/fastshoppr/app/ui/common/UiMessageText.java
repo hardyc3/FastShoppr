@@ -22,6 +22,7 @@ public final class UiMessageText {
       case LIST_ARCHIVED -> R.string.list_archived_message;
       case INK_STROKES_REQUIRED -> R.string.ink_strokes_required;
       case SPLIT_FAILED -> R.string.split_failed;
+      case NO_CLEANUP_CANDIDATES -> R.string.ai_cleanup_no_candidates;
     };
   }
 }

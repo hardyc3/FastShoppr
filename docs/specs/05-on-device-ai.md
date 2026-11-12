@@ -36,6 +36,7 @@ Not allowed:
 public interface ItemNameCleaner {
     CompletableFuture<AiAvailability> availability();
     CompletableFuture<CleanItemResult> clean(CleanItemRequest request);
+    CompletableFuture<Void> downloadModel(Consumer<Long> progressBytes);
     void close();
 }
 
@@ -70,7 +71,7 @@ Implementations:
 
 - `GeminiNanoItemNameCleaner`
 - `RuleBasedItemNameCleaner`
-- `NoOpItemNameCleaner` for tests or when the feature is disabled
+- `NoOpItemNameCleaner` for tests; when the feature is disabled the coordinator uses the rules cleaner.
 
 A coordinator chooses the best available implementation and records which one produced a suggestion.
 
@@ -79,22 +80,22 @@ A coordinator chooses the best available implementation and records which one pr
 - **Check availability with the Java GenAI API before creating a session.**
 - Handle `DOWNLOADABLE` with an explicit user action; do not download a model silently.
 - Handle `DOWNLOADING` with progress.
-- Handle `UNAVAILABLE` by hiding AI actions and using deterministic rules **(default: AI on, fallback to rules)**.
-- Handle `BUSY` or quota errors with exponential backoff and fallback.
+- Handle `UNAVAILABLE` by using deterministic rules. When the user has enabled AI cleanup, the review action stays available and labels the run as automatic rules with the note: "AI cleanup unavailable; using automatic cleaning."
+- Handle `BUSY` or quota errors by falling back to rules; do not retry quota errors.
 - Close the model/session when leaving the screen.
 - **Do not call AI from a `Worker`, service, or background thread without a foreground activity.**
-- **AI runs in the foreground by default**; if the app moves to background, ongoing cleanup sessions are cancelled.
-- AI is disabled only when the user turns it off in settings.
+- **AI runs only in the foreground**; if the app moves to background, ongoing cleanup sessions are cancelled and any late results are discarded.
+- AI cleanup is **off by default** and runs only after the user enables it in settings (see D-029).
 
 ## User experience
 
-- **AI cleanup is on by default** when the device supports Gemini Nano.
-- After review, offer "Clean up names" with a count of suggestions.
+- AI cleanup is **off by default**; the settings toggle is "Improve item names with on-device AI" (see D-029).
+- When enabled, the review screen offers "Clean up names" with a count of suggestions.
 - Show a before/after list.
 - Each suggestion can be accepted, edited, or dismissed.
 - "Accept all" is allowed but requires a confirmation dialog.
-- A dismissed suggestion is not shown again for that item.
-- If AI is unavailable (unsupported device, over quota, downloading), deterministic rules are used automatically and a short note appears: "AI cleanup unavailable; using automatic cleaning."
+- A dismissed suggestion is not shown again for that item in that review session.
+- If AI is unavailable (unsupported device, over quota, downloading), deterministic rules are used automatically and a short note appears: "AI cleanup unavailable; using automatic cleaning." (see D-030).
 - Never block saving on AI.
 - AI inference runs only while the app is in the foreground.
 
@@ -119,7 +120,7 @@ Rules:
 - Validate the returned JSON and schema with Gson.
 - Reject output that is empty, longer than 200 characters, or contains URLs.
 - Reject output that changes a number or size token unless the raw text clearly contains a typo.
-- If validation fails, return `NoChange` and fall back to rules.
+- If validation fails, return `Unavailable` so the coordinator falls back to deterministic rules (see D-030).
 
 ## Deterministic fallback
 
@@ -133,17 +134,6 @@ The rules cleaner handles:
 
 If rules and AI disagree, show the AI suggestion but keep the original visible.
 
-## User experience
-
-- AI cleanup is on by default until the user disables it in settings.
-- After review, offer "Clean up names" with a count of suggestions.
-- Show a before/after list.
-- Each suggestion can be accepted, edited, or dismissed.
-- "Accept all" is allowed but requires a confirmation.
-- A dismissed suggestion is not shown again for that item.
-- If AI is unavailable, hide the action and show a short note in settings.
-- Never block saving on AI.
-
 ## Privacy
 
 - Inference is on-device.
@@ -155,10 +145,10 @@ If rules and AI disagree, show the AI suggestion but keep the original visible.
 ## Performance and quota
 
 - Target under two seconds per item on supported devices.
-- Cap a cleanup run at 20 items; process sequentially with cancellation.
+- Cap a cleanup run at 5 items; process sequentially with cancellation.
 - Handle per-app inference quotas gracefully.
 - If the model is slow, allow the user to cancel and keep the original names.
-- Do not retry quota errors more than twice.
+- Do not retry quota errors.
 - Execute inference through an injected `ExecutorService`; post results to the main thread via `Handler` or `LiveData`.
 
 ## Testing

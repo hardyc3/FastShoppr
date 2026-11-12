@@ -5,28 +5,89 @@
  */
 package com.fastshoppr.app.ui.settings;
 
-import androidx.annotation.StringRes;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
-import com.fastshoppr.app.databinding.FragmentPlaceholderBinding;
-import com.fastshoppr.app.ui.components.PlaceholderFragment;
+import com.fastshoppr.app.databinding.FragmentSettingsBinding;
+import dagger.hilt.android.AndroidEntryPoint;
 
-public final class SettingsFragment extends PlaceholderFragment {
+@AndroidEntryPoint
+public final class SettingsFragment extends Fragment {
 
-  @StringRes
+  private FragmentSettingsBinding binding;
+  private SettingsViewModel viewModel;
+
+  @Nullable
   @Override
-  protected int getTitleRes() {
-    return R.string.settings_title;
+  public View onCreateView(
+      @NonNull LayoutInflater inflater,
+      @Nullable ViewGroup container,
+      @Nullable Bundle savedInstanceState) {
+    binding = FragmentSettingsBinding.inflate(inflater, container, false);
+    return binding.getRoot();
   }
 
-  @StringRes
   @Override
-  protected int getBodyRes() {
-    return R.string.settings_body;
+  public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    super.onViewCreated(view, savedInstanceState);
+    viewModel = new ViewModelProvider(this).get(SettingsViewModel.class);
+
+    binding.toolbar.setTitle(R.string.settings_title);
+    binding.toolbar.setNavigationContentDescription(R.string.action_back);
+    binding.toolbar.setNavigationOnClickListener(
+        v -> Navigation.findNavController(v).popBackStack());
+
+    binding.switchAiCleanup.setOnCheckedChangeListener(
+        (buttonView, isChecked) -> viewModel.setAiCleanupEnabled(isChecked));
+    binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
+
+    viewModel.getState().observe(getViewLifecycleOwner(), this::render);
+    viewModel.load();
+  }
+
+  private void render(SettingsViewModel.SettingsUiState state) {
+    if (binding == null) {
+      return;
+    }
+    if (binding.switchAiCleanup.isChecked() != state.isAiCleanupEnabled()) {
+      binding.switchAiCleanup.setOnCheckedChangeListener(null);
+      binding.switchAiCleanup.setChecked(state.isAiCleanupEnabled());
+      binding.switchAiCleanup.setOnCheckedChangeListener(
+          (buttonView, isChecked) -> viewModel.setAiCleanupEnabled(isChecked));
+    }
+    binding.aiStatus.setText(statusTextRes(state));
+    if (state.getAiStatus() == SettingsViewModel.AiStatus.DOWNLOADING) {
+      binding.aiStatus.setText(
+          getString(
+              R.string.settings_ai_downloading_bytes,
+              state.getDownloadedBytes() / (1024L * 1024L)));
+    }
+    binding.btnDownloadModel.setVisibility(
+        state.getAiStatus() == SettingsViewModel.AiStatus.DOWNLOADABLE ? View.VISIBLE : View.GONE);
+  }
+
+  private int statusTextRes(SettingsViewModel.SettingsUiState state) {
+    return switch (state.getAiStatus()) {
+      case CHECKING -> R.string.settings_ai_checking;
+      case AVAILABLE -> R.string.settings_ai_available;
+      case DOWNLOADABLE -> R.string.settings_ai_downloadable;
+      case DOWNLOADING -> R.string.settings_ai_downloading;
+      case QUOTA_EXCEEDED -> R.string.settings_ai_quota;
+      case DOWNLOAD_FAILED -> R.string.settings_ai_download_failed;
+      case UNAVAILABLE -> R.string.settings_ai_unavailable;
+    };
   }
 
   @Override
-  protected void configure(FragmentPlaceholderBinding binding) {
-    setPrimaryAction(R.string.action_back, v -> Navigation.findNavController(v).popBackStack());
+  public void onDestroyView() {
+    super.onDestroyView();
+    binding = null;
   }
 }

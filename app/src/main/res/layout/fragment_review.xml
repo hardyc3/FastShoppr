@@ -24,6 +24,17 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnCleanup"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/screen_padding"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:layout_marginEnd="@dimen/screen_padding"
+        android:text="@string/ai_cleanup_action"
+        android:visibility="gone" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerView"
         android:layout_width="match_parent"

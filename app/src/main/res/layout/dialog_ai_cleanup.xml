@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_medium">
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/ai_cleanup_title"
+        android:textAppearance="?attr/textAppearanceTitleMedium" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/cleanupStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="13sp" />
+
+    <ProgressBar
+        android:id="@+id/cleanupProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:indeterminate="true"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/suggestionList"
+        android:layout_width="match_parent"
+        android:layout_height="280dp"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:clipToPadding="false" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/cleanupNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:orientation="horizontal">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAcceptAll"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_cleanup_accept_all" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseCleanup"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="@string/ai_cleanup_close" />
+    </LinearLayout>
+</LinearLayout>

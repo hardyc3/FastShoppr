@@ -101,6 +101,7 @@ dependencies {
     implementation(libs.androidx.work.runtime)
     implementation(libs.digital.ink.recognition)
     implementation(libs.text.recognition)
+    implementation(libs.genai.prompt)
     implementation(libs.gson)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)

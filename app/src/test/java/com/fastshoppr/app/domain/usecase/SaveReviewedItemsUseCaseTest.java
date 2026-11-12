@@ -51,4 +51,27 @@ public final class SaveReviewedItemsUseCaseTest {
     assertEquals(LocalDate.of(2026, 11, 8), item.getTargetDate());
     assertEquals(1000L, item.getCreatedAt());
   }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void usesAcceptedDisplayNameWhilePreservingRawText() throws Exception {
+    CaptureRepository repository = mock(CaptureRepository.class);
+    SaveReviewedItemsUseCase useCase =
+        new SaveReviewedItemsUseCase(
+            repository, new FixedIdGenerator(), new FixedClock(1000L), new DirectExecutorService());
+
+    useCase
+        .save(
+            "cap-1",
+            "list-1",
+            ItemSource.CAMERA_OCR,
+            List.of(new ReviewedItem("tp", "Toilet paper", "store-1", LocalDate.of(2026, 11, 8))))
+        .get();
+
+    ArgumentCaptor<List<ListItem>> captor = ArgumentCaptor.forClass(List.class);
+    verify(repository).saveReviewed(eq("cap-1"), captor.capture(), eq(1000L));
+    ListItem item = captor.getValue().get(0);
+    assertEquals("tp", item.getRawText());
+    assertEquals("Toilet paper", item.getDisplayName());
+  }
 }

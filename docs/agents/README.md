@@ -25,6 +25,7 @@ Human-readable role guides for focused coding/review agents in this repository. 
 | `spec-alignment-ux-review.md` | Review against product/spec requirements and user experience (flows, states, accessibility cues, copy/feedback). |
 | `phase-implementer.md` | Implement only the current phase, run required checks, update acceptance evidence/logs. |
 | `spec-docs-updater.md` | Keep specs, phase files, decisions, and completion logs aligned with actual behavior/changes. |
+| `spec-architecture-auditor.md` | Audit another agent's deliverable for conformance to specs, architecture/layer rules, invariants, security policy, and phase scope; blocks drift. |
 
 ## Suggested usage
 
@@ -32,3 +33,5 @@ Human-readable role guides for focused coding/review agents in this repository. 
 - Large cleanup: `refactor`, then `pre-commit-review` + relevant tests.
 - New phase work: `phase-implementer`, then `spec-docs-updater`.
 - Feature/UX changes: `spec-alignment-ux-review` + `maintainability-review`.
+- Agent team gate: run `spec-architecture-auditor` on each agent's deliverable before merge or phase completion; fix blockers, then `pre-commit-review`.
+- Full phase close: `phase-implementer` -> `spec-architecture-auditor` -> `spec-docs-updater` -> `pre-commit-review`.

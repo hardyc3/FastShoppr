@@ -9,6 +9,7 @@ import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
 import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
@@ -88,23 +89,28 @@ public final class ManualListsFlowTest {
           .perform(replaceText("milk"), clickAddItemButton());
       waitForItemText("milk");
 
-      scrollToPosition(2);
-      onFocusedView(withId(R.id.item_overflow)).perform(click());
+      onFocusedView(withId(R.id.list_detail_recycler))
+          .perform(
+              RecyclerViewActions.actionOnItem(
+                  hasDescendant(itemTextMatcher("milk")),
+                  clickChildViewWithId(R.id.item_overflow)));
       onFocusedView(withText(R.string.set_aisle)).perform(click());
       onFocusedView(withId(R.id.dialog_aisle_input)).perform(replaceText("A12"));
       onFocusedView(withText(R.string.save)).perform(click());
       waitForText("Aisle A12");
 
-      scrollToPosition(1);
-      onFocusedView(withId(R.id.item_checkbox)).perform(click());
-      onFocusedView(withId(R.id.item_checkbox)).check(matches(isChecked()));
+      clickItemCheckbox("milk");
+      checkItemCheckbox("milk", true);
 
       onFocusedView(withId(R.id.sort_toggle_button)).perform(click());
       onFocusedView(withId(R.id.sort_toggle_button))
           .check(matches(withText(R.string.sort_descending)));
 
-      scrollToPosition(1);
-      onFocusedView(withId(R.id.item_overflow)).perform(click());
+      onFocusedView(withId(R.id.list_detail_recycler))
+          .perform(
+              RecyclerViewActions.actionOnItem(
+                  hasDescendant(itemTextMatcher("milk")),
+                  clickChildViewWithId(R.id.item_overflow)));
       onFocusedView(withText(R.string.edit_item)).perform(click());
       onFocusedView(withId(R.id.raw_text_input)).check(matches(withText("milk")));
       onFocusedView(withId(R.id.raw_text_input)).perform(replaceText("milk 2%"));
@@ -124,6 +130,57 @@ public final class ManualListsFlowTest {
   private static void scrollToPosition(int position) {
     onFocusedView(withId(R.id.list_detail_recycler))
         .perform(RecyclerViewActions.scrollToPosition(position));
+  }
+
+  private static void clickItemCheckbox(String itemText) {
+    waitForItemText(itemText);
+    onFocusedView(withId(R.id.list_detail_recycler))
+        .perform(
+            RecyclerViewActions.actionOnItem(
+                hasDescendant(itemTextMatcher(itemText)),
+                clickChildViewWithId(R.id.item_checkbox)));
+  }
+
+  private static void checkItemCheckbox(String itemText, boolean checked) {
+    waitForItemText(itemText);
+    onFocusedView(withId(R.id.list_detail_recycler))
+        .perform(RecyclerViewActions.scrollTo(hasDescendant(itemTextMatcher(itemText))));
+    onFocusedView(withId(R.id.list_detail_recycler))
+        .check(
+            matches(
+                hasDescendant(
+                    allOf(
+                        hasDescendant(itemTextMatcher(itemText)),
+                        hasDescendant(
+                            allOf(
+                                withId(R.id.item_checkbox),
+                                checked
+                                    ? isChecked()
+                                    : org.hamcrest.Matchers.not(isChecked())))))));
+  }
+
+  private static ViewAction clickChildViewWithId(int viewId) {
+    return new ViewAction() {
+      @Override
+      public Matcher<View> getConstraints() {
+        return isDisplayed();
+      }
+
+      @Override
+      public String getDescription() {
+        return "click child view with id " + viewId;
+      }
+
+      @Override
+      public void perform(UiController uiController, View view) {
+        View child = view.findViewById(viewId);
+        if (child == null) {
+          throw new AssertionError("No child view with id " + viewId);
+        }
+        child.performClick();
+        uiController.loopMainThreadUntilIdle();
+      }
+    };
   }
 
   private static ViewInteraction onFocusedView(Matcher<View> matcher) {
