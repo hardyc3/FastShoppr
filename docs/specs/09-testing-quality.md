@@ -7,6 +7,7 @@
 - Use fakes for fragile integrations (WebView, HTTP, ML Kit, Gemini Nano).
 - Keep sanitized fixtures for parsers.
 - A phase is not done until its required tests pass.
+- A phase cannot be marked complete if any required test fails, errors, is skipped, or does not run. This includes `connectedDebugAndroidTest` on the simulated device (emulator) or a physical device. An unavailable device is not a pass.
 
 ## Test levels
 
@@ -115,10 +116,15 @@ Required:
 ./gradlew spotlessCheck
 ```
 
-Optional but recommended:
+Required when the phase changes Room, permissions, notifications, or critical UI flows, or when the phase test plan includes instrumentation:
 
 ```bash
 ./gradlew connectedDebugAndroidTest
+```
+
+Optional but recommended:
+
+```bash
 ./gradlew dependencyUpdates
 ```
 
@@ -129,6 +135,9 @@ Rules:
 - No TODO/FIXME comments in changed code.
 - Java formatting enforced by Spotless/Checkstyle.
 - No Kotlin app source, Kotlin Android plugins, or Compose dependencies. Gradle Kotlin DSL is allowed for build scripts.
+- A test that fails, errors, is skipped, or cannot run is not a pass. Record the gap in the completion log and leave the phase incomplete.
+- `connectedDebugAndroidTest` must actually execute on the simulated device (emulator) or a physical device; a compile-only run or a missing device does not satisfy the requirement.
+- Do not delete, ignore, or weaken a test to make a phase pass.
 
 ## Performance
 
@@ -169,13 +178,14 @@ A phase is complete only when:
 - DAO changes have Room tests.
 - Critical UI changes have Espresso or Robolectric coverage.
 - Permission, notification, or background changes have instrumentation or manual verification.
-- All required commands pass.
+- All required commands and tests pass, including `connectedDebugAndroidTest` on the simulated device (emulator) where required.
+- No test in the phase test plan is failing, errored, skipped, or unrun.
 - Manual demo steps succeed.
 - Results are recorded in the phase completion log.
 
 ## CI expectations
 
 - Build, unit tests, lint, and Spotless run on every change.
-- Instrumentation tests run on a scheduled job or locally when a device is available.
+- Instrumentation tests run on a scheduled job with a simulated device (emulator) or locally on a physical device.
 - Live retailer and live AI tests are excluded from CI.
-- CI must fail on lint errors and failing tests.
+- CI must fail on lint errors and on any failing, errored, skipped, or unrun required test.

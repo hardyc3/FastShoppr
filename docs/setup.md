@@ -19,7 +19,7 @@ deliverable and does not authorize starting a phase.
 | Android SDK Platform-Tools | Latest stable | Provides `adb`. |
 | Android Emulator | Latest stable | Requires hardware virtualization. |
 | Emulator system image | API 36 Google APIs | `x86_64` on Intel/AMD, `arm64-v8a` on Apple Silicon. |
-| Gradle | **8.13** | Committed wrapper. Do not install a separate Gradle version. AGP 8.13.2 requires Gradle ≥ 8.13. |
+| Gradle | **9.5.1** | Committed wrapper. Do not install a separate Gradle version. AGP 8.13.2 requires Gradle ≥ 8.13; the wrapper was bumped to 9.5.1 on 2026-11-13 (builds run on modern JDKs). |
 | Git | Any current version | Required for normal workflow. |
 
 `google_apis` is preferred over `google_apis_playstore` for automation. It
@@ -195,7 +195,7 @@ WSL2 does not expose `/dev/kvm`, so the Android emulator must run on the
 Windows host, not inside WSL.
 
 - Run Android Studio, the emulator, and Gradle builds on Windows.
-- Do not use a WSL JDK 25 for Android builds; Gradle/AGP may reject it.
+- Prefer the same committed wrapper path as the main project; JDK 21 remains the project baseline. Builds in this environment have also been run on Temurin 25.0.5 with the Gradle 9.5.1 wrapper without issue.
 - If working from WSL, call the Windows tools explicitly:
 
   ```bash
@@ -239,7 +239,7 @@ adb shell getprop ro.build.version.sdk   # 36
 For Gradle, use the committed wrapper:
 
 ```bash
-./gradlew --version     # JVM must be 21.x; Gradle must be 8.13
+./gradlew --version     # committed wrapper is Gradle 9.5.1; JDK 21 baseline (JDK 25 verified in this environment)
 ```
 
 ## Project build, run, and test commands

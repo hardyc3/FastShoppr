@@ -7,8 +7,6 @@ package com.fastshoppr.app.domain.usecase;
 
 import com.fastshoppr.app.domain.model.ItemLocation;
 import com.fastshoppr.app.domain.model.ListItem;
-import com.fastshoppr.app.domain.model.LookupSource;
-import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.text.TextNormalizer;
 import com.fastshoppr.app.domain.time.Clock;
@@ -51,35 +49,52 @@ public final class UpdateItemUseCase {
           boolean locationChanged =
               !Objects.equals(existing.getAisle(), location.aisle())
                   || !Objects.equals(existing.getBay(), location.bay());
+          boolean storeChanged = !Objects.equals(existing.getStoreId(), storeId);
 
-          LookupStatus lookupStatus = existing.getLookupStatus();
-          LookupSource lookupSource = existing.getLookupSource();
-          if (locationChanged) {
-            lookupStatus = location.lookupStatus();
-            lookupSource = location.lookupSource();
-          }
-
-          int sortPosition = existing.getSortPosition();
-          if (!Objects.equals(existing.getStoreId(), storeId)) {
-            sortPosition = itemRepository.nextSortPosition(existing.getListId(), storeId);
-          }
-
-          ListItem updated =
+          ListItem.Builder updated =
               ListItem.builderFrom(existing)
                   .rawText(rawText)
                   .displayName(cleanedDisplayName)
                   .normalizedText(TextNormalizer.normalizeForLookup(cleanedDisplayName))
                   .quantity(quantity)
                   .storeId(storeId)
-                  .aisle(location.aisle())
-                  .bay(location.bay())
-                  .lookupStatus(lookupStatus)
-                  .lookupSource(lookupSource)
-                  .sortPosition(sortPosition)
-                  .updatedAt(clock.nowMillis())
-                  .build();
-          itemRepository.update(updated);
-          return updated;
+                  .updatedAt(clock.nowMillis());
+
+          if (storeChanged) {
+            // an aisle resolved for another store's layout is meaningless; reset lookup state
+            updated
+                .aisle(location.aisle())
+                .bay(location.bay())
+                .matchedProductName(null)
+                .matchedProductUrl(null)
+                .matchConfidence(null)
+                .lookupStatus(location.lookupStatus())
+                .lookupSource(location.lookupSource())
+                .lookupError(null)
+                .matchCandidatesJson(null);
+          } else if (locationChanged) {
+            // manual override: keep the location, drop lookup metadata and errors
+            updated
+                .aisle(location.aisle())
+                .bay(location.bay())
+                .matchedProductName(location.isPresent() ? existing.getMatchedProductName() : null)
+                .matchedProductUrl(location.isPresent() ? existing.getMatchedProductUrl() : null)
+                .matchConfidence(location.isPresent() ? existing.getMatchConfidence() : null)
+                .lookupStatus(location.lookupStatus())
+                .lookupSource(location.lookupSource())
+                .lookupError(null)
+                .matchCandidatesJson(null);
+          }
+
+          int sortPosition = existing.getSortPosition();
+          if (storeChanged) {
+            sortPosition = itemRepository.nextSortPosition(existing.getListId(), storeId);
+          }
+          updated.sortPosition(sortPosition);
+
+          ListItem result = updated.build();
+          itemRepository.update(result);
+          return result;
         },
         executor);
   }

@@ -23,7 +23,9 @@ import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.AddItemUseCase;
+import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
+import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
@@ -55,6 +57,8 @@ public final class ListDetailViewModel extends ViewModel {
   private final DeleteItemUseCase deleteItemUseCase;
   private final MoveItemToDateUseCase moveItemToDateUseCase;
   private final SetItemAisleUseCase setItemAisleUseCase;
+  private final LookupItemUseCase lookupItemUseCase;
+  private final ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
   private final ListDetailRowsBuilder rowsBuilder;
   private final SavedStateHandle savedStateHandle;
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -92,6 +96,8 @@ public final class ListDetailViewModel extends ViewModel {
       DeleteItemUseCase deleteItemUseCase,
       MoveItemToDateUseCase moveItemToDateUseCase,
       SetItemAisleUseCase setItemAisleUseCase,
+      LookupItemUseCase lookupItemUseCase,
+      ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
       SortItemsUseCase sortItemsUseCase,
       SavedStateHandle savedStateHandle) {
     this.listRepository = listRepository;
@@ -103,6 +109,8 @@ public final class ListDetailViewModel extends ViewModel {
     this.deleteItemUseCase = deleteItemUseCase;
     this.moveItemToDateUseCase = moveItemToDateUseCase;
     this.setItemAisleUseCase = setItemAisleUseCase;
+    this.lookupItemUseCase = lookupItemUseCase;
+    this.applyLookupCandidateUseCase = applyLookupCandidateUseCase;
     this.rowsBuilder = new ListDetailRowsBuilder(sortItemsUseCase);
     this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
@@ -206,6 +214,32 @@ public final class ListDetailViewModel extends ViewModel {
               if (error != null) {
                 postError(UiError.SAVE_FAILED);
               }
+            });
+  }
+
+  public void refreshLookup(String itemId) {
+    lookupItemUseCase
+        .lookup(itemId, true)
+        .whenComplete(
+            (outcome, error) -> {
+              if (error != null) {
+                postError(UiError.SAVE_FAILED);
+              }
+            });
+  }
+
+  /** Applies a user-confirmed lookup candidate shown from a persisted Multiple result. */
+  public void applyLookupCandidate(
+      String itemId, com.fastshoppr.app.domain.lookup.StoreLookupResult.Found candidate) {
+    applyLookupCandidateUseCase
+        .apply(itemId, candidate)
+        .whenComplete(
+            (item, error) -> {
+              if (error != null) {
+                postError(UiError.SAVE_FAILED);
+                return;
+              }
+              postMessage(UiMessage.AISLE_SAVED);
             });
   }
 

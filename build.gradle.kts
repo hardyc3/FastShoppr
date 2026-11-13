@@ -8,7 +8,7 @@ spotless {
     java {
         target("app/src/**/*.java")
         licenseHeaderFile(rootProject.file("spotless/license-header.txt"))
-        googleJavaFormat("1.28.0")
+        googleJavaFormat("1.33.0")
         removeUnusedImports()
         importOrder()
         trimTrailingWhitespace()

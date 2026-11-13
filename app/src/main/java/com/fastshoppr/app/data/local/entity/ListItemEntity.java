@@ -70,6 +70,8 @@ public final class ListItemEntity {
 
   @Nullable public final String lookupError;
 
+  @Nullable public final String matchCandidatesJson;
+
   @NonNull public final ItemSource source;
 
   public final boolean isChecked;
@@ -99,6 +101,7 @@ public final class ListItemEntity {
       @NonNull LookupStatus lookupStatus,
       @Nullable LookupSource lookupSource,
       @Nullable String lookupError,
+      @Nullable String matchCandidatesJson,
       @NonNull ItemSource source,
       boolean isChecked,
       int sortPosition,
@@ -121,6 +124,7 @@ public final class ListItemEntity {
     this.lookupStatus = lookupStatus;
     this.lookupSource = lookupSource;
     this.lookupError = lookupError;
+    this.matchCandidatesJson = matchCandidatesJson;
     this.source = source;
     this.isChecked = isChecked;
     this.sortPosition = sortPosition;

@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-10-31
+- **Last updated:** 2026-11-13
 
 ## Goal
 
@@ -91,6 +91,7 @@ app/src/test/resources/fixtures/pricing/
 - [ ] The report recommends a Phase 11 scope.
 - [ ] No production price feature is implemented.
 - [ ] No personal data or secrets are committed.
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator) when the phase adds Android code; no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -100,6 +101,10 @@ app/src/test/resources/fixtures/pricing/
 | Store context | Manual | ZIP/store selection |
 | Fixtures | Manual review | Sanitized |
 | Report review | Manual | Product owner sign-off |
+
+## Completion gate
+
+This phase cannot be marked `done` while any required test has failed, errored, been skipped, or failed to run. That includes every test in the test plan and, when the phase adds Android code, `./gradlew connectedDebugAndroidTest` on the simulated device (Android emulator) or a physical device. An unavailable device is not a pass: leave the phase `in-progress` or `blocked` and record the unrun test in the completion log.
 
 ## Manual demo
 

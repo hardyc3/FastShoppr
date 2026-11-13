@@ -71,7 +71,8 @@ public final class CaptureRepositoryImplTest {
             0,
             null,
             1000L,
-            1000L);
+            1000L,
+            null);
 
     txRepository.saveReviewed("cap-1", List.of(item), 1000L);
 
@@ -131,6 +132,7 @@ public final class CaptureRepositoryImplTest {
         0,
         null,
         1000L,
-        1000L);
+        1000L,
+        null);
   }
 }

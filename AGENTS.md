@@ -15,7 +15,7 @@ Store sections for Lowe's, Target, Smiths, and custom stores may exist in the UI
 
 ## Current phase
 
-**Phase 0 — Feasibility** is the only phase that may be started. See `docs/specs/phases/phase-00-feasibility.md`.
+**Phase 6 — Store lookup** is `done` (see `docs/specs/phases/phase-06-store-lookup.md`). **Phase 6b — Store lookup manual verification** is the current follow-up (see `docs/specs/phases/phase-06b-store-lookup-manual-verification.md`); Phase 7 may not start until 6b is reviewed and marked `done`.
 
 Do not start a later phase until the current phase is marked complete and reviewed.
 
@@ -193,7 +193,7 @@ A phase is done only when all of the following are true:
 
 - Every acceptance criterion in the phase file is checked.
 - `assembleDebug`, unit tests, lint, and `spotlessCheck` pass.
-- Instrumentation tests pass when the phase changes Room, permissions, notifications, or critical UI flows.
+- All required tests run and pass, including `connectedDebugAndroidTest` on the simulated device (emulator) or a physical device whenever the phase test plan requires it. A test that fails, errors, is skipped, or cannot run leaves the phase incomplete.
 - New behavior has tests at the appropriate level.
 - No new warnings or TODOs are left in changed code.
 - No secrets or debug-only shortcuts remain.

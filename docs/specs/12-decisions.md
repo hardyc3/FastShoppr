@@ -254,3 +254,36 @@ Format:
 - Decision: When AI cleanup is enabled but the model is `DOWNLOADABLE`, `DOWNLOADING`, `UNAVAILABLE`, or over quota, the run continues with deterministic rules and shows "AI cleanup unavailable; using automatic cleaning." Invalid model output is mapped to `CleanItemResult.Unavailable`, which the coordinator converts to the rules path; only a valid model result that matches the input returns `NoChange`. No automatic retries are performed for quota errors.
 - Rationale: A silent no-change on malformed output would hide a broken model behind a dead action. Falling back to rules keeps the feature useful and makes the source explicit in the suggestion sheet.
 - Consequences: `ItemNameCleanerCoordinator` is the single fallback point. Every suggestion carries an `AiCleanupSource` (`ON_DEVICE_AI` or `RULES`) for display. Adding retries or automatic downloads requires a new decision entry.
+
+## D-031 — Gradle wrapper 9.5.1 and google-java-format 1.33.0
+
+- Date: 2026-11-13
+- Status: accepted
+- Decision: The root Gradle wrapper is pinned to **9.5.1** (previously 8.13) and Spotless uses `googleJavaFormat` **1.33.0** (previously 1.28.0). The Android baseline remains Java 21 / SDK 36 / AGP 8.13.2.
+- Rationale: Gradle 8.13/Spotless 1.28.0 do not run on the current JDK (Temurin 25.0.5); the pinned set failed with configuration-cache/serialization and JVM-version errors before any Android task could execute. Builds now complete on the current toolchain.
+- Consequences: Builds from this tree require the committed wrapper (no separate Gradle install). Earlier log entries that recorded Gradle 8.13/9.9.1 describe the state at that date. Any future wrapper or `googleJavaFormat` bump requires a decision entry.
+
+## D-032 — Walmart store context is user-assisted; cookie persistence with explicit forget
+
+- Date: 2026-11-13
+- Status: accepted (amends D-022)
+- Decision: Walmart exposes no reliable programmatic way to pin a physical store from a plain WebView load (a `stores=<number>` query parameter was observed **not** to change server-side context; the store is set via Walmart's own assisted UI or defaulted by IP). The lookup harness therefore provides a user-initiated **"Verify your Walmart store"** screen that hosts the regular walmart.com site in a WebView; the user picks their store there. The internal WebView cookie jar **persists** across lookups (and app restarts) until the user taps **"Forget store"**, which wipes Walmart cookies and DOM storage in that screen. Aisles are still downgraded to `NEEDS_REVIEW` (below the 0.6 auto-accept threshold) because context cannot be proven programmatically; the user verifies on the shelf or confirms via "Not right?".
+- Rationale: D-022's assisted flow requires the user to select the store once; persisting cookies makes that one-time pick actually effective. Silent guessing was the alternative (wrong-store aisles reported as FOUND), rejected per store-context rules. Cookie clearing at every run would make the store pick useless; a visible "Forget store" action keeps retention honest and local.
+- Consequences: `WalmartWebViewLookupService` no longer wipes cookies/DOM storage on teardown (WebView instances are still created/destroyed per lookup). A `WalmartStoreFragment` (`walmart_store` nav destination) hosts the assisted session. Normal automated/background lookups remain out of scope (Phase 7). Store context remains unverified for acceptance purposes until checked on a physical device.
+
+## D-033 — Multiple-match candidates persist on the item; `matchCandidatesJson` column (schema v3)
+
+- Date: 2026-11-13
+- Status: accepted
+- Decision: The last `Multiple` result's candidate list is serialized (Gson) into a new nullable `ListItem.matchCandidatesJson` column (Room **2→3**, `MIGRATION_2_3` adds the column; existing rows remain `NULL`). The item-row "Not right?" action decodes and offers the persisted candidates (pick one, or enter manually) when the item is `NEEDS_REVIEW`; candidates are cleared on any `Found`/`Blocked`/`NotFound`/`Error` result, on cache hits, on manual overrides, on candidate confirmation, and on store changes. Candidates never replace `rawText` and never bypass manual precedence; `applyCandidate` remains the single write path.
+- Rationale: candidates were previously discarded when the lookup harness finished, so the item row had no way to offer a re-pick (spec "Candidate selection dialog for Multiple" unreachable outside the harness run). Persisting the small payload is simpler and more honest than re-scraping (cache intentionally stores only `Found`).
+- Consequences: schema version bump 2→3 requires the migration to run on upgrades; `MigrationTest` covers 2→3. Candidates are untrusted retailer text — displayed only, never executed. Item payload in memory/Room grows by a few KB for `NEEDS_REVIEW` items only.
+
+## D-034 — Store lookup confidence must be calculated, not hardcoded
+
+- Date: 2026-11-13
+- Status: accepted
+- Decision: Aisle extraction confidence must be derived from observable extraction evidence (structured JSON fields, product metadata, fallback source, ambiguity, and store-context verification). Fixed constants may be used only as base weights that are adjusted by evidence, not as the final confidence for every match. Regex simplification and confidence calculation are tracked in Phase 6c after Phase 6b.
+- Rationale: Phase 6 currently assigns fixed confidence values in `WalmartAisleExtractor` and `HomeDepotAisleParser`, which hides extraction quality and makes review thresholds less meaningful. Real-page verification in Phase 6b must inform the final scoring signals.
+- Consequences: Phase 6 remains done for its automated/manual scope, but confidence quality is a tracked follow-up. Future lookup code must preserve calculated confidence through repository, cache, and UI paths.
+

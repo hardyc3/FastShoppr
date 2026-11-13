@@ -20,7 +20,9 @@ import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.AddItemUseCase;
+import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
+import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
@@ -59,6 +61,8 @@ public final class ListDetailStateRestorationTest {
   @Inject DeleteItemUseCase deleteItemUseCase;
   @Inject MoveItemToDateUseCase moveItemToDateUseCase;
   @Inject SetItemAisleUseCase setItemAisleUseCase;
+  @Inject LookupItemUseCase lookupItemUseCase;
+  @Inject ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
   @Inject SortItemsUseCase sortItemsUseCase;
 
   private String listId;
@@ -134,6 +138,8 @@ public final class ListDetailStateRestorationTest {
         deleteItemUseCase,
         moveItemToDateUseCase,
         setItemAisleUseCase,
+        lookupItemUseCase,
+        applyLookupCandidateUseCase,
         sortItemsUseCase,
         handle);
   }

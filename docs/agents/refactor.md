@@ -27,6 +27,7 @@ Improve structure, readability, correctness-enablers, and testability of existin
 3. Plan small, reviewable steps. For aggressive refactors, list moved/renamed symbols and migration impact.
 4. Refactor incrementally; keep diffs coherent.
 5. Preserve architecture boundaries: `domain` framework-free; repositories abstracted; Fragments dumb; ViewModels expose `LiveData` state/events.
+5a. Import hygiene: scan method parameters, fields, return types, locals, and casts for fully qualified package/type names (for example `java.util.List`, `com.fastshoppr.app...`); move them to single-class or on-demand imports unless a name collision requires the qualified form. Leave only unavoidable disambiguation qualifiers.
 6. Run: `./gradlew testDebugUnitTest lintDebug spotlessCheck` (and `assembleDebug`; instrumentation tests when relevant).
 7. Report what changed, what did **not** change, risks, and follow-ups.
 
@@ -35,6 +36,7 @@ Improve structure, readability, correctness-enablers, and testability of existin
 - [ ] `rawText` never overwritten by match/AI; `matchedProductName` separate; `displayName` confirmation semantics preserved.
 - [ ] No blocking work on main thread.
 - [ ] No secrets/logging of sensitive data.
+- [ ] Fully qualified type names in parameters and declarations are replaced with imports unless disambiguation requires them.
 - [ ] No prohibited phase features.
 
 ## Output format

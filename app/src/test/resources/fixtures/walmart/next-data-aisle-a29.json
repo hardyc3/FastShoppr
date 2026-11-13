@@ -1,0 +1,26 @@
+{
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "searchResult": {
+          "itemStacks": [
+            {
+              "items": [
+                {
+                  "name": "Great Value Milk",
+                  "canonicalUrl": "/ip/great-value-milk/123",
+                  "Location": [
+                    {
+                      "displayValue": "A29",
+                      "aisle": { "zone": "A", "aisle": "29" }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

@@ -156,7 +156,7 @@ Phase 0 proved the risky integrations. This phase establishes the project that e
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| 2026-11-05 | `gradlew.bat assembleDebug` | PASS | Gradle 8.13, JDK 21, AGP 8.13.2, compile/target SDK 36. |
+| 2026-11-05 | `gradlew.bat assembleDebug` | PASS | Gradle 8.13 (later bumped to 9.5.1), JDK 21, AGP 8.13.2, compile/target SDK 36. |
 | 2026-11-05 | `gradlew.bat assembleRelease` | PASS | R8 minify + resource shrink; unsigned release APK built. |
 | 2026-11-05 | `gradlew.bat testDebugUnitTest` | PASS | `SystemClockTest`. |
 | 2026-11-05 | `gradlew.bat lintDebug` | PASS | 0 lint issues. |

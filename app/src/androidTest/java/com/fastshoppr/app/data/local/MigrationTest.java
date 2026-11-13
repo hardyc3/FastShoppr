@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.database.Cursor;
+import android.database.sqlite.SQLiteException;
 import androidx.room.testing.MigrationTestHelper;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.sqlite.db.framework.FrameworkSQLiteOpenHelperFactory;
@@ -52,6 +53,31 @@ public final class MigrationTest {
     assertTrue(tableExists(versionTwo, "aisle_cache"));
     assertEquals(0, rowCount(versionTwo, "stores"));
     versionTwo.close();
+  }
+
+  @Test
+  public void migratesVersionTwoToVersionThree() throws IOException, SQLiteException {
+    SupportSQLiteDatabase versionTwo = helper.createDatabase(TEST_DATABASE, 2);
+    versionTwo.execSQL(
+        "INSERT INTO list_items (id, listId, storeId, rawText, displayName, normalizedText, "
+            + "targetDate, lookupStatus, source, isChecked, sortPosition, createdAt, updatedAt) "
+            + "VALUES ('item-1', 'list-1', 'store-1', 'milk', 'milk', 'milk', '2026-11-13', "
+            + "'PENDING', 'TYPED', 0, 0, 1, 1)");
+    versionTwo.close();
+
+    SupportSQLiteDatabase versionThree =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE, 3, true, Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3);
+
+    Cursor cursor = versionThree.query("SELECT matchCandidatesJson FROM list_items");
+    try {
+      assertTrue(cursor.moveToFirst());
+      assertEquals(1, cursor.getCount());
+      assertTrue(cursor.isNull(0));
+    } finally {
+      cursor.close();
+    }
+    versionThree.close();
   }
 
   private static boolean tableExists(SupportSQLiteDatabase database, String table) {
