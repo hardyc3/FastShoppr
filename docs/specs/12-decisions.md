@@ -238,3 +238,19 @@ Format:
 - Decision: `MainActivity` applies system bar and IME insets as padding on the navigation host container. Screens and fragments do not add their own inset handling.
 - Rationale: Target SDK 36 enforces edge-to-edge, so app content previously drew under the status bar and the navigation bar. On the review screen this put the save and discard buttons under the navigation bar, making them untappable.
 - Consequences: One place controls insets for all screens. Layouts must not assume the full window height, and instrumentation tests must scroll to a row before interacting with it.
+
+## D-029 — AI cleanup is opt-in and foreground-only
+
+- Date: 2026-11-11
+- Status: accepted (amends `05-on-device-ai.md`, which said AI cleanup is on by default)
+- Decision: On-device AI cleanup is **off by default**. The user opts in through the settings toggle "Improve item names with on-device AI". Availability checks and cleanup run only while the review screen is started; leaving the screen cancels in-flight work and closes the model session. No model download happens without an explicit user action.
+- Rationale: Phase 5 requires an optional feature with a clear opt-in, and on-device AI availability varies by device and quota. Opt-in keeps behavior predictable, avoids surprise inference, and matches the offline-first product rules.
+- Consequences: The review cleanup action is hidden until the setting is enabled. `SettingsPreferences` persists `ai_cleanup_enabled` (default false). The spec's original on-by-default wording is superseded.
+
+## D-030 — Rules fallback stays visible; validation failures fall back to rules
+
+- Date: 2026-11-11
+- Status: accepted (amends `05-on-device-ai.md` validation-failure wording)
+- Decision: When AI cleanup is enabled but the model is `DOWNLOADABLE`, `DOWNLOADING`, `UNAVAILABLE`, or over quota, the run continues with deterministic rules and shows "AI cleanup unavailable; using automatic cleaning." Invalid model output is mapped to `CleanItemResult.Unavailable`, which the coordinator converts to the rules path; only a valid model result that matches the input returns `NoChange`. No automatic retries are performed for quota errors.
+- Rationale: A silent no-change on malformed output would hide a broken model behind a dead action. Falling back to rules keeps the feature useful and makes the source explicit in the suggestion sheet.
+- Consequences: `ItemNameCleanerCoordinator` is the single fallback point. Every suggestion carries an `AiCleanupSource` (`ON_DEVICE_AI` or `RULES`) for display. Adding retries or automatic downloads requires a new decision entry.

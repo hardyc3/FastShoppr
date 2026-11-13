@@ -10,7 +10,14 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
+import com.fastshoppr.app.domain.ai.CleanupOutcome;
+import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
+import com.fastshoppr.app.domain.concurrent.MainThreadExecutor;
+import com.fastshoppr.app.domain.model.AiAvailability;
+import com.fastshoppr.app.domain.model.AiCleanupSource;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CleanItemRequest;
+import com.fastshoppr.app.domain.model.CleanItemResult;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.RecognitionConfidence;
 import com.fastshoppr.app.domain.model.RecognizedLine;
@@ -18,6 +25,7 @@ import com.fastshoppr.app.domain.model.ReviewedItem;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
+import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.SaveReviewedItemsUseCase;
@@ -30,7 +38,10 @@ import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
@@ -39,6 +50,8 @@ import javax.inject.Inject;
 public final class ReviewViewModel extends ViewModel {
 
   private static final int MAX_TEXT_LENGTH = 200;
+  private static final int MAX_CLEANUP_ITEMS = 5;
+  private static final int MAX_CLEANUP_CONTEXT = 5;
 
   public sealed interface ReviewUiEvent
       permits ReviewUiEvent.CaptureLoaded,
@@ -69,6 +82,7 @@ public final class ReviewViewModel extends ViewModel {
 
   public static final class ReviewLine {
     private final String text;
+    private final String displayName;
     private final boolean selected;
     private final float confidence;
     private final boolean manual;
@@ -82,7 +96,19 @@ public final class ReviewViewModel extends ViewModel {
         boolean manual,
         String storeId,
         String targetDate) {
+      this(text, null, selected, confidence, manual, storeId, targetDate);
+    }
+
+    public ReviewLine(
+        String text,
+        String displayName,
+        boolean selected,
+        float confidence,
+        boolean manual,
+        String storeId,
+        String targetDate) {
       this.text = text;
+      this.displayName = displayName;
       this.selected = selected;
       this.confidence = confidence;
       this.manual = manual;
@@ -92,6 +118,11 @@ public final class ReviewViewModel extends ViewModel {
 
     public String getText() {
       return text;
+    }
+
+    /** Accepted user-facing name; null means the written text is used unchanged. */
+    public String getDisplayName() {
+      return displayName;
     }
 
     public boolean isSelected() {
@@ -115,19 +146,122 @@ public final class ReviewViewModel extends ViewModel {
     }
 
     ReviewLine withText(String value) {
-      return new ReviewLine(value, selected, confidence, manual, storeId, targetDate);
+      return new ReviewLine(value, null, selected, confidence, manual, storeId, targetDate);
     }
 
     ReviewLine withSelected(boolean value) {
-      return new ReviewLine(text, value, confidence, manual, storeId, targetDate);
+      return new ReviewLine(text, displayName, value, confidence, manual, storeId, targetDate);
     }
 
     ReviewLine withStoreId(String value) {
-      return new ReviewLine(text, selected, confidence, manual, value, targetDate);
+      return new ReviewLine(text, displayName, selected, confidence, manual, value, targetDate);
     }
 
     ReviewLine withTargetDate(String value) {
-      return new ReviewLine(text, selected, confidence, manual, storeId, value);
+      return new ReviewLine(text, displayName, selected, confidence, manual, storeId, value);
+    }
+
+    ReviewLine withDisplayName(String value) {
+      return new ReviewLine(text, value, selected, confidence, manual, storeId, targetDate);
+    }
+  }
+
+  public enum CleanupStatus {
+    IDLE,
+    CHECKING,
+    RUNNING,
+    FINISHED
+  }
+
+  /** One before/after suggestion that has not yet been accepted or dismissed. */
+  public static final class CleanupSuggestion {
+    private final int lineIndex;
+    private final String rawText;
+    private final String suggestedName;
+    private final float confidence;
+    private final String reason;
+    private final AiCleanupSource source;
+
+    CleanupSuggestion(
+        int lineIndex,
+        String rawText,
+        String suggestedName,
+        float confidence,
+        String reason,
+        AiCleanupSource source) {
+      this.lineIndex = lineIndex;
+      this.rawText = rawText;
+      this.suggestedName = suggestedName;
+      this.confidence = confidence;
+      this.reason = reason;
+      this.source = source;
+    }
+
+    public int getLineIndex() {
+      return lineIndex;
+    }
+
+    public String getRawText() {
+      return rawText;
+    }
+
+    public String getSuggestedName() {
+      return suggestedName;
+    }
+
+    public float getConfidence() {
+      return confidence;
+    }
+
+    public String getReason() {
+      return reason;
+    }
+
+    public AiCleanupSource getSource() {
+      return source;
+    }
+  }
+
+  /** Immutable state for the "Clean up names" action and suggestion sheet. */
+  public static final class CleanupState {
+    private final CleanupStatus status;
+    private final boolean aiEnabled;
+    private final AiAvailability availability;
+    private final List<CleanupSuggestion> suggestions;
+
+    CleanupState(
+        CleanupStatus status,
+        boolean aiEnabled,
+        AiAvailability availability,
+        List<CleanupSuggestion> suggestions) {
+      this.status = status;
+      this.aiEnabled = aiEnabled;
+      this.availability = availability;
+      this.suggestions = List.copyOf(suggestions);
+    }
+
+    public CleanupStatus getStatus() {
+      return status;
+    }
+
+    public boolean isAiEnabled() {
+      return aiEnabled;
+    }
+
+    public AiAvailability getAvailability() {
+      return availability;
+    }
+
+    public List<CleanupSuggestion> getSuggestions() {
+      return suggestions;
+    }
+
+    public boolean isRunning() {
+      return status == CleanupStatus.CHECKING || status == CleanupStatus.RUNNING;
+    }
+
+    public boolean isFinished() {
+      return status == CleanupStatus.FINISHED;
     }
   }
 
@@ -136,12 +270,18 @@ public final class ReviewViewModel extends ViewModel {
   private final ShoppingListRepository listRepository;
   private final CaptureImageStore imageStore;
   private final SaveReviewedItemsUseCase saveReviewedItemsUseCase;
+  private final SettingsRepository settingsRepository;
+  private final ItemNameCleanerCoordinator cleanerCoordinator;
   private final ExecutorService executor;
+  private final MainThreadExecutor mainThread;
 
   private final MutableLiveData<SingleEvent<ReviewUiEvent>> events = new MutableLiveData<>();
+  private final MutableLiveData<CleanupState> cleanupState = new MutableLiveData<>();
 
   private final String captureId;
   private final List<ReviewLine> lines = new ArrayList<>();
+  private final List<CleanupSuggestion> cleanupSuggestions = new ArrayList<>();
+  private final Set<String> dismissedCleanupTexts = new HashSet<>();
 
   private CaptureSession currentCapture;
   private ShoppingList currentList;
@@ -152,6 +292,12 @@ public final class ReviewViewModel extends ViewModel {
   private boolean isSaving;
   private boolean loading;
   private boolean loaded;
+  private boolean aiCleanupEnabled;
+  private boolean screenStarted;
+  private volatile CleanupStatus cleanupStatus = CleanupStatus.IDLE;
+  private volatile AiAvailability cleanupAvailability;
+  private volatile int cleanupGeneration;
+  private volatile int availabilityGeneration;
 
   @Inject
   public ReviewViewModel(
@@ -160,19 +306,34 @@ public final class ReviewViewModel extends ViewModel {
       ShoppingListRepository listRepository,
       CaptureImageStore imageStore,
       SaveReviewedItemsUseCase saveReviewedItemsUseCase,
+      SettingsRepository settingsRepository,
+      ItemNameCleanerCoordinator cleanerCoordinator,
       ExecutorService executor,
+      MainThreadExecutor mainThread,
       SavedStateHandle savedStateHandle) {
     this.captureRepository = captureRepository;
     this.storeRepository = storeRepository;
     this.listRepository = listRepository;
     this.imageStore = imageStore;
     this.saveReviewedItemsUseCase = saveReviewedItemsUseCase;
+    this.settingsRepository = settingsRepository;
+    this.cleanerCoordinator = cleanerCoordinator;
     this.executor = executor;
+    this.mainThread = mainThread;
     this.captureId = savedStateHandle.get(NavArguments.CAPTURE_ID);
+    cleanupState.setValue(currentCleanupState());
   }
 
   public LiveData<SingleEvent<ReviewUiEvent>> getEvents() {
     return events;
+  }
+
+  public LiveData<CleanupState> getCleanupState() {
+    return cleanupState;
+  }
+
+  public boolean isAiCleanupEnabled() {
+    return aiCleanupEnabled;
   }
 
   public String getCaptureId() {
@@ -248,7 +409,10 @@ public final class ReviewViewModel extends ViewModel {
               source = currentCapture.getSource();
               defaultDate = currentList.getShoppingDate();
               parseLines();
+              aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
               loaded = true;
+              refreshCleanupState();
+              checkCleanupAvailability();
               postEvent(new ReviewUiEvent.CaptureLoaded());
             });
   }
@@ -380,6 +544,249 @@ public final class ReviewViewModel extends ViewModel {
     }
   }
 
+  /** Starts one cleanup run for up to five items, skipping dismissed suggestions. */
+  public void startCleanup() {
+    if (!aiCleanupEnabled
+        || cleanupStatus == CleanupStatus.CHECKING
+        || cleanupStatus == CleanupStatus.RUNNING) {
+      return;
+    }
+    List<Integer> candidates = cleanupCandidates();
+    if (candidates.isEmpty()) {
+      cleanupStatus = CleanupStatus.FINISHED;
+      refreshCleanupState();
+      postEvent(new ReviewUiEvent.ShowMessage(UiMessage.NO_CLEANUP_CANDIDATES));
+      return;
+    }
+    cleanupSuggestions.clear();
+    cleanupStatus = CleanupStatus.CHECKING;
+    refreshCleanupState();
+    final int generation = ++cleanupGeneration;
+    CompletableFuture<AiAvailability> availability =
+        cleanupAvailability == null
+            ? cleanerCoordinator.availability()
+            : CompletableFuture.completedFuture(cleanupAvailability);
+    availability.whenComplete(
+        (result, error) ->
+            postToMain(
+                () -> {
+                  if (generation != cleanupGeneration) {
+                    return;
+                  }
+                  cleanupAvailability =
+                      error == null && result != null ? result : new AiAvailability.Unavailable();
+                  cleanupStatus = CleanupStatus.RUNNING;
+                  refreshCleanupState();
+                  cleanSequentially(candidates, 0, cleanupAvailability, generation);
+                }));
+  }
+
+  /** Stops further cleanup work; already found suggestions stay visible. */
+  public void cancelCleanup() {
+    cleanupGeneration++;
+    availabilityGeneration++;
+    if (cleanupStatus == CleanupStatus.CHECKING || cleanupStatus == CleanupStatus.RUNNING) {
+      cleanupStatus = CleanupStatus.FINISHED;
+    }
+    refreshCleanupState();
+  }
+
+  public void onScreenStopped() {
+    screenStarted = false;
+    cancelCleanup();
+    cleanerCoordinator.close();
+    cleanupAvailability = null;
+  }
+
+  public void onScreenStarted() {
+    screenStarted = true;
+    aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
+    refreshCleanupState();
+    if (cleanupAvailability == null) {
+      checkCleanupAvailability();
+    }
+  }
+
+  public void acceptSuggestion(CleanupSuggestion suggestion) {
+    acceptSuggestionAs(suggestion, suggestion.getSuggestedName());
+  }
+
+  /** Accepts a suggestion with user-edited text. The written text is not changed. */
+  public void acceptSuggestionAs(CleanupSuggestion suggestion, String editedName) {
+    if (suggestion == null || editedName == null || editedName.isBlank()) {
+      return;
+    }
+    int index = suggestion.getLineIndex();
+    ReviewLine line = getLine(index);
+    if (line != null && Objects.equals(line.getText(), suggestion.getRawText())) {
+      lines.set(index, line.withDisplayName(editedName.trim()));
+      postEvent(new ReviewUiEvent.LinesChanged());
+    }
+    synchronized (cleanupSuggestions) {
+      cleanupSuggestions.remove(suggestion);
+    }
+    refreshCleanupState();
+  }
+
+  public void dismissSuggestion(CleanupSuggestion suggestion) {
+    if (suggestion == null) {
+      return;
+    }
+    dismissedCleanupTexts.add(suggestion.getRawText());
+    synchronized (cleanupSuggestions) {
+      cleanupSuggestions.remove(suggestion);
+    }
+    refreshCleanupState();
+  }
+
+  public void acceptAllSuggestions() {
+    boolean changed = false;
+    List<CleanupSuggestion> pending;
+    synchronized (cleanupSuggestions) {
+      pending = List.copyOf(cleanupSuggestions);
+    }
+    for (CleanupSuggestion suggestion : pending) {
+      int index = suggestion.getLineIndex();
+      ReviewLine line = getLine(index);
+      if (line != null && Objects.equals(line.getText(), suggestion.getRawText())) {
+        lines.set(index, line.withDisplayName(suggestion.getSuggestedName()));
+        changed = true;
+      }
+    }
+    synchronized (cleanupSuggestions) {
+      cleanupSuggestions.clear();
+    }
+    refreshCleanupState();
+    if (changed) {
+      postEvent(new ReviewUiEvent.LinesChanged());
+    }
+  }
+
+  private List<Integer> cleanupCandidates() {
+    List<Integer> candidates = new ArrayList<>(MAX_CLEANUP_ITEMS);
+    for (int index = 0; index < lines.size() && candidates.size() < MAX_CLEANUP_ITEMS; index++) {
+      ReviewLine line = lines.get(index);
+      String text = line.getText();
+      if (text == null || text.isBlank() || text.trim().length() > MAX_TEXT_LENGTH) {
+        continue;
+      }
+      if (line.getDisplayName() != null) {
+        continue;
+      }
+      if (dismissedCleanupTexts.contains(text)) {
+        continue;
+      }
+      candidates.add(index);
+    }
+    return candidates;
+  }
+
+  private void cleanSequentially(
+      List<Integer> candidates, int position, AiAvailability availability, int generation) {
+    if (generation != cleanupGeneration) {
+      return;
+    }
+    if (position >= candidates.size()) {
+      cleanupStatus = CleanupStatus.FINISHED;
+      refreshCleanupState();
+      return;
+    }
+    int index = candidates.get(position);
+    ReviewLine line = getLine(index);
+    if (line == null
+        || line.getText() == null
+        || line.getText().isBlank()
+        || line.getDisplayName() != null
+        || dismissedCleanupTexts.contains(line.getText())) {
+      cleanSequentially(candidates, position + 1, availability, generation);
+      return;
+    }
+    String rawText = line.getText();
+    CleanItemRequest request = new CleanItemRequest(rawText.trim(), contextFor(index));
+    cleanerCoordinator
+        .clean(request, availability)
+        .whenComplete(
+            (outcome, error) ->
+                postToMain(
+                    () -> {
+                      if (generation == cleanupGeneration && error == null && outcome != null) {
+                        ReviewLine current = getLine(index);
+                        if (current != null && Objects.equals(current.getText(), rawText)) {
+                          addSuggestion(index, rawText, outcome);
+                        }
+                      }
+                      cleanSequentially(candidates, position + 1, availability, generation);
+                    }));
+  }
+
+  private void addSuggestion(int index, String rawText, CleanupOutcome outcome) {
+    if (!(outcome.result() instanceof CleanItemResult.Suggested suggested)) {
+      return;
+    }
+    synchronized (cleanupSuggestions) {
+      cleanupSuggestions.add(
+          new CleanupSuggestion(
+              index,
+              rawText,
+              suggested.displayName(),
+              suggested.confidence(),
+              suggested.reason(),
+              outcome.source()));
+    }
+    refreshCleanupState();
+  }
+
+  private List<String> contextFor(int index) {
+    List<String> context = new ArrayList<>(MAX_CLEANUP_CONTEXT);
+    for (int other = 0; other < lines.size() && context.size() < MAX_CLEANUP_CONTEXT; other++) {
+      if (other == index) {
+        continue;
+      }
+      String text = lines.get(other).getText();
+      if (text != null && !text.isBlank()) {
+        context.add(text.trim());
+      }
+    }
+    return context;
+  }
+
+  private void checkCleanupAvailability() {
+    if (!screenStarted) {
+      return;
+    }
+    final int generation = ++availabilityGeneration;
+    cleanerCoordinator
+        .availability()
+        .whenComplete(
+            (result, error) ->
+                postToMain(
+                    () -> {
+                      if (generation != availabilityGeneration) {
+                        return;
+                      }
+                      cleanupAvailability =
+                          error == null && result != null
+                              ? result
+                              : new AiAvailability.Unavailable();
+                      refreshCleanupState();
+                    }));
+  }
+
+  private void postToMain(Runnable action) {
+    mainThread.execute(action);
+  }
+
+  private CleanupState currentCleanupState() {
+    synchronized (cleanupSuggestions) {
+      return new CleanupState(
+          cleanupStatus, aiCleanupEnabled, cleanupAvailability, cleanupSuggestions);
+    }
+  }
+
+  private void refreshCleanupState() {
+    cleanupState.postValue(currentCleanupState());
+  }
+
   public void saveSelected() {
     if (isSaving || currentCapture == null) {
       return;
@@ -405,6 +812,11 @@ public final class ReviewViewModel extends ViewModel {
         postEvent(new ReviewUiEvent.ShowError(UiError.RAW_TEXT_TOO_LONG));
         return;
       }
+      if (line.getDisplayName() != null
+          && line.getDisplayName().trim().length() > MAX_TEXT_LENGTH) {
+        postEvent(new ReviewUiEvent.ShowError(UiError.RAW_TEXT_TOO_LONG));
+        return;
+      }
       if (line.getStoreId() == null || line.getStoreId().isBlank()) {
         postEvent(new ReviewUiEvent.ShowError(UiError.NO_STORES));
         return;
@@ -423,7 +835,9 @@ public final class ReviewViewModel extends ViewModel {
       if (targetDate == null) {
         targetDate = defaultDate;
       }
-      items.add(new ReviewedItem(line.getText().trim(), line.getStoreId(), targetDate));
+      items.add(
+          new ReviewedItem(
+              line.getText().trim(), line.getDisplayName(), line.getStoreId(), targetDate));
     }
 
     saveReviewedItemsUseCase
@@ -519,4 +933,10 @@ public final class ReviewViewModel extends ViewModel {
   }
 
   private record LoadedCapture(CaptureSession session, ShoppingList list, List<Store> stores) {}
+
+  @Override
+  protected void onCleared() {
+    cancelCleanup();
+    cleanerCoordinator.close();
+  }
 }

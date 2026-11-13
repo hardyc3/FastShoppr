@@ -42,7 +42,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 2 | Domain & persistence | `done` | 1 |
 | 3 | Manual lists | `done` | 2 |
 | 4 | Handwriting input | `done` | 3 |
-| 5 | On-device AI | `not-started` | 4 |
+| 5 | On-device AI | `done` | 4 |
 | 6 | Store lookup | `not-started` | 0, 2 |
 | 7 | Background routing | `not-started` | 5, 6 |
 | 8 | Schedule & calendar | `not-started` | 3, 7 |

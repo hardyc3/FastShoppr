@@ -76,9 +76,32 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
     binding.btnSplit.setOnClickListener(v -> onSplitClicked());
     binding.btnSave.setOnClickListener(v -> viewModel.saveSelected());
     binding.btnDiscard.setOnClickListener(v -> viewModel.discard());
+    binding.btnCleanup.setOnClickListener(v -> openCleanupSheet());
 
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
+    viewModel.getCleanupState().observe(getViewLifecycleOwner(), this::renderCleanupState);
     viewModel.loadCapture();
+  }
+
+  private void openCleanupSheet() {
+    if (getChildFragmentManager().findFragmentByTag(AiCleanupDialogFragment.TAG) != null) {
+      return;
+    }
+    AiCleanupDialogFragment.newInstance()
+        .show(getChildFragmentManager(), AiCleanupDialogFragment.TAG);
+  }
+
+  private void renderCleanupState(ReviewViewModel.CleanupState state) {
+    if (binding == null) {
+      return;
+    }
+    binding.btnCleanup.setVisibility(state.isAiEnabled() ? View.VISIBLE : View.GONE);
+    int count = state.getSuggestions().size();
+    binding.btnCleanup.setText(
+        count > 0
+            ? getResources().getQuantityString(R.plurals.ai_cleanup_action_count, count, count)
+            : getString(R.string.ai_cleanup_action));
+    binding.btnCleanup.setEnabled(!state.isRunning());
   }
 
   private void onSplitClicked() {
@@ -231,6 +254,22 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
   private LocalDate parseDate(@Nullable String value) {
     LocalDate parsed = DateText.parseIsoOrNull(value);
     return parsed == null ? LocalDate.now() : parsed;
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    if (viewModel != null) {
+      viewModel.onScreenStarted();
+    }
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    if (viewModel != null) {
+      viewModel.onScreenStopped();
+    }
   }
 
   @Override

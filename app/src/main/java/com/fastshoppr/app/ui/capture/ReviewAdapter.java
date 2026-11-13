@@ -74,6 +74,7 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
     final ItemReviewLineBinding binding;
     final android.widget.CheckBox checkBox;
     final android.widget.EditText textField;
+    private final android.widget.TextView displayNameText;
     private final android.widget.TextView confidenceText;
     private final com.google.android.material.button.MaterialButton storeButton;
     private final com.google.android.material.button.MaterialButton dateButton;
@@ -84,6 +85,7 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
       this.binding = binding;
       checkBox = binding.checkBox;
       textField = binding.textField;
+      displayNameText = binding.displayNameText;
       confidenceText = binding.confidenceText;
       storeButton = binding.storeButton;
       dateButton = binding.dateButton;
@@ -122,6 +124,7 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
           });
       bindText(line);
       bindConfidence(line);
+      bindDisplayName(line);
 
       storeButton.setText(listener.storeLabel(line.getStoreId()));
       dateButton.setText(listener.dateLabel(line.getTargetDate()));
@@ -149,6 +152,17 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
             }
           };
       textField.addTextChangedListener(watcher);
+    }
+
+    private void bindDisplayName(ReviewViewModel.ReviewLine line) {
+      String displayName = line.getDisplayName();
+      if (displayName == null || displayName.isBlank()) {
+        displayNameText.setVisibility(View.GONE);
+        return;
+      }
+      displayNameText.setText(
+          displayNameText.getContext().getString(R.string.ai_cleanup_accepted_name, displayName));
+      displayNameText.setVisibility(View.VISIBLE);
     }
 
     private void bindConfidence(ReviewViewModel.ReviewLine line) {
