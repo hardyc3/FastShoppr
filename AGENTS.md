@@ -15,7 +15,7 @@ Store sections for Lowe's, Target, Smiths, and custom stores may exist in the UI
 
 ## Current phase
 
-**Phase 6 — Store lookup** is `blocked` (see `docs/specs/phases/phase-06-store-lookup.md`). No further phase may be started until Phase 6 is reviewed and marked `done`.
+**Phase 6 — Store lookup** is `done` (see `docs/specs/phases/phase-06-store-lookup.md`). **Phase 6b — Store lookup manual verification** is the current follow-up (see `docs/specs/phases/phase-06b-store-lookup-manual-verification.md`); Phase 7 may not start until 6b is reviewed and marked `done`.
 
 Do not start a later phase until the current phase is marked complete and reviewed.
 

@@ -43,8 +43,9 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 3 | Manual lists | `done` | 2 |
 | 4 | Handwriting input | `done` | 3 |
 | 5 | On-device AI | `done` | 4 |
-| 6 | Store lookup | `blocked` | 0, 2 |
-| 7 | Background routing | `not-started` | 5, 6 |
+| 6 | Store lookup | `done` | 0, 2 |
+| 6b | Store lookup manual verification | `not-started` | 6 |
+| 7 | Background routing | `not-started` | 5, 6, 6b |
 | 8 | Schedule & calendar | `not-started` | 3, 7 |
 | 9 | MVP release | `not-started` | 8 |
 | 10 | Pricing spike | `not-started` | 9 |

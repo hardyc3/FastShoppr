@@ -36,7 +36,8 @@ public final class WalmartAisleExtractor {
     }
     String lower = htmlOrJson.toLowerCase(Locale.US);
     if (isBlockedPage(lower)) {
-      return new StoreLookupResult.Blocked("Walmart challenge or sign-in page detected.");
+      return new StoreLookupResult.Blocked(
+          "Walmart challenge or sign-in page. Open the Walmart store page, complete verification, then retry.");
     }
 
     List<String> jsonBlobs = new ArrayList<>();
@@ -86,22 +87,34 @@ public final class WalmartAisleExtractor {
     return new StoreLookupResult.Multiple(unique);
   }
 
+  /** Challenge-page markers that are specific enough not to match Walmart's normal page chrome. */
+  private static final String[] BLOCKED_PAGE_MARKERS = {
+    "robot or human",
+    "id=\"px-captcha\"",
+    "id='px-captcha'",
+    "verify you are human",
+    "unusual traffic",
+    "please verify",
+    "access denied",
+    "sign in to continue",
+    "sign-in required",
+    "please sign in",
+    "too many requests"
+  };
+
   public static boolean isBlockedPage(String lowerHtml) {
     if (lowerHtml == null) {
       return false;
     }
-    return lowerHtml.contains("robot or human")
-        || lowerHtml.contains("px-captcha")
-        || lowerHtml.contains("perimeterx")
-        || lowerHtml.contains("perimeterex")
-        || lowerHtml.contains("verify you are human")
-        || lowerHtml.contains("please verify")
-        || lowerHtml.contains("/blocked")
-        || lowerHtml.contains("access denied")
-        || lowerHtml.contains("sign in to continue")
-        || lowerHtml.contains("sign-in required")
-        || lowerHtml.contains("please sign in")
-        || lowerHtml.contains("too many requests");
+    // Walmart ships PerimeterX scripts and CSP allowlist entries (*.perimeterx.net, *.px-cdn.net)
+    // on normal pages, so the vendor name is not a challenge signal. Match the challenge UI and
+    // block markers only.
+    for (String marker : BLOCKED_PAGE_MARKERS) {
+      if (lowerHtml.contains(marker)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void collectFromJson(JsonElement element, List<StoreLookupResult.Found> out) {

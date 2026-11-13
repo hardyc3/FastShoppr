@@ -9,4 +9,5 @@ No live capture data, cookies, tokens, or personal information is included.
 - Expected extraction:
   - `next-data-aisle-a29.json` -> aisle/location `A29`, product "Great Value Milk"
   - `next-data-multiple.json` -> multiple candidates including `AC4` and `J29`
+  - `normal-page-with-px-allowlist.html` -> normal search page whose CSP allows PerimeterX hosts; must not be treated as a challenge
   - `blocked.html` -> blocked/challenge page

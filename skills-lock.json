@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "skills": {
+    "opencode-ensemble": {
+      "source": "hueyexe/opencode-ensemble",
+      "sourceType": "github",
+      "skillPath": "skills/opencode-ensemble/SKILL.md",
+      "computedHash": "d3d9d08c43398a97ee9d1d8f507ca4caa570faa6b6608aa679fb56d348b41b4a"
+    }
+  }
+}

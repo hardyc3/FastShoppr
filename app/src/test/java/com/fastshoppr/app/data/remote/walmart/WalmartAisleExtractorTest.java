@@ -37,6 +37,14 @@ public class WalmartAisleExtractorTest {
   }
 
   @Test
+  public void normalPageWithPerimeterxAllowlistIsNotBlocked() throws Exception {
+    String html = fixture("normal-page-with-px-allowlist.html");
+    StoreLookupResult result = WalmartAisleExtractor.extractFromPage(html);
+    assertTrue(result instanceof StoreLookupResult.Found);
+    assertEquals("A29", ((StoreLookupResult.Found) result).getAisle());
+  }
+
+  @Test
   public void detectsBlockedChallenge() throws Exception {
     String html = fixture("blocked.html");
     StoreLookupResult result = WalmartAisleExtractor.extractFromPage(html);
