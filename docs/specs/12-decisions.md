@@ -278,3 +278,12 @@ Format:
 - Decision: The last `Multiple` result's candidate list is serialized (Gson) into a new nullable `ListItem.matchCandidatesJson` column (Room **2→3**, `MIGRATION_2_3` adds the column; existing rows remain `NULL`). The item-row "Not right?" action decodes and offers the persisted candidates (pick one, or enter manually) when the item is `NEEDS_REVIEW`; candidates are cleared on any `Found`/`Blocked`/`NotFound`/`Error` result, on cache hits, on manual overrides, on candidate confirmation, and on store changes. Candidates never replace `rawText` and never bypass manual precedence; `applyCandidate` remains the single write path.
 - Rationale: candidates were previously discarded when the lookup harness finished, so the item row had no way to offer a re-pick (spec "Candidate selection dialog for Multiple" unreachable outside the harness run). Persisting the small payload is simpler and more honest than re-scraping (cache intentionally stores only `Found`).
 - Consequences: schema version bump 2→3 requires the migration to run on upgrades; `MigrationTest` covers 2→3. Candidates are untrusted retailer text — displayed only, never executed. Item payload in memory/Room grows by a few KB for `NEEDS_REVIEW` items only.
+
+## D-034 — Store lookup confidence must be calculated, not hardcoded
+
+- Date: 2026-11-13
+- Status: accepted
+- Decision: Aisle extraction confidence must be derived from observable extraction evidence (structured JSON fields, product metadata, fallback source, ambiguity, and store-context verification). Fixed constants may be used only as base weights that are adjusted by evidence, not as the final confidence for every match. Regex simplification and confidence calculation are tracked in Phase 6c after Phase 6b.
+- Rationale: Phase 6 currently assigns fixed confidence values in `WalmartAisleExtractor` and `HomeDepotAisleParser`, which hides extraction quality and makes review thresholds less meaningful. Real-page verification in Phase 6b must inform the final scoring signals.
+- Consequences: Phase 6 remains done for its automated/manual scope, but confidence quality is a tracked follow-up. Future lookup code must preserve calculated confidence through repository, cache, and UI paths.
+

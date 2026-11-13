@@ -24,6 +24,7 @@ Phase 6 is `blocked` only because of the manual live test and store-context veri
 - Cache hit and offline stale-result behavior.
 - Home Depot manual-entry-first behavior.
 - Any small marker/copy changes discovered during the run.
+- Confidence values reviewed against real extraction evidence rather than accepted as fixed constants.
 
 ## Out of scope
 
@@ -38,6 +39,7 @@ Phase 6 is `blocked` only because of the manual live test and store-context veri
 - Keep `rawText` unchanged; store matches separately.
 - Manual aisle values must never be overwritten by lookup.
 - Record whether PX passed, remained blocked, or required user interaction.
+- Record which extraction evidence produced each confidence value during the manual run; hardcoded confidence constants in `WalmartAisleExtractor` and `HomeDepotAisleParser` are not acceptable as final behavior.
 
 ## Recommended manual tests
 
@@ -68,6 +70,7 @@ Phase 6 is `blocked` only because of the manual live test and store-context veri
 - [ ] Manual override and candidate selection work on device.
 - [ ] Cache and stale behavior verified.
 - [ ] Blocked response behavior verified.
+- [ ] Extraction confidence values are traced to real evidence rather than fixed constants.
 - [ ] Phase 6 status updated based on results.
 
 ## Test plan
@@ -80,6 +83,7 @@ Phase 6 is `blocked` only because of the manual live test and store-context veri
 | Manual override | Manual | No overwrite |
 | Cache/offline | Manual | Stale indicator |
 | Blocked response | Manual | No retry |
+| Confidence evidence | Manual/Unit | Real-page confidence trace |
 
 ## Completion gate
 
