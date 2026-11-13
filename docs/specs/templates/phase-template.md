@@ -52,12 +52,17 @@ Why this phase exists, what it unlocks, and any relevant spec sections.
 - [ ] Criterion 1.
 - [ ] Criterion 2.
 - [ ] Criterion 3.
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
 | Test | Level | Notes |
 |---|---|---|
 | Example | Unit | — |
+
+## Completion gate
+
+This phase cannot be marked `done` while any required test has failed, errored, been skipped, or failed to run. That includes every test in the test plan and `./gradlew connectedDebugAndroidTest` on the simulated device (Android emulator) or a physical device. An unavailable device is not a pass: leave the phase `in-progress` or `blocked` and record the unrun test in the completion log.
 
 ## Manual demo
 

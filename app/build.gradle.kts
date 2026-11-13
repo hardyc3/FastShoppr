@@ -103,6 +103,8 @@ dependencies {
     implementation(libs.text.recognition)
     implementation(libs.genai.prompt)
     implementation(libs.gson)
+    implementation(libs.okhttp)
+    implementation(libs.jsoup)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)
@@ -118,6 +120,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.mockito.core)
     testImplementation(libs.androidx.arch.core.testing)
+    testImplementation(libs.okhttp)
 
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.androidx.test.ext.junit)

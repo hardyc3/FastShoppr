@@ -166,5 +166,13 @@ public final class Migrations {
         }
       };
 
+  public static final Migration MIGRATION_2_3 =
+      new Migration(2, 3) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          database.execSQL("ALTER TABLE `list_items` ADD COLUMN `matchCandidatesJson` TEXT");
+        }
+      };
+
   private Migrations() {}
 }

@@ -87,7 +87,7 @@ Walmart is JavaScript-heavy and does not reliably expose aisle data in static HT
 
 ### Requirements
 
-- Run inside a foreground service with a visible persistent notification.
+- Run inside a foreground service with a visible persistent notification during lookup runs (Phase 7). Until then, lookups run only as explicit, user-initiated in-app actions (foreground harness).
 - Show progress such as "Checking Walmart: 3 of 12 items".
 - Use a dedicated WebView instance; do not reuse a user-visible browser tab.
 - Enable JavaScript and DOM storage.

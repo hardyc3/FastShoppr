@@ -19,6 +19,7 @@ public final class UiMessageText {
       case ITEM_DEFERRED -> R.string.item_deferred_message;
       case ITEM_DELETED -> R.string.item_deleted_message;
       case ITEM_SAVED -> R.string.item_saved_message;
+      case AISLE_SAVED -> R.string.aisle_saved_message;
       case LIST_ARCHIVED -> R.string.list_archived_message;
       case INK_STROKES_REQUIRED -> R.string.ink_strokes_required;
       case SPLIT_FAILED -> R.string.split_failed;

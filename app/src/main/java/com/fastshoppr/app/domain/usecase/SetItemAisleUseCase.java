@@ -32,12 +32,18 @@ public final class SetItemAisleUseCase {
         () -> {
           ListItem existing = itemRepository.getById(itemId);
           ItemLocation location = ItemLocation.of(aisle, bay);
+          boolean manual = location.isPresent();
           ListItem updated =
               ListItem.builderFrom(existing)
                   .aisle(location.aisle())
                   .bay(location.bay())
+                  .matchedProductName(manual ? existing.getMatchedProductName() : null)
+                  .matchedProductUrl(manual ? existing.getMatchedProductUrl() : null)
+                  .matchConfidence(manual ? existing.getMatchConfidence() : null)
                   .lookupStatus(location.lookupStatus())
                   .lookupSource(location.lookupSource())
+                  .lookupError(null)
+                  .matchCandidatesJson(null)
                   .updatedAt(clock.nowMillis())
                   .build();
           itemRepository.update(updated);

@@ -6,6 +6,7 @@
 package com.fastshoppr.app.di;
 
 import com.fastshoppr.app.data.repository.AisleCacheRepositoryImpl;
+import com.fastshoppr.app.data.repository.AisleLookupRepositoryImpl;
 import com.fastshoppr.app.data.repository.CaptureRepositoryImpl;
 import com.fastshoppr.app.data.repository.ListItemRepositoryImpl;
 import com.fastshoppr.app.data.repository.ScheduleRepositoryImpl;
@@ -13,6 +14,7 @@ import com.fastshoppr.app.data.repository.SettingsRepositoryImpl;
 import com.fastshoppr.app.data.repository.ShoppingListRepositoryImpl;
 import com.fastshoppr.app.data.repository.StoreRepositoryImpl;
 import com.fastshoppr.app.domain.repository.AisleCacheRepository;
+import com.fastshoppr.app.domain.repository.AisleLookupRepository;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
@@ -53,6 +55,11 @@ public abstract class RepositoryModule {
   @Binds
   @Singleton
   abstract AisleCacheRepository bindAisleCacheRepository(AisleCacheRepositoryImpl implementation);
+
+  @Binds
+  @Singleton
+  abstract AisleLookupRepository bindAisleLookupRepository(
+      AisleLookupRepositoryImpl implementation);
 
   @Binds
   @Singleton

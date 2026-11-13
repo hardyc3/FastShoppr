@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-11-03
+- **Last updated:** 2026-11-13
 
 ## Goal
 
@@ -132,6 +132,7 @@ Phase 6 provides lookups. This phase makes organizing automatic and durable, wit
 - [ ] Offline behavior is correct.
 - [ ] 100 items organize without blocking the UI.
 - [ ] Worker and notification tests pass.
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -145,6 +146,10 @@ Phase 6 provides lookups. This phase makes organizing automatic and durable, wit
 | Cancellation | Unit | Completed results kept |
 | Sorting/grouping | Unit | Multi-store |
 | 100 items | Instrumentation | Performance |
+
+## Completion gate
+
+This phase cannot be marked `done` while any required test has failed, errored, been skipped, or failed to run. That includes every test in the test plan and `./gradlew connectedDebugAndroidTest` on the simulated device (Android emulator) or a physical device. An unavailable device is not a pass: leave the phase `in-progress` or `blocked` and record the unrun test in the completion log.
 
 ## Manual demo
 

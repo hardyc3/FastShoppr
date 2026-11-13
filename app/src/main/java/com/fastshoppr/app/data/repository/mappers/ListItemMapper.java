@@ -34,6 +34,7 @@ public final class ListItemMapper {
         item.getLookupStatus(),
         item.getLookupSource(),
         item.getLookupError(),
+        item.getMatchCandidatesJson(),
         item.getSource(),
         item.isChecked(),
         item.getSortPosition(),
@@ -65,6 +66,7 @@ public final class ListItemMapper {
         entity.sortPosition,
         entity.deletedAt,
         entity.createdAt,
-        entity.updatedAt);
+        entity.updatedAt,
+        entity.matchCandidatesJson);
   }
 }

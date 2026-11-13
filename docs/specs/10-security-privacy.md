@@ -48,6 +48,7 @@ Mitigations:
 | `ACCESS_FINE_LOCATION` | Optional precise nearby store | Only if coarse is insufficient and the user opts in | Fall back to coarse or manual |
 | `POST_NOTIFICATIONS` | Background organizing and schedule alerts | When the user enables those features | Create lists silently; queue Walmart lookups |
 | `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_DATA_SYNC` | Walmart WebView lookup | Declared in manifest, started by user action | Queue for foreground |
+| `INTERNET` | Store lookup (Walmart WebView; Home Depot HTTP when enabled) and ML Kit model download | When the user starts a lookup or the model downloads | Fall back to cached results and manual aisle entry |
 
 Rules:
 

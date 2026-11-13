@@ -63,6 +63,12 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
     binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
     binding.captureGalleryButton.setOnClickListener(v -> openCapture(R.id.capture_camera, true));
+    binding.organizeButton.setOnClickListener(
+        v ->
+            Navigation.findNavController(v)
+                .navigate(
+                    R.id.lookup,
+                    NavArguments.forList(requireArguments().getString(NavArguments.LIST_ID))));
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
@@ -179,6 +185,59 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
   @Override
   public void onItemSetAisle(ListItem item) {
+    showSetAisleDialog(item);
+  }
+
+  @Override
+  public void onItemNotRight(ListItem item) {
+    java.util.List<com.fastshoppr.app.domain.lookup.StoreLookupResult.Found> candidates =
+        com.fastshoppr.app.domain.lookup.LookupCandidatesCodec.decode(
+            item.getMatchCandidatesJson());
+    if (item.getLookupStatus() == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW
+        && !candidates.isEmpty()) {
+      showCandidatePicker(item, candidates);
+      return;
+    }
+    showSetAisleDialog(item);
+  }
+
+  private void showCandidatePicker(
+      ListItem item,
+      java.util.List<com.fastshoppr.app.domain.lookup.StoreLookupResult.Found> candidates) {
+    java.util.List<String> labels = new java.util.ArrayList<>();
+    for (com.fastshoppr.app.domain.lookup.StoreLookupResult.Found c : candidates) {
+      String name = c.getProductName();
+      if (name == null || name.isBlank()) {
+        name = getString(R.string.lookup_candidate_unknown);
+      }
+      String loc = c.getAisle() == null ? getString(R.string.no_aisle) : c.getAisle();
+      if (c.getBay() != null && !c.getBay().isBlank()) {
+        loc = loc + getString(R.string.bay_suffix, c.getBay());
+      }
+      labels.add(name + " (" + loc + ")");
+    }
+    labels.add(getString(R.string.set_aisle));
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.lookup_candidates_title)
+        .setItems(
+            labels.toArray(new String[0]),
+            (dialog, which) -> {
+              if (which >= 0 && which < candidates.size()) {
+                viewModel.applyLookupCandidate(item.getId(), candidates.get(which));
+              } else {
+                showSetAisleDialog(item);
+              }
+            })
+        .show();
+  }
+
+  @Override
+  public void onItemRefreshLookup(ListItem item) {
+    viewModel.refreshLookup(item.getId());
+    Snackbar.make(binding.getRoot(), R.string.lookup_run_started, Snackbar.LENGTH_SHORT).show();
+  }
+
+  private void showSetAisleDialog(ListItem item) {
     DialogSetAisleBinding dialogBinding = DialogSetAisleBinding.inflate(getLayoutInflater());
     dialogBinding.dialogAisleInput.setText(item.getAisle());
     dialogBinding.dialogBayInput.setText(item.getBay());
@@ -186,6 +245,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
         .setTitle(R.string.set_aisle_title)
         .setView(dialogBinding.getRoot())
         .setNegativeButton(android.R.string.cancel, null)
+        .setNeutralButton(R.string.refresh_lookup, (d, w) -> viewModel.refreshLookup(item.getId()))
         .setPositiveButton(
             R.string.save,
             (dialog, which) ->

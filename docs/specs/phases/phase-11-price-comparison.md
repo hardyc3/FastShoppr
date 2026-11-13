@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-10-31
+- **Last updated:** 2026-11-13
 
 ## Goal
 
@@ -132,6 +132,7 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 - [ ] No live price calls in CI.
 - [ ] Migration and comparison tests pass.
 - [ ] No regression in MVP flows.
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -144,6 +145,10 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 | Cache expiry | Unit | 24 hours |
 | Migration | Room | Version 2 -> 3 (adds `PriceQuote`) |
 | Compare sheet | Espresso | Display and selection |
+
+## Completion gate
+
+This phase cannot be marked `done` while any required test has failed, errored, been skipped, or failed to run. That includes every test in the test plan and `./gradlew connectedDebugAndroidTest` on the simulated device (Android emulator) or a physical device. An unavailable device is not a pass: leave the phase `in-progress` or `blocked` and record the unrun test in the completion log.
 
 ## Manual demo
 

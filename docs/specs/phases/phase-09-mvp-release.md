@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-11-03
+- **Last updated:** 2026-11-13
 
 ## Goal
 
@@ -122,6 +122,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - [ ] README and privacy text are complete.
 - [ ] Full manual demo succeeds.
 - [ ] All required commands pass.
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -134,6 +135,10 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 | Log audit | Manual | No PII |
 | Delete all data | Espresso | Clears DB/cache/prefs |
 | R8 keep rules | Release build | Launch and core flow |
+
+## Completion gate
+
+This phase cannot be marked `done` while any required test has failed, errored, been skipped, or failed to run. That includes every test in the test plan and `./gradlew connectedDebugAndroidTest` on the simulated device (Android emulator) or a physical device. An unavailable device is not a pass: leave the phase `in-progress` or `blocked` and record the unrun test in the completion log.
 
 ## Manual demo
 

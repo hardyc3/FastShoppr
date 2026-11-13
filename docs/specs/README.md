@@ -7,8 +7,8 @@ This directory is the source of truth for what FastShoppr is, how it is built, a
 1. Read `AGENTS.md` and the current phase file.
 2. Confirm the phase status is `in-progress` and dependencies are `done`.
 3. Implement only the current phase.
-4. Run the required commands from `AGENTS.md`.
-5. Check off acceptance criteria, record evidence, and update the completion log.
+4. Run the required commands and tests from `AGENTS.md`, including `connectedDebugAndroidTest` on the simulated device (emulator) when required, and confirm they pass.
+5. Check off acceptance criteria only when every test has run and passed; record evidence, and update the completion log.
 6. Set the phase status to `done`.
 7. Stop and wait for review. Never start the next phase automatically.
 
@@ -43,7 +43,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 3 | Manual lists | `done` | 2 |
 | 4 | Handwriting input | `done` | 3 |
 | 5 | On-device AI | `done` | 4 |
-| 6 | Store lookup | `not-started` | 0, 2 |
+| 6 | Store lookup | `blocked` | 0, 2 |
 | 7 | Background routing | `not-started` | 5, 6 |
 | 8 | Schedule & calendar | `not-started` | 3, 7 |
 | 9 | MVP release | `not-started` | 8 |
@@ -55,7 +55,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 - `not-started` — no implementation work has begun.
 - `in-progress` — the phase is the only active implementation phase.
 - `blocked` — work cannot continue; the blocker is recorded in the phase file.
-- `done` — all acceptance criteria are checked and verified; review completed.
+- `done` — all acceptance criteria are checked and verified, every required test has run and passed, and review is completed.
 
 ## Scope guardrails
 
@@ -76,4 +76,4 @@ Each phase file contains a completion log. Record:
 - Links to fixtures, screenshots, or test names where useful.
 - Any known limitations carried into the next phase.
 
-Do not mark a phase `done` with failing commands or unchecked criteria.
+Do not mark a phase `done` with failing commands, unchecked criteria, or tests that did not run. A failed, errored, skipped, or unrun test — including `connectedDebugAndroidTest` on the simulated device (emulator) — leaves the phase incomplete.

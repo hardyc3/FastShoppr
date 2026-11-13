@@ -45,6 +45,10 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
 
     void onItemSetAisle(ListItem item);
 
+    void onItemNotRight(ListItem item);
+
+    void onItemRefreshLookup(ListItem item);
+
     void onItemDelete(ListItem item);
 
     void onAddItem(String storeId, String text);
@@ -198,6 +202,7 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
       binding.itemMatchedProduct.setVisibility(hasMatch ? View.VISIBLE : View.GONE);
 
       binding.itemAisleChip.setText(aisleText(binding.getRoot().getContext(), item));
+      bindLookup(item);
 
       binding.itemCheckbox.setOnCheckedChangeListener(null);
       binding.itemCheckbox.setChecked(item.isChecked());
@@ -215,6 +220,57 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
 
       binding.getRoot().setOnClickListener(v -> listener.onItemEdit(item));
       binding.itemOverflow.setOnClickListener(v -> showItemMenu(v, item));
+      binding.itemNotRight.setOnClickListener(v -> listener.onItemNotRight(item));
+    }
+
+    private void bindLookup(ListItem item) {
+      android.content.Context context = binding.getRoot().getContext();
+      com.fastshoppr.app.domain.model.LookupStatus status = item.getLookupStatus();
+      String statusText = lookupStatusText(context, status);
+      boolean showStatus =
+          status != com.fastshoppr.app.domain.model.LookupStatus.PENDING
+              || item.getLookupError() != null;
+      binding.itemLookupStatus.setText(statusText);
+      binding.itemLookupStatus.setVisibility(showStatus ? View.VISIBLE : View.GONE);
+
+      String error = item.getLookupError();
+      boolean stale =
+          item.getLookupSource() == com.fastshoppr.app.domain.model.LookupSource.CACHE
+              && error != null;
+      // Show stale indicator subtly in status/error area; blocked/errors in error color.
+      if (error != null && !error.trim().isEmpty()) {
+        binding.itemLookupError.setText(error);
+        binding.itemLookupError.setVisibility(View.VISIBLE);
+        binding.itemLookupError.setTextColor(
+            stale
+                ? com.google.android.material.color.MaterialColors.getColor(
+                    binding.itemLookupError,
+                    com.google.android.material.R.attr.colorOnSurfaceVariant)
+                : com.google.android.material.color.MaterialColors.getColor(
+                    binding.itemLookupError, androidx.appcompat.R.attr.colorError));
+      } else {
+        binding.itemLookupError.setVisibility(View.GONE);
+      }
+
+      boolean showNotRight =
+          status == com.fastshoppr.app.domain.model.LookupStatus.FOUND
+              || status == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW
+              || status == com.fastshoppr.app.domain.model.LookupStatus.NOT_FOUND
+              || status == com.fastshoppr.app.domain.model.LookupStatus.ERROR;
+      binding.itemNotRight.setVisibility(showNotRight ? View.VISIBLE : View.GONE);
+    }
+
+    private static String lookupStatusText(
+        android.content.Context context, com.fastshoppr.app.domain.model.LookupStatus status) {
+      return switch (status) {
+        case PENDING -> context.getString(R.string.lookup_status_pending);
+        case QUEUED -> context.getString(R.string.lookup_status_queued);
+        case IN_PROGRESS -> context.getString(R.string.lookup_status_in_progress);
+        case FOUND -> context.getString(R.string.lookup_status_found);
+        case NOT_FOUND -> context.getString(R.string.lookup_status_not_found);
+        case NEEDS_REVIEW -> context.getString(R.string.lookup_status_needs_review);
+        case ERROR -> context.getString(R.string.lookup_status_error);
+      };
     }
 
     private void showItemMenu(View anchor, ListItem item) {
@@ -233,6 +289,10 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
             }
             if (itemId == R.id.action_set_aisle) {
               listener.onItemSetAisle(item);
+              return true;
+            }
+            if (itemId == R.id.action_refresh_lookup) {
+              listener.onItemRefreshLookup(item);
               return true;
             }
             if (itemId == R.id.action_delete_item) {
@@ -358,8 +418,13 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
         && left.getRawText().equals(right.getRawText())
         && left.getDisplayName().equals(right.getDisplayName())
         && Objects.equals(left.getMatchedProductName(), right.getMatchedProductName())
+        && Objects.equals(left.getMatchedProductUrl(), right.getMatchedProductUrl())
         && Objects.equals(left.getAisle(), right.getAisle())
         && Objects.equals(left.getBay(), right.getBay())
+        && Objects.equals(left.getMatchConfidence(), right.getMatchConfidence())
+        && left.getLookupStatus() == right.getLookupStatus()
+        && left.getLookupSource() == right.getLookupSource()
+        && Objects.equals(left.getLookupError(), right.getLookupError())
         && left.isChecked() == right.isChecked()
         && left.getSortPosition() == right.getSortPosition();
   }

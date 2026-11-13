@@ -1,0 +1,26 @@
+{
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "searchResult": {
+          "itemStacks": [
+            {
+              "items": [
+                {
+                  "name": "Large Eggs",
+                  "canonicalUrl": "/ip/eggs/1",
+                  "Location": [{ "displayValue": "AC4" }]
+                },
+                {
+                  "name": "Paper Towels",
+                  "canonicalUrl": "/ip/paper-towels/2",
+                  "Location": [{ "displayValue": "J29" }]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

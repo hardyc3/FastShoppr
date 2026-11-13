@@ -35,6 +35,7 @@ public final class ListItem {
   private final Long deletedAt;
   private final long createdAt;
   private final long updatedAt;
+  private final String matchCandidatesJson;
 
   public ListItem(
       String id,
@@ -58,7 +59,9 @@ public final class ListItem {
       int sortPosition,
       Long deletedAt,
       long createdAt,
-      long updatedAt) {
+      long updatedAt,
+      String matchCandidatesJson) {
+    this.matchCandidatesJson = TextNormalizer.trimToNull(matchCandidatesJson);
     this.id = requireId(id, "item id");
     this.listId = requireId(listId, "list id");
     this.storeId = requireId(storeId, "store id");
@@ -243,6 +246,11 @@ public final class ListItem {
     return updatedAt;
   }
 
+  /** Serialized candidate matches from the last Multiple result, or null. */
+  public String getMatchCandidatesJson() {
+    return matchCandidatesJson;
+  }
+
   public static final class Builder {
 
     private String id;
@@ -267,6 +275,7 @@ public final class ListItem {
     private Long deletedAt;
     private long createdAt;
     private long updatedAt;
+    private String matchCandidatesJson;
 
     private Builder() {}
 
@@ -293,6 +302,7 @@ public final class ListItem {
       deletedAt = item.deletedAt;
       createdAt = item.createdAt;
       updatedAt = item.updatedAt;
+      matchCandidatesJson = item.matchCandidatesJson;
       return this;
     }
 
@@ -406,6 +416,11 @@ public final class ListItem {
       return this;
     }
 
+    public Builder matchCandidatesJson(String value) {
+      matchCandidatesJson = value;
+      return this;
+    }
+
     public ListItem build() {
       return new ListItem(
           id,
@@ -429,7 +444,8 @@ public final class ListItem {
           sortPosition,
           deletedAt,
           createdAt,
-          updatedAt);
+          updatedAt,
+          matchCandidatesJson);
     }
   }
 }

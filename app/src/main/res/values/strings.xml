@@ -41,7 +41,6 @@
     <string name="review_empty">No recognition results. Try again, use gallery, or type manually.</string>
 
     <string name="lookup_title">Organize list</string>
-    <string name="lookup_body">Store lookup and aisle routing will be implemented in Phase 6.</string>
 
     <string name="calendar_title">Calendar</string>
     <string name="calendar_body">Shopping dates and recurring schedules will be implemented in Phase 8.</string>
@@ -94,7 +93,12 @@
     <string name="ai_cleanup_no_candidates">No item names to clean up.</string>
 
     <string name="action_continue_to_review">Continue to review</string>
-    <string name="action_continue_to_lookup">Continue to organize</string>
+    <string name="action_done">Done</string>
+    <string name="verify_store_button">Verify your Walmart store</string>
+    <string name="walmart_store_title">Walmart store</string>
+    <string name="walmart_store_subtitle">Choose where you shop at Walmart. Saved on this device.</string>
+    <string name="forget_store">Forget store</string>
+    <string name="store_session_forgotten">Walmart session forgotten.</string>
     <string name="action_back_to_list">Back to list</string>
     <string name="action_open_lists">Open shopping lists</string>
     <string name="action_back">Back</string>
@@ -140,6 +144,7 @@
     <string name="add_item">Add</string>
     <string name="add_item_description">Add item</string>
     <string name="no_aisle">No aisle</string>
+    <string name="bay_suffix"> · Bay %1$s</string>
     <string name="aisle_bay">Aisle %1$s · Bay %2$s</string>
     <string name="aisle_only">Aisle %1$s</string>
     <string name="bay_only">Bay %1$s</string>
@@ -160,6 +165,7 @@
     <string name="item_deferred_message">Item deferred</string>
     <string name="item_defer_failed">Could not defer item.</string>
     <string name="item_saved_message">Item saved</string>
+    <string name="aisle_saved_message">Aisle saved.</string>
     <string name="item_save_failed">Could not save item.</string>
     <string name="list_not_found">List not found.</string>
     <string name="item_not_found">Item not found.</string>
@@ -208,4 +214,21 @@
     <string name="split_failed">Could not split this line.</string>
     <string name="camera_unavailable">Camera not available. Use gallery or type items instead.</string>
     <string name="camera_capture_failed">Could not capture photo. Try again.</string>
+
+    <string name="organize_list">Organize list</string>
+    <string name="refresh_lookup">Refresh lookup</string>
+    <string name="not_right">Not right?</string>
+    <string name="lookup_status_pending">Lookup: pending</string>
+    <string name="lookup_status_queued">Lookup: queued</string>
+    <string name="lookup_status_in_progress">Lookup: checking…</string>
+    <string name="lookup_status_found">Lookup: found</string>
+    <string name="lookup_status_not_found">Lookup: not found</string>
+    <string name="lookup_status_needs_review">Lookup: needs review</string>
+    <string name="lookup_status_error">Lookup: error</string>
+    <string name="lookup_progress_title">Looking up aisles</string>
+    <string name="lookup_run_started">Starting lookup…</string>
+    <string name="lookup_candidates_title">Choose a match</string>
+    <string name="lookup_candidate_unknown">Unknown product</string>
+    <string name="lookup_no_store">No store selected for this item.</string>
+    <string name="lookup_store_context">Store: %1$s</string>
 </resources>
