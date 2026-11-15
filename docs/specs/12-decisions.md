@@ -279,6 +279,14 @@ Format:
 - Rationale: candidates were previously discarded when the lookup harness finished, so the item row had no way to offer a re-pick (spec "Candidate selection dialog for Multiple" unreachable outside the harness run). Persisting the small payload is simpler and more honest than re-scraping (cache intentionally stores only `Found`).
 - Consequences: schema version bump 2→3 requires the migration to run on upgrades; `MigrationTest` covers 2→3. Candidates are untrusted retailer text — displayed only, never executed. Item payload in memory/Room grows by a few KB for `NEEDS_REVIEW` items only.
 
+## D-035 — Aisle sorting groups letter-prefix aisles before bare numbers
+
+- Date: 2026-11-14
+- Status: accepted (amends D-010)
+- Decision: Aisle comparator sorts letter-prefix aisles (non-digit chars before first digit run, e.g. `A19`, `J15`) before bare numbers (starts with digit, e.g. `29`). Within letter-prefix: prefix (case-insensitive), then numeric value, then suffix. Within bare numbers: numeric value, then suffix. Descending reverses: bare numbers first, then letter-prefix reversed. Unresolved aisles always sort last.
+- Rationale: Real Walmart aisle values like `A19`, `J15`, `29` sort more intuitively for store navigation when letter-prefix aisles are grouped together (A-aisles, then J-aisles, then numbered aisles) rather than pure numeric order (J15 before A19 because 15 < 19). Matches user expectation for `J15, A19, J23, 29, A32` → `A19, A32, J15, J23, 29`.
+- Consequences: `AisleComparator.compareResolvedValues` now classifies by `matcher.start() > 0` (has prefix) vs `== 0` (bare number). D-010's "documented numeric-aware comparator" is superseded by this letter-first rule. `02-data-model.md` updated. Existing tests updated; new tests cover the user's example and DESC direction.
+
 ## D-034 — Store lookup confidence must be calculated, not hardcoded
 
 - Date: 2026-11-13
@@ -286,4 +294,12 @@ Format:
 - Decision: Aisle extraction confidence must be derived from observable extraction evidence (structured JSON fields, product metadata, fallback source, ambiguity, and store-context verification). Fixed constants may be used only as base weights that are adjusted by evidence, not as the final confidence for every match. Regex simplification and confidence calculation are tracked in Phase 6c after Phase 6b.
 - Rationale: Phase 6 currently assigns fixed confidence values in `WalmartAisleExtractor` and `HomeDepotAisleParser`, which hides extraction quality and makes review thresholds less meaningful. Real-page verification in Phase 6b must inform the final scoring signals.
 - Consequences: Phase 6 remains done for its automated/manual scope, but confidence quality is a tracked follow-up. Future lookup code must preserve calculated confidence through repository, cache, and UI paths.
+
+## D-036 — Auto-organize flow with automatic store verification
+
+- Date: 2026-11-14
+- Status: accepted
+- Decision: The "Organize list" button on the list detail screen minimizes clicks by auto-starting the lookup when the Walmart store is already verified. If the store has not been verified, it automatically opens `WalmartStoreFragment` for store selection; when the user taps "Done" (fragment pops back), the lookup starts automatically. A `walmart_store_verified` preference flag tracks verification state, set when the user taps "Done" in `WalmartStoreFragment` and cleared when they tap "Forget store". The separate "Verify store" button is removed from the lookup screen; the "Start lookup" button remains as a manual re-run option.
+- Rationale: Reducing button taps makes the organize flow faster and less error-prone. Store verification is a one-time step (cookies persist), so most organize attempts proceed directly to lookup.
+- Consequences: `LookupFragment` no longer shows a store button; it either auto-starts or auto-navigates to verification. `WalmartStoreFragment` sets/clears the verified flag. `SettingsRepository` gains `isWalmartStoreVerified`/`setWalmartStoreVerified`. `03-store-integration.md` documents the auto-organize flow.
 

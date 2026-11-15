@@ -231,3 +231,14 @@ Rules:
 - Log only item counts, store brand, duration, and result status.
 - Never log item text, product URLs with personal parameters, cookies, or coordinates.
 - Surface a per-item status in the UI: pending, found, needs review, not found, error.
+
+## Auto-organize flow
+
+When the user taps "Organize list" from the list detail screen:
+
+1. Navigate to the lookup progress screen.
+2. If the Walmart store has been verified (user completed store selection in `WalmartStoreFragment` at least once and has not tapped "Forget store"), start the lookup automatically.
+3. If the store has not been verified, automatically open `WalmartStoreFragment` for the user to pick their store. When the user taps "Done" (or the fragment is popped), return to the lookup screen and start the lookup automatically.
+4. Tapping "Forget store" clears the verification flag and cookies; the next organize attempt will prompt for verification again.
+
+This minimizes button clicks: the user never has to tap a separate "Verify store" or "Start lookup" button on the normal path.

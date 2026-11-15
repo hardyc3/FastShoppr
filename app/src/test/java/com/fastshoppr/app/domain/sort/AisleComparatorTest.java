@@ -16,20 +16,38 @@ import org.junit.Test;
 public final class AisleComparatorTest {
 
   @Test
-  public void sortsAscendingWithNumericAwareness() {
+  public void sortsAscendingWithLetterPrefixBeforeBareNumbers() {
     List<String> values =
         new ArrayList<>(Arrays.asList("10", "03", "unknown", "A100", "EC2", "2", "A12"));
     values.sort(new AisleComparator(SortDirection.ASC));
 
-    assertEquals(List.of("2", "EC2", "03", "10", "A12", "A100", "unknown"), values);
+    // Letter-prefix aisles (A-prefix, EC-prefix) before bare numbers, prefix then number.
+    assertEquals(List.of("A12", "A100", "EC2", "2", "03", "10", "unknown"), values);
   }
 
   @Test
-  public void sortsDescendingButKeepsUnresolvedLast() {
+  public void sortsDescendingBareNumbersFirstThenLetterPrefixReversed() {
     List<String> values = new ArrayList<>(Arrays.asList("2", "10", "unknown", "EC2", "A12", "03"));
     values.sort(new AisleComparator(SortDirection.DESC));
 
-    assertEquals(List.of("A12", "10", "03", "EC2", "2", "unknown"), values);
+    // Bare numbers first (numeric descending), then letter-prefix reversed, unresolved last.
+    assertEquals(List.of("10", "03", "2", "EC2", "A12", "unknown"), values);
+  }
+
+  @Test
+  public void userExampleAscendingJ15A19J23_29_A32() {
+    List<String> values = new ArrayList<>(List.of("J15", "A19", "J23", "29", "A32"));
+    values.sort(new AisleComparator(SortDirection.ASC));
+
+    assertEquals(List.of("A19", "A32", "J15", "J23", "29"), values);
+  }
+
+  @Test
+  public void userExampleDescendingJ15A19J23_29_A32() {
+    List<String> values = new ArrayList<>(List.of("J15", "A19", "J23", "29", "A32"));
+    values.sort(new AisleComparator(SortDirection.DESC));
+
+    assertEquals(List.of("29", "J23", "J15", "A32", "A19"), values);
   }
 
   @Test
@@ -37,8 +55,9 @@ public final class AisleComparatorTest {
     List<String> values = new ArrayList<>(Arrays.asList("A5", null, " ", "Front", "2"));
     values.sort(new AisleComparator(SortDirection.ASC));
 
-    assertEquals("2", values.get(0));
-    assertEquals("A5", values.get(1));
+    // Letter-prefix aisles (A5) before bare numbers (2), unresolved last.
+    assertEquals("A5", values.get(0));
+    assertEquals("2", values.get(1));
     assertEquals(Arrays.asList(null, " ", "Front"), values.subList(2, 5));
   }
 

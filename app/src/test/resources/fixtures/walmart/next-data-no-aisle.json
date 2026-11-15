@@ -1,0 +1,39 @@
+{
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "searchResult": {
+          "title": "Results for \"paper towels\"",
+          "itemStacks": [
+            {
+              "items": [
+                {
+                  "__typename": "Product",
+                  "id": "ITEM_ID",
+                  "name": "Scott Paper Towels, Choose-A-Sheet, 6 Double Rolls",
+                  "canonicalUrl": "/ip/example-paper-towels/0000000000",
+                  "productLocationDisplayValue": null,
+                  "availabilityStatusV2": {
+                    "display": "In stock",
+                    "value": "IN_STOCK"
+                  },
+                  "fulfillmentSummary": [
+                    {
+                      "fulfillment": "PICKUP",
+                      "storeId": "STORE_ID"
+                    },
+                    {
+                      "fulfillment": "DELIVERY",
+                      "storeId": "STORE_ID"
+                    }
+                  ],
+                  "price": 6.96
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

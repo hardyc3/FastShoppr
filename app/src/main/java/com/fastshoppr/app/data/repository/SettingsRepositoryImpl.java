@@ -100,4 +100,14 @@ public final class SettingsRepositoryImpl implements SettingsRepository {
   public void setOnboardingCompleted(boolean completed) {
     preferences.setOnboardingCompleted(completed);
   }
+
+  @Override
+  public boolean isWalmartStoreVerified() {
+    return preferences.isWalmartStoreVerified();
+  }
+
+  @Override
+  public void setWalmartStoreVerified(boolean verified) {
+    preferences.setWalmartStoreVerified(verified);
+  }
 }

@@ -122,6 +122,10 @@ public final class LookupViewModel extends ViewModel {
     return listId;
   }
 
+  public boolean isRunning() {
+    return running;
+  }
+
   public void loadContext() {
     executor.execute(
         () -> {

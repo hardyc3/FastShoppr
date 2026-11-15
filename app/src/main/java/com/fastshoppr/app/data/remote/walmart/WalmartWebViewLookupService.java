@@ -193,7 +193,8 @@ public class WalmartWebViewLookupService implements StoreLookupService {
     } catch (UnsupportedEncodingException e) {
       q = request.getNormalizedText().replace(" ", "+");
     }
-    String url = "https://www.walmart.com/search?q=" + q;
+    String url =
+        "https://www.walmart.com/search?q=" + q + "&facet=fulfillment_method_in_store:In-store";
     webView.loadUrl(url);
 
     mainHandler.postDelayed(

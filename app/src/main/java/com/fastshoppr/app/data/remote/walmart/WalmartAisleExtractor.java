@@ -27,6 +27,14 @@ public final class WalmartAisleExtractor {
   private static final Pattern AISLE_TOKEN =
       Pattern.compile("(?i)\\b(?:aisle|location)\\s*[:#]?\\s*([A-Z0-9-]{1,10})\\b");
 
+  /** Confidence tied to extraction evidence type, not a blanket constant. */
+  private static final float CONFIDENCE_STRUCTURED_LOCATION =
+      0.9f; // productLocation / Location array with displayValue
+
+  private static final float CONFIDENCE_AISLE_FIELD =
+      0.85f; // aisle / productLocationDisplayValue field
+  private static final float CONFIDENCE_REGEX_FALLBACK = 0.5f; // regex scan of stripped text
+
   private WalmartAisleExtractor() {}
 
   public static StoreLookupResult extractFromPage(String htmlOrJson) {
@@ -45,12 +53,27 @@ public final class WalmartAisleExtractor {
     while (m.find()) {
       jsonBlobs.add(m.group(1));
     }
-    // also try raw if looks like json
     String trimmed = htmlOrJson.trim();
     if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
       jsonBlobs.add(trimmed);
     }
 
+    // Page-level aggregation: for generic queries (e.g. "bread") return the aisle that appears most
+    // often across all products on the search page, not a single product's aisle.
+    List<String> allLocations = new ArrayList<>();
+    for (String json : jsonBlobs) {
+      try {
+        JsonElement root = JsonParser.parseString(json);
+        collectLocationValues(root, allLocations);
+      } catch (Exception ignored) {
+        // try next blob
+      }
+    }
+    if (!allLocations.isEmpty()) {
+      return resolveMostCommonAisle(allLocations);
+    }
+
+    // Fallback: per-product extraction (specific product pages, structured data without repetition)
     List<StoreLookupResult.Found> found = new ArrayList<>();
     for (String json : jsonBlobs) {
       try {
@@ -68,7 +91,12 @@ public final class WalmartAisleExtractor {
         if (aisle != null && !aisle.isBlank()) {
           found.add(
               new StoreLookupResult.Found(
-                  aisle.trim(), null, null, null, 0.5f, LookupSource.WALMART_WEBVIEW));
+                  aisle.trim(),
+                  null,
+                  null,
+                  null,
+                  CONFIDENCE_REGEX_FALLBACK,
+                  LookupSource.WALMART_WEBVIEW));
         }
       }
     }
@@ -85,6 +113,76 @@ public final class WalmartAisleExtractor {
     }
     // Multiple candidates -> NEEDS_REVIEW per spec (Multiple result)
     return new StoreLookupResult.Multiple(unique);
+  }
+
+  /**
+   * Walks the JSON tree collecting every product location display value (e.g. "J23") from {@code
+   * productLocationDisplayValue} and {@code productLocation[].displayValue}.
+   */
+  private static void collectLocationValues(JsonElement element, List<String> out) {
+    if (element == null || element.isJsonNull()) {
+      return;
+    }
+    if (element.isJsonObject()) {
+      JsonObject obj = element.getAsJsonObject();
+      String dv = firstString(obj, "productLocationDisplayValue");
+      if (dv != null && !dv.isBlank()) {
+        out.add(dv.trim());
+      }
+      JsonElement locArr = obj.get("productLocation");
+      if (locArr == null) {
+        locArr = obj.get("Location");
+      }
+      if (locArr != null && locArr.isJsonArray()) {
+        for (JsonElement le : locArr.getAsJsonArray()) {
+          if (!le.isJsonObject()) continue;
+          String locDv = firstString(le.getAsJsonObject(), "displayValue", "LocationDisplayValue");
+          if (locDv != null && !locDv.isBlank()) {
+            out.add(locDv.trim());
+          }
+        }
+      }
+      for (String key : obj.keySet()) {
+        collectLocationValues(obj.get(key), out);
+      }
+      return;
+    }
+    if (element.isJsonArray()) {
+      JsonArray arr = element.getAsJsonArray();
+      for (JsonElement e : arr) {
+        collectLocationValues(e, out);
+      }
+    }
+  }
+
+  /**
+   * Returns the aisle that appears most often across all products. Confidence is the dominance
+   * ratio (count / total), traced to real extraction evidence. On a tie, returns the first aisle
+   * seen (insertion order), so {@code j23, j23, j24, j24, h1} yields {@code j23}.
+   */
+  private static StoreLookupResult resolveMostCommonAisle(List<String> allLocations) {
+    java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+    for (String loc : allLocations) {
+      counts.merge(loc, 1, Integer::sum);
+    }
+    int total = allLocations.size();
+    int maxCount = 0;
+    for (int c : counts.values()) {
+      if (c > maxCount) {
+        maxCount = c;
+      }
+    }
+    // First aisle (insertion order = first occurrence) with max count wins ties.
+    String winner = null;
+    for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+      if (e.getValue() == maxCount) {
+        winner = e.getKey();
+        break;
+      }
+    }
+    float confidence = Math.min(0.9f, maxCount / (float) total);
+    return new StoreLookupResult.Found(
+        winner, null, null, null, confidence, LookupSource.WALMART_WEBVIEW);
   }
 
   /** Challenge-page markers that are specific enough not to match Walmart's normal page chrome. */
@@ -126,13 +224,18 @@ public final class WalmartAisleExtractor {
       // Common patterns: location.displayValue / storeLocation / aisle info on items
       String aisle = firstString(obj, "aisle", "aisleId", "Aisle");
       String bay = firstString(obj, "bay", "Bay");
-      String locDisplay = firstString(obj, "LocationDisplayValue", "locationDisplayValue");
+      String locDisplay =
+          firstString(
+              obj, "LocationDisplayValue", "locationDisplayValue", "productLocationDisplayValue");
       if (locDisplay != null && aisle == null) {
         aisle = locDisplay;
       }
       JsonElement locArr = obj.get("Location");
       if (locArr == null) {
         locArr = obj.get("location");
+      }
+      if (locArr == null) {
+        locArr = obj.get("productLocation");
       }
       boolean handledLocation = false;
       if (locArr != null && locArr.isJsonArray()) {
@@ -158,7 +261,12 @@ public final class WalmartAisleExtractor {
             String url = firstString(obj, "canonicalUrl", "productPageUrl", "url");
             out.add(
                 new StoreLookupResult.Found(
-                    chosen.trim(), bay, name, url, 0.9f, LookupSource.WALMART_WEBVIEW));
+                    chosen.trim(),
+                    bay,
+                    name,
+                    url,
+                    CONFIDENCE_STRUCTURED_LOCATION,
+                    LookupSource.WALMART_WEBVIEW));
           }
         }
       } else if (aisle != null || locDisplay != null) {
@@ -167,11 +275,19 @@ public final class WalmartAisleExtractor {
         String url = firstString(obj, "canonicalUrl", "productPageUrl", "url");
         out.add(
             new StoreLookupResult.Found(
-                chosen.trim(), bay, name, url, 0.85f, LookupSource.WALMART_WEBVIEW));
+                chosen.trim(),
+                bay,
+                name,
+                url,
+                CONFIDENCE_AISLE_FIELD,
+                LookupSource.WALMART_WEBVIEW));
       }
 
       for (String key : obj.keySet()) {
-        if (handledLocation && ("Location".equals(key) || "location".equals(key))) {
+        if (handledLocation
+            && ("Location".equals(key)
+                || "location".equals(key)
+                || "productLocation".equals(key))) {
           continue;
         }
         collectFromJson(obj.get(key), out);

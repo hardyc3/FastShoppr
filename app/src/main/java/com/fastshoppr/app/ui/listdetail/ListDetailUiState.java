@@ -21,8 +21,6 @@ public final class ListDetailUiState {
   private final List<ListDetailRow> rows;
   private final List<Store> stores;
   private final SortDirection sortDirection;
-  private final String selectedStoreId;
-  private final String selectedStoreName;
   private final UiError error;
 
   public ListDetailUiState(
@@ -32,8 +30,6 @@ public final class ListDetailUiState {
       List<ListDetailRow> rows,
       List<Store> stores,
       SortDirection sortDirection,
-      String selectedStoreId,
-      String selectedStoreName,
       UiError error) {
     this.loading = loading;
     this.listName = listName;
@@ -41,14 +37,11 @@ public final class ListDetailUiState {
     this.rows = Collections.unmodifiableList(new ArrayList<>(rows));
     this.stores = Collections.unmodifiableList(new ArrayList<>(stores));
     this.sortDirection = sortDirection;
-    this.selectedStoreId = selectedStoreId;
-    this.selectedStoreName = selectedStoreName;
     this.error = error;
   }
 
   public static ListDetailUiState loading() {
-    return new ListDetailUiState(
-        true, null, null, List.of(), List.of(), SortDirection.ASC, null, null, null);
+    return new ListDetailUiState(true, null, null, List.of(), List.of(), SortDirection.ASC, null);
   }
 
   public boolean isLoading() {
@@ -73,14 +66,6 @@ public final class ListDetailUiState {
 
   public SortDirection getSortDirection() {
     return sortDirection;
-  }
-
-  public String getSelectedStoreId() {
-    return selectedStoreId;
-  }
-
-  public String getSelectedStoreName() {
-    return selectedStoreName;
   }
 
   public UiError getError() {

@@ -1,11 +1,11 @@
 # Phase 6b — Store Lookup Manual Verification (Follow-up)
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** Phase 6
 - **Owner:** unassigned
-- **Started:** —
+- **Started:** 2026-11-14
 - **Completed:** —
-- **Last updated:** 2026-11-13
+- **Last updated:** 2026-11-14
 
 ## Goal
 
@@ -106,3 +106,33 @@ Phase 6 remains `blocked` until this follow-up's manual tests pass or a document
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
 | — | — | — | — |
+| 2026-11-14 | PX false-positive fix verified in `WalmartAisleExtractor.isBlockedPage`; vendor name (`*.perimeterx.net`, `*.px-cdn.net`) no longer triggers block | pass | Real PX challenge still appears on device — user must complete manually |
+| 2026-11-14 | Captured real Walmart `__NEXT_DATA__` for "paper towels": items have `productLocationDisplayValue: null`, no `Location`/`aisle`/`bay`; only `fulfillmentSummary.storeId` | pass | Extractor returns `NotFound`, not `Blocked` — correct, not a false positive |
+| 2026-11-14 | Added fixture `next-data-no-aisle.json` (sanitized, no PII/location/tokens) | pass | Guards against regression |
+| 2026-11-14 | Added unit test `realSearchPageWithoutAisleReturnsNotFoundNotBlocked` | not-run | Awaits `testDebugUnitTest` on user's machine (SDK corrupted here) |
+| 2026-11-14 | Walmart limitation documented & accepted: search page exposes no aisle → assisted lookup returns `NOT_FOUND`, manual aisle entry is fallback | accepted | Meets acceptance criterion "limitation documented and accepted" |
+| 2026-11-14 | Real `__NEXT_DATA__` (from `data/papertowels.html`) shows items carry `productLocationDisplayValue` (e.g. "J23") and `productLocation` array with `aisle.zone`/`aisle`; extractor was not reading these fields | pass | Root cause of "big json body with no aisle" — wrong field names |
+| 2026-11-14 | `WalmartAisleExtractor.collectFromJson`: added `productLocationDisplayValue` to locDisplay lookup, `productLocation` array to locArr lookup, skip list; named confidence constants (0.9 structured / 0.85 field / 0.5 regex) tied to evidence type | pass | Code change |
+| 2026-11-14 | `WalmartWebViewLookupService`: added `&facet=fulfillment_method_in_store:In-store` to search URL so in-store availability (with aisle) is requested | pass | Code change |
+| 2026-11-14 | Added fixture `next-data-real-aisle-j23.json` (sanitized real shape with aisle J23/H19) | pass | Guards extraction path |
+| 2026-11-14 | Added unit tests: `extractsAisleFromProductLocationDisplayValue`, `confidenceTracedToEvidenceType` | not-run | Awaits `testDebugUnitTest` on user's machine |
+| 2026-11-14 | Added fixture `next-data-no-aisle.json` + test `realSearchPageWithoutAisleReturnsNotFoundNotBlocked` | not-run | Guards no-aisle case |
+| 2026-11-14 | `extractFromPage` now does page-level aisle aggregation: collects all `productLocationDisplayValue` / `productLocation[].displayValue` across products, returns the most common aisle (bread → bakery if most results are there) | pass | Replaces per-product extraction as primary path; per-product kept as fallback |
+| 2026-11-14 | Added `collectLocationValues` (walks JSON for location fields) and `resolveMostCommonAisle` (counts frequency, confidence = dominance ratio, ties → Multiple) | pass | Confidence traced to real evidence (count/total), not hardcoded constants |
+| 2026-11-14 | Tie-break: first aisle seen (insertion order) wins on tie (`j23, j23, j24, j24, h1` → `j23`); removed `Multiple` return from `resolveMostCommonAisle` | pass | Matches user request: always return one aisle |
+| 2026-11-14 | Renamed test `tiedAislesReturnMultiple` → `tieBreaksToFirstAisleSeen`; asserts `J23` wins first-occurrence tie | not-run | Awaits `testDebugUnitTest` on user's machine |
+| 2026-11-14 | `AisleComparator.compareResolvedValues`: letter-prefix aisles (non-digit before first digit run) sort before bare numbers; prefix-then-number within letter-prefix, number-then-suffix within bare numbers; unresolved always last | pass | Amends D-010 via D-035; `J15, A19, J23, 29, A32` → `A19, A32, J15, J23, 29` (ASC), `29, J23, J15, A32, A19` (DESC) |
+| 2026-11-14 | Updated `02-data-model.md` aisle sorting section to document letter-first grouping | pass | Spec now matches implementation |
+| 2026-11-14 | Added D-035 to `12-decisions.md` amending D-010 | pass | Architectural decision recorded |
+| 2026-11-14 | Updated `AisleComparatorTest`: `sortsAscendingWithLetterPrefixBeforeBareNumbers`, `sortsDescendingBareNumbersFirstThenLetterPrefixReversed`, `userExampleAscending`, `userExampleDescending` | not-run | Awaits `testDebugUnitTest` on user's machine |
+| 2026-11-14 | UI changes (out of scope for 6b, done at user request): removed store selector button and text sort button from list detail; replaced with ImageButton sort icon (opposite arrows, `@drawable/ic_sort`) toggling ASC/DESC | pass | Touches phase 3/4/8 UI; phase 6b still in progress |
+| 2026-11-14 | List detail now shows only stores with items; added "+ Add store" button opening dialog to type custom name or select Walmart | pass | New `dialog_add_store.xml` layout; `ListDetailViewModel.addStore()` saves CUSTOM store |
+| 2026-11-14 | Removed gallery button from list detail and camera capture; "Take photo or gallery" button launches camera; camera flow internally offers gallery via EmptyRecognitionDialog | pass | `btnGallery` removed from `fragment_camera_capture.xml` and `CameraCaptureFragment` |
+| 2026-11-14 | `ListDetailUiState`: removed `selectedStoreId`/`selectedStoreName` fields; constructor now 7 params | pass | Store selection no longer tracked in list detail UI state |
+| 2026-11-14 | `ListDetailViewModel`: removed `selectStore()`, `resolveSelectedStoreId()`, `containsStore()`, `KEY_SELECTED_STORE`; `rebuild()` filters stores to those with items | pass | `addStore()` creates CUSTOM store via `storeRepository.save()` |
+| 2026-11-14 | Auto-organize flow (D-036): `LookupFragment` auto-starts lookup if Walmart store verified; otherwise auto-navigates to `WalmartStoreFragment`; on return from verification, auto-starts lookup. Removed `lookup_store_button` from `fragment_lookup.xml`. | pass | Minimizes button clicks on the organize path |
+| 2026-11-14 | `WalmartStoreFragment`: injects `SettingsRepository`; sets `walmart_store_verified=true` on Done, clears on Forget store. Added `@AndroidEntryPoint` and `@Inject`. | pass | Verification flag persists across app restarts until "Forget store" |
+| 2026-11-14 | `SettingsRepository` + `SettingsPreferences` + `SettingsRepositoryImpl`: added `isWalmartStoreVerified()` / `setWalmartStoreVerified(boolean)` backed by `KEY_WALMART_STORE_VERIFIED` shared preference | pass | New preference key tracks Walmart store verification state |
+| 2026-11-14 | `LookupViewModel`: added `isRunning()` method so fragment can check before auto-starting on resume | pass | Prevents double-start when returning from verification |
+| 2026-11-14 | `03-store-integration.md`: added "Auto-organize flow" section documenting the verify-then-start behavior | pass | Spec matches implementation |
+| 2026-11-14 | `12-decisions.md`: added D-036 documenting the auto-organize flow decision | pass | Architectural decision recorded |

@@ -260,22 +260,23 @@ Aisle values are strings and may be numeric, alphanumeric, or descriptive. Imple
 
 **Rules, in order (ascending default):**
 
-1. Missing/blank/unresolved aisle sorts **last**.
-2. Extract the first contiguous digit run as the primary numeric value.
-3. If both values have digits, compare numeric values.
-4. If numeric values are equal, compare the normalized prefix before the digits (case-insensitive).
-5. If still equal, compare the remaining suffix after the digits.
-6. If still equal, compare the bay using the same numeric-aware logic.
+1. Missing/blank/unresolved aisle (no digit run) sorts **last**.
+2. A value has a **letter prefix** when non-digit characters precede the first digit run (e.g. `"A19"`, `"J15"`, `"Aisle 5"`). A value that starts with a digit is a **bare number** (e.g. `"29"`).
+3. Letter-prefix aisles sort before bare numbers.
+4. Among letter-prefix aisles: compare the normalized prefix before the digits (case-insensitive), then the numeric value, then the remaining suffix after the digits.
+5. Among bare numbers: compare the numeric value, then the remaining suffix.
+6. If still equal, compare the bay using the same letter-prefix-aware logic.
 7. If still equal, compare `sortPosition` ascending for stability.
-8. **In descending mode, reverse steps 2–7 but keep unresolved items last.**
+8. **In descending mode, reverse steps 3–7 but keep unresolved items last.**
 
 **Default sort direction: ASCENDING.** User can toggle DESCENDING in settings; preference remembered across sessions via `SharedPreferences` `sort_direction`.
 
 **Examples (ascending):**
 
-- `2` < `EC2` < `03` < `10` < `A12` < `A100` < `unknown`
-- `Aisle 5` is treated as numeric 5 with prefix `aisle `.
-- `EC2` is numeric 2 with prefix `ec`; it sorts after plain `2` because the prefix differs.
+- `A12` < `A100` < `EC2` < `2` < `03` < `10` < `unknown`
+- `A19` < `A32` < `J15` < `J23` < `29`
+- `Aisle 5` is treated as letter prefix `"aisle "` with numeric 5.
+- `EC2` is letter prefix `"ec"` with numeric 2; it sorts after `A100` because `"ec"` > `"a"`.
 
 ## Sort direction
 

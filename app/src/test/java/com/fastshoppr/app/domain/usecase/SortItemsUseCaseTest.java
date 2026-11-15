@@ -21,8 +21,8 @@ public final class SortItemsUseCaseTest {
         List.of(item("a", "10"), item("b", null), item("c", "2"), item("d", "EC2"));
     SortItemsUseCase useCase = new SortItemsUseCase();
 
-    assertEquals(List.of("c", "d", "a", "b"), ids(useCase.sort(items, SortDirection.ASC)));
-    assertEquals(List.of("a", "d", "c", "b"), ids(useCase.sort(items, SortDirection.DESC)));
+    assertEquals(List.of("d", "c", "a", "b"), ids(useCase.sort(items, SortDirection.ASC)));
+    assertEquals(List.of("a", "c", "d", "b"), ids(useCase.sort(items, SortDirection.DESC)));
   }
 
   private static List<String> ids(List<ListItem> items) {

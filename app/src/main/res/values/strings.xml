@@ -190,9 +190,15 @@
     <string name="bay_hint">e.g. 3</string>
 
     <string name="capture_write_by_hand">Write by hand</string>
-    <string name="capture_take_photo">Take photo</string>
+    <string name="capture_take_photo">Take photo or gallery</string>
     <string name="capture_gallery">Gallery</string>
     <string name="capture_change_source_description">Change capture method</string>
+    <string name="add_store">+ Add store</string>
+    <string name="add_store_title">Add store to list</string>
+    <string name="add_store_hint">Store name</string>
+    <string name="add_store_select">Select a store</string>
+    <string name="add_store_custom">Or type a custom name</string>
+    <string name="add_store_add">Add</string>
     <string name="camera_allow">Allow camera access</string>
     <string name="capture_retry">Retry</string>
     <string name="capture_pick_another">Pick another image</string>
@@ -231,4 +237,7 @@
     <string name="lookup_candidate_unknown">Unknown product</string>
     <string name="lookup_no_store">No store selected for this item.</string>
     <string name="lookup_store_context">Store: %1$s</string>
+    <string name="store_verification_needed_title">Store verification needed</string>
+    <string name="store_verification_needed_message">Please select your Walmart store so the app can look up item aisles. This selection is saved and will be used for future organize attempts.</string>
+    <string name="ok">OK</string>
 </resources>

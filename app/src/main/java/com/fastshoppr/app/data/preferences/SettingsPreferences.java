@@ -20,6 +20,7 @@ public final class SettingsPreferences {
   private static final String KEY_SORT_DIRECTION = "sort_direction";
   private static final String KEY_LAST_CALENDAR_MONTH = "last_calendar_month";
   private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
+  private static final String KEY_WALMART_STORE_VERIFIED = "walmart_store_verified";
 
   private final SharedPreferences preferences;
 
@@ -94,5 +95,13 @@ public final class SettingsPreferences {
 
   public void setOnboardingCompleted(boolean completed) {
     preferences.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply();
+  }
+
+  public boolean isWalmartStoreVerified() {
+    return preferences.getBoolean(KEY_WALMART_STORE_VERIFIED, false);
+  }
+
+  public void setWalmartStoreVerified(boolean verified) {
+    preferences.edit().putBoolean(KEY_WALMART_STORE_VERIFIED, verified).apply();
   }
 }
