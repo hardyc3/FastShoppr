@@ -24,6 +24,28 @@ public final class HomeDepotAisleParser {
 
   private HomeDepotAisleParser() {}
 
+  /**
+   * Calculates confidence from observable extraction evidence. Higher confidence when the aisle/bay
+   * is found in visible page text (doc.text()) with product metadata. Lower confidence for regex
+   * matches on raw HTML, which may appear in script tags or other non-visible contexts.
+   */
+  private static float calculateConfidence(boolean foundInVisibleText, boolean hasProductName) {
+    // Visible text extraction with product metadata: highest confidence
+    if (foundInVisibleText && hasProductName) {
+      return 0.9f;
+    }
+    // Visible text extraction without product metadata: medium confidence
+    if (foundInVisibleText) {
+      return 0.75f;
+    }
+    // Raw HTML regex fallback: lowest confidence, marked for review when appropriate
+    if (!hasProductName) {
+      return 0.5f; // no product context -> review
+    }
+    // Raw HTML with product name: moderate confidence
+    return 0.7f;
+  }
+
   public static StoreLookupResult parseProductPage(
       String html, String productUrl, String fallbackProductName) {
     if (html == null || html.isBlank()) {
@@ -42,23 +64,31 @@ public final class HomeDepotAisleParser {
       return new StoreLookupResult.Blocked("Home Depot access blocked.");
     }
 
-    // Prefer explicit in-store availability text patterns.
+    // Prefer explicit in-store availability text patterns (visible page text).
     List<StoreLookupResult.Found> found = new ArrayList<>();
+    String effectiveName = fallbackProductName;
+    if (effectiveName == null || effectiveName.isBlank()) {
+      effectiveName = firstNonBlank(meta(doc, "og:title"), title);
+    }
+    boolean hasProductName = effectiveName != null && !effectiveName.isBlank();
+
+    // Path 1: scan visible text via Jsoup (most reliable)
     Matcher m = AISLE_BAY.matcher(doc.text());
     while (m.find()) {
       String aisle = clean(m.group(1));
       String bay = clean(m.group(2));
       if (aisle != null) {
-        String name = fallbackProductName;
-        if (name == null || name.isBlank()) {
-          name = firstNonBlank(meta(doc, "og:title"), title);
-        }
         found.add(
             new StoreLookupResult.Found(
-                aisle, bay, name, productUrl, 0.9f, LookupSource.HOME_DEPOT_HTTP));
+                aisle,
+                bay,
+                effectiveName,
+                productUrl,
+                calculateConfidence(/* foundInVisibleText= */ true, hasProductName),
+                LookupSource.HOME_DEPOT_HTTP));
       }
     }
-    // Also scan raw HTML/JSON blobs for aisle/bay fields.
+    // Path 2: scan raw HTML/JSON blobs as fallback (less reliable).
     if (found.isEmpty()) {
       Matcher m2 = AISLE_BAY.matcher(html);
       while (m2.find()) {
@@ -69,9 +99,9 @@ public final class HomeDepotAisleParser {
               new StoreLookupResult.Found(
                   aisle,
                   bay,
-                  firstNonBlank(fallbackProductName, title),
+                  effectiveName,
                   productUrl,
-                  0.85f,
+                  calculateConfidence(/* foundInVisibleText= */ false, hasProductName),
                   LookupSource.HOME_DEPOT_HTTP));
         }
       }
