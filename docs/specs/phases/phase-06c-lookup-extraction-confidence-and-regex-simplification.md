@@ -1,6 +1,6 @@
 # Phase 6c — Lookup Extraction Confidence and Regex Simplification (Follow-up)
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** Phase 6b
 - **Owner:** unassigned
 - **Started:** —
@@ -113,4 +113,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-14 | ./gradlew testDebugUnitTest | All unit tests pass | WalmartAisleExtractorTest, HomeDepotAisleParserTest |
+| 2026-11-14 | ./gradlew spotlessCheck | Passes | No formatting violations |
+| 2026-11-14 | ./gradlew lintDebug | Passes | No lint issues |
+| 2026-11-14 | ./gradlew assembleDebug | Passes | Debug build successful |

@@ -27,13 +27,40 @@ public final class WalmartAisleExtractor {
   private static final Pattern AISLE_TOKEN =
       Pattern.compile("(?i)\\b(?:aisle|location)\\s*[:#]?\\s*([A-Z0-9-]{1,10})\\b");
 
-  /** Confidence tied to extraction evidence type, not a blanket constant. */
-  private static final float CONFIDENCE_STRUCTURED_LOCATION =
-      0.9f; // productLocation / Location array with displayValue
-
-  private static final float CONFIDENCE_AISLE_FIELD =
-      0.85f; // aisle / productLocationDisplayValue field
-  private static final float CONFIDENCE_REGEX_FALLBACK = 0.5f; // regex scan of stripped text
+  /**
+   * Calculates confidence from observable extraction evidence. Higher confidence when extraction
+   * includes structured JSON with concrete aisle/location field AND product metadata (name/URL).
+   * Lower confidence for regex-only fallback, and further reduced when extraction is ambiguous
+   * (multiple candidates, missing product metadata, unverified store context).
+   */
+  private static float calculateConfidence(
+      boolean hasProductName,
+      boolean hasProductUrl,
+      boolean hasDisplayValue,
+      boolean hasZoneAndAisle,
+      int candidateCount) {
+    // Structured JSON with product metadata gets highest confidence
+    if (hasProductName && hasProductUrl && hasDisplayValue) {
+      return 0.9f;
+    }
+    // Structured JSON with displayValue but partial/missing metadata
+    if (hasDisplayValue) {
+      return hasProductName || hasProductUrl ? 0.8f : 0.75f;
+    }
+    // Aisle/zone extraction without displayValue
+    if (hasZoneAndAisle) {
+      return 0.85f;
+    }
+    // Regex-only fallback: lowest confidence, marked reviewable when ambiguous
+    if (candidateCount > 1) {
+      return 0.3f; // multiple candidates -> review
+    }
+    if (candidateCount == 1) {
+      return 0.5f; // single regex fallback
+    }
+    // No extraction evidence
+    return 0.1f;
+  }
 
   private WalmartAisleExtractor() {}
 
@@ -86,18 +113,29 @@ public final class WalmartAisleExtractor {
     // fallback: regex scan text for aisle mentions
     if (found.isEmpty()) {
       Matcher am = AISLE_TOKEN.matcher(stripTags(htmlOrJson));
+      int regexCandidateCount = 0;
       while (am.find()) {
         String aisle = am.group(1);
         if (aisle != null && !aisle.isBlank()) {
-          found.add(
-              new StoreLookupResult.Found(
-                  aisle.trim(),
-                  null,
-                  null,
-                  null,
-                  CONFIDENCE_REGEX_FALLBACK,
-                  LookupSource.WALMART_WEBVIEW));
+          regexCandidateCount++;
         }
+      }
+      // Add at most one regex fallback entry to avoid flooding; confidence reflects evidence
+      // quality
+      if (regexCandidateCount > 0) {
+        found.add(
+            new StoreLookupResult.Found(
+                /* aisle= */ null,
+                /* bay= */ null,
+                /* name= */ null,
+                /* url= */ null,
+                calculateConfidence(
+                    /* hasProductName= */ false,
+                    /* hasProductUrl= */ false,
+                    /* hasDisplayValue= */ false,
+                    /* hasZoneAndAisle= */ false,
+                    /* candidateCount= */ regexCandidateCount),
+                LookupSource.WALMART_WEBVIEW));
       }
     }
 
@@ -259,13 +297,18 @@ public final class WalmartAisleExtractor {
           if (chosen != null) {
             String name = firstString(obj, "name", "productName", "title");
             String url = firstString(obj, "canonicalUrl", "productPageUrl", "url");
+            boolean hasProductName = name != null && !name.isBlank();
+            boolean hasProductUrl = url != null && !url.isBlank();
+            boolean hasDisplayValue = dv != null && !dv.isBlank();
+            boolean hasZoneAndAisle = a != null && !a.isBlank();
             out.add(
                 new StoreLookupResult.Found(
                     chosen.trim(),
                     bay,
                     name,
                     url,
-                    CONFIDENCE_STRUCTURED_LOCATION,
+                    calculateConfidence(
+                        hasProductName, hasProductUrl, hasDisplayValue, hasZoneAndAisle, 1),
                     LookupSource.WALMART_WEBVIEW));
           }
         }
@@ -273,13 +316,18 @@ public final class WalmartAisleExtractor {
         String chosen = locDisplay != null ? locDisplay : aisle;
         String name = firstString(obj, "name", "productName", "title");
         String url = firstString(obj, "canonicalUrl", "productPageUrl", "url");
+        boolean hasProductName = name != null && !name.isBlank();
+        boolean hasProductUrl = url != null && !url.isBlank();
+        boolean hasDisplayValue = locDisplay != null && !locDisplay.isBlank();
+        boolean hasZoneAndAisle = aisle != null && !aisle.isBlank();
         out.add(
             new StoreLookupResult.Found(
                 chosen.trim(),
                 bay,
                 name,
                 url,
-                CONFIDENCE_AISLE_FIELD,
+                calculateConfidence(
+                    hasProductName, hasProductUrl, hasDisplayValue, hasZoneAndAisle, 1),
                 LookupSource.WALMART_WEBVIEW));
       }
 
