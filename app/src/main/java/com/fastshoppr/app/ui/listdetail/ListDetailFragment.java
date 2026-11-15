@@ -24,7 +24,6 @@ import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
-import com.fastshoppr.app.ui.common.StorePickerDialog;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
@@ -58,11 +57,9 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.listDetailRecycler.setLayoutManager(new LinearLayoutManager(requireContext()));
     binding.listDetailRecycler.setAdapter(adapter);
 
-    binding.storeSelectorButton.setOnClickListener(v -> showStorePicker());
     binding.sortToggleButton.setOnClickListener(v -> viewModel.toggleSortDirection());
     binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
     binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
-    binding.captureGalleryButton.setOnClickListener(v -> openCapture(R.id.capture_camera, true));
     binding.organizeButton.setOnClickListener(
         v ->
             Navigation.findNavController(v)
@@ -106,14 +103,10 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.listDetailRecycler.setVisibility(View.VISIBLE);
     binding.listDetailName.setText(state.getListName());
     binding.listDetailDate.setText(formatDate(state.getShoppingDate()));
-    binding.storeSelectorButton.setText(
-        state.getSelectedStoreName() == null
-            ? getString(R.string.select_store)
-            : getString(R.string.store_selector, state.getSelectedStoreName()));
-    binding.sortToggleButton.setText(
+    binding.sortToggleButton.setContentDescription(
         state.getSortDirection() == SortDirection.ASC
-            ? R.string.sort_ascending
-            : R.string.sort_descending);
+            ? getString(R.string.sort_ascending)
+            : getString(R.string.sort_descending));
     adapter.submitList(state.getRows());
   }
 
@@ -138,18 +131,8 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showStorePicker() {
-    ListDetailUiState state = viewModel.getState().getValue();
-    if (state == null || state.getStores().isEmpty()) {
-      return;
-    }
-    StorePickerDialog.show(
-        requireContext(),
-        state.getStores(),
-        state.getSelectedStoreId(),
-        store -> {
-          viewModel.selectStore(store.getId());
-          scrollToStore(store.getId());
-        });
+    // Store selection is now handled via the organize flow (WalmartStoreFragment).
+    // This method is kept for compatibility but does nothing.
   }
 
   private void scrollToStore(String storeId) {
@@ -162,9 +145,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   @Override
-  public void onItemChecked(String itemId, boolean checked) {
-    viewModel.setChecked(itemId, checked);
-  }
+  public void onItemChecked(String itemId, boolean checked) {}
 
   @Override
   public void onItemEdit(ListItem item) {

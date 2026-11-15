@@ -9,6 +9,8 @@ Improve structure, readability, correctness-enablers, and testability of existin
 - Code is hard to follow, duplicated, overly coupled, or misaligned with `ui -> ViewModel -> use case -> repository -> data source`.
 - Preparing for a phase feature that needs cleaner seams.
 - Removing dead code or consolidating patterns (with evidence it is unused).
+- When strings are used in code instead of constants
+- When the same string is used with different cases, consolidate to case insensitive compares.
 
 ## Inputs
 - Target files/modules and goal.

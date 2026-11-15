@@ -1,0 +1,98 @@
+{
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "searchResult": {
+          "title": "Results for \"paper towels\"",
+          "itemStacks": [
+            {
+              "items": [
+                {
+                  "__typename": "Product",
+                  "id": "8886020987",
+                  "name": "Scott Paper Towels, Choose-A-Sheet, 6 Double Rolls",
+                  "canonicalUrl": "/ip/Scott-Paper-Towels-Choose-A-Sheet-6-Double-Rolls/8886020987",
+                  "productLocationDisplayValue": "J23",
+                  "productLocation": [
+                    {
+                      "displayValue": "J23",
+                      "aisle": {
+                        "zone": "J",
+                        "aisle": 23
+                      }
+                    }
+                  ],
+                  "availabilityStatusV2": {
+                    "display": "In stock",
+                    "value": "IN_STOCK"
+                  },
+                  "fulfillmentSummary": [
+                    {
+                      "fulfillment": "PICKUP",
+                      "storeId": "STORE_ID"
+                    }
+                  ],
+                  "price": 6.96
+                },
+                {
+                  "__typename": "Product",
+                  "id": "8886020988",
+                  "name": "Bounty Essentials Select-A-Size Paper Towels",
+                  "canonicalUrl": "/ip/Bounty-Essentials-Paper-Towels/8886020988",
+                  "productLocationDisplayValue": "J23",
+                  "productLocation": [
+                    {
+                      "displayValue": "J23",
+                      "aisle": {
+                        "zone": "J",
+                        "aisle": 23
+                      }
+                    }
+                  ],
+                  "availabilityStatusV2": {
+                    "display": "In stock",
+                    "value": "IN_STOCK"
+                  },
+                  "fulfillmentSummary": [
+                    {
+                      "fulfillment": "PICKUP",
+                      "storeId": "STORE_ID"
+                    }
+                  ],
+                  "price": 12.99
+                },
+                {
+                  "__typename": "Product",
+                  "id": "8886020989",
+                  "name": "Viva Paper Towels",
+                  "canonicalUrl": "/ip/Viva-Paper-Towels/8886020989",
+                  "productLocationDisplayValue": "H19",
+                  "productLocation": [
+                    {
+                      "displayValue": "H19",
+                      "aisle": {
+                        "zone": "H",
+                        "aisle": 19
+                      }
+                    }
+                  ],
+                  "availabilityStatusV2": {
+                    "display": "In stock",
+                    "value": "IN_STOCK"
+                  },
+                  "fulfillmentSummary": [
+                    {
+                      "fulfillment": "PICKUP",
+                      "storeId": "STORE_ID"
+                    }
+                  ],
+                  "price": 8.49
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

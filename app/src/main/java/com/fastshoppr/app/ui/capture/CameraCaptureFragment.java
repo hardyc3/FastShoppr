@@ -12,7 +12,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -59,15 +58,6 @@ public final class CameraCaptureFragment extends Fragment {
             }
           });
 
-  private final ActivityResultLauncher<PickVisualMediaRequest> galleryLauncher =
-      registerForActivityResult(
-          new ActivityResultContracts.PickVisualMedia(),
-          uri -> {
-            if (uri != null && viewModel != null) {
-              viewModel.importImage(uri);
-            }
-          });
-
   @Nullable
   @Override
   public View onCreateView(
@@ -96,17 +86,11 @@ public final class CameraCaptureFragment extends Fragment {
           viewModel.retake();
           renderState(new CameraCaptureViewModel.CameraCaptureUiState(false, false));
         });
-    binding.btnGallery.setOnClickListener(v -> launchGallery());
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::renderState);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
 
     updatePermissionUi(false);
-
-    if (requireArguments().getBoolean(NavArguments.LAUNCH_GALLERY)) {
-      requireArguments().putBoolean(NavArguments.LAUNCH_GALLERY, false);
-      launchGallery();
-    }
   }
 
   @Override
@@ -121,13 +105,6 @@ public final class CameraCaptureFragment extends Fragment {
   public void onStop() {
     unbindCamera();
     super.onStop();
-  }
-
-  private void launchGallery() {
-    galleryLauncher.launch(
-        new PickVisualMediaRequest.Builder()
-            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-            .build());
   }
 
   private boolean hasCameraPermission() {
@@ -252,7 +229,7 @@ public final class CameraCaptureFragment extends Fragment {
           .show();
     } else if (content instanceof CameraCaptureViewModel.CameraUiEvent.EmptyRecognition) {
       EmptyRecognitionDialog.show(
-          this, () -> {}, this::launchGallery, this::navigateToTypedCapture);
+          this, () -> {}, this::navigateToTypedCapture, this::navigateToTypedCapture);
     }
   }
 

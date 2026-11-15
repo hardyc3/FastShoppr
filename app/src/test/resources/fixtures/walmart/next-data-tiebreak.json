@@ -1,0 +1,26 @@
+{
+  "props": {
+    "pageProps": {
+      "initialData": {
+        "searchResult": {
+          "itemStacks": [
+            {
+              "items": [
+                {
+                  "name": "A",
+                  "canonicalUrl": "/ip/a/1",
+                  "productLocationDisplayValue": "J23"
+                },
+                {
+                  "name": "B",
+                  "canonicalUrl": "/ip/b/1",
+                  "productLocationDisplayValue": "H19"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+}

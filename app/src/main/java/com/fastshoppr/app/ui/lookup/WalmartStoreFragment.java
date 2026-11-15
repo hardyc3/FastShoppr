@@ -22,15 +22,15 @@ import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.data.remote.walmart.WalmartWebViewLookupService;
 import com.fastshoppr.app.databinding.FragmentWalmartStoreBinding;
+import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.google.android.material.snackbar.Snackbar;
+import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
 
-/**
- * Assisted Walmart store selection (D-022). Walmart applies a default store (usually by IP) and
- * Walmart exposes no reliable programmatic way to pin a store, so the user picks their store here
- * once; the WebView cookie jar keeps that choice for subsequent assisted lookups until the user
- * taps "Forget store".
- */
+@AndroidEntryPoint
 public final class WalmartStoreFragment extends Fragment {
+
+  @Inject SettingsRepository settingsRepository;
 
   private FragmentWalmartStoreBinding binding;
 
@@ -74,7 +74,10 @@ public final class WalmartStoreFragment extends Fragment {
     webView.loadUrl("https://www.walmart.com/");
 
     binding.walmartStoreDoneButton.setOnClickListener(
-        v -> Navigation.findNavController(v).popBackStack());
+        v -> {
+          settingsRepository.setWalmartStoreVerified(true);
+          Navigation.findNavController(v).popBackStack();
+        });
     binding.walmartStoreForgetButton.setOnClickListener(v -> forgetStore(v));
   }
 
@@ -82,6 +85,7 @@ public final class WalmartStoreFragment extends Fragment {
     CookieManager.getInstance().removeAllCookies(null);
     CookieManager.getInstance().flush();
     WebStorage.getInstance().deleteAllData();
+    settingsRepository.setWalmartStoreVerified(false);
     Snackbar.make(anchor, R.string.store_session_forgotten, Snackbar.LENGTH_SHORT).show();
   }
 

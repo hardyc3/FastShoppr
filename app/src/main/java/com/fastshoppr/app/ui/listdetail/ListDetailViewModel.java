@@ -37,6 +37,7 @@ import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import javax.inject.Inject;
@@ -44,7 +45,6 @@ import javax.inject.Inject;
 @HiltViewModel
 public final class ListDetailViewModel extends ViewModel {
 
-  private static final String KEY_SELECTED_STORE = "selected_store_id";
   private static final String KEY_DRAFT_PREFIX = "draft:";
   private static final int MAX_TEXT_LENGTH = 200;
 
@@ -82,6 +82,7 @@ public final class ListDetailViewModel extends ViewModel {
   private boolean itemsLoaded;
   private boolean storesLoaded;
   private SortDirection sortDirection;
+  private String pendingStoreId;
   private UiError loadError;
   private long addGeneration;
 
@@ -142,12 +143,6 @@ public final class ListDetailViewModel extends ViewModel {
     rebuild();
   }
 
-  public void selectStore(String storeId) {
-    savedStateHandle.set(KEY_SELECTED_STORE, storeId);
-    settingsRepository.setLastUsedStoreId(storeId);
-    rebuild();
-  }
-
   public void saveDraft(String storeId, String text) {
     savedStateHandle.set(draftKey(storeId), text);
   }
@@ -173,7 +168,6 @@ public final class ListDetailViewModel extends ViewModel {
               settingsRepository.setLastUsedStoreId(storeId);
               mainHandler.post(
                   () -> {
-                    savedStateHandle.set(KEY_SELECTED_STORE, storeId);
                     savedStateHandle.remove(draftKey(storeId));
                     addGeneration++;
                     rebuild();
@@ -289,26 +283,32 @@ public final class ListDetailViewModel extends ViewModel {
               List.of(),
               stores,
               sortDirection,
-              null,
-              null,
               loadError == null ? UiError.LIST_NOT_FOUND : loadError));
       return;
     }
 
     List<Store> orderedStores = StoreOrdering.byBrandThenName(stores);
 
-    String selectedStoreId = resolveSelectedStoreId(orderedStores);
-    savedStateHandle.set(KEY_SELECTED_STORE, selectedStoreId);
-    String selectedStoreName = null;
+    // Only show stores that have items assigned to them.
+    // Also include a store that was just added (pendingStoreId) even if empty,
+    // so the user can add items to it right away.
+    List<Store> storesWithItems = new ArrayList<>();
     for (Store store : orderedStores) {
-      if (store.getId().equals(selectedStoreId)) {
-        selectedStoreName = store.getName();
-        break;
+      boolean hasItems = false;
+      for (ListItem item : items) {
+        if (item.getStoreId().equals(store.getId())) {
+          hasItems = true;
+          break;
+        }
+      }
+      if (hasItems || store.getId().equals(pendingStoreId)) {
+        storesWithItems.add(store);
       }
     }
+    pendingStoreId = null;
 
     List<ListDetailRow> rows =
-        rowsBuilder.build(orderedStores, items, sortDirection, this::getDraft, addGeneration);
+        rowsBuilder.build(storesWithItems, items, sortDirection, this::getDraft, addGeneration);
 
     state.setValue(
         new ListDetailUiState(
@@ -316,44 +316,38 @@ public final class ListDetailViewModel extends ViewModel {
             list.getName(),
             list.getShoppingDate(),
             rows,
-            orderedStores,
+            storesWithItems,
             sortDirection,
-            selectedStoreId,
-            selectedStoreName,
             null));
   }
 
-  private String resolveSelectedStoreId(List<Store> orderedStores) {
-    String saved = savedStateHandle.get(KEY_SELECTED_STORE);
-    if (containsStore(orderedStores, saved)) {
-      return saved;
+  /** Adds a new store (custom or supported brand) and shows it in the list. */
+  public void addStore(String name) {
+    String trimmed = name == null ? "" : name.trim();
+    if (trimmed.isEmpty()) {
+      postError(UiError.RAW_TEXT_REQUIRED);
+      return;
     }
-    String lastUsed = settingsRepository.getLastUsedStoreId();
-    if (containsStore(orderedStores, lastUsed)) {
-      return lastUsed;
-    }
-    String defaultStore = settingsRepository.getDefaultStoreId();
-    if (containsStore(orderedStores, defaultStore)) {
-      return defaultStore;
-    }
-    for (Store store : orderedStores) {
-      if (store.getBrand() == StoreBrand.WALMART) {
-        return store.getId();
-      }
-    }
-    return orderedStores.isEmpty() ? null : orderedStores.get(0).getId();
-  }
-
-  private static boolean containsStore(List<Store> stores, String storeId) {
-    if (storeId == null) {
-      return false;
-    }
-    for (Store store : stores) {
-      if (store.getId().equals(storeId)) {
-        return true;
-      }
-    }
-    return false;
+    Store store =
+        new Store(
+            java.util.UUID.randomUUID().toString(),
+            StoreBrand.CUSTOM,
+            trimmed,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            true,
+            false,
+            false,
+            null,
+            System.currentTimeMillis(),
+            System.currentTimeMillis());
+    storeRepository.save(store);
+    pendingStoreId = store.getId();
+    rebuild();
   }
 
   private String getDraft(String storeId) {

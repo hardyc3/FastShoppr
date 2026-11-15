@@ -57,16 +57,28 @@ public final class AisleComparator implements Comparator<String> {
 
     BigInteger leftNumber = new BigInteger(leftMatcher.group());
     BigInteger rightNumber = new BigInteger(rightMatcher.group());
+
+    // Letter-prefix aisles (e.g. "A19", "J15") sort before bare numbers (e.g. "29").
+    // A value has a letter prefix when non-digit characters precede the first digit run.
+    boolean leftHasPrefix = leftMatcher.start() > 0;
+    boolean rightHasPrefix = rightMatcher.start() > 0;
+    if (leftHasPrefix != rightHasPrefix) {
+      return leftHasPrefix ? -1 : 1;
+    }
+
+    if (leftHasPrefix) {
+      // Both letter-prefix: compare prefix (case-insensitive), then number, then suffix.
+      int prefixComparison =
+          normalizePart(left.substring(0, leftMatcher.start()))
+              .compareTo(normalizePart(right.substring(0, rightMatcher.start())));
+      if (prefixComparison != 0) {
+        return prefixComparison;
+      }
+    }
+
     int numericComparison = leftNumber.compareTo(rightNumber);
     if (numericComparison != 0) {
       return numericComparison;
-    }
-
-    int prefixComparison =
-        normalizePart(left.substring(0, leftMatcher.start()))
-            .compareTo(normalizePart(right.substring(0, rightMatcher.start())));
-    if (prefixComparison != 0) {
-      return prefixComparison;
     }
 
     return normalizePart(left.substring(leftMatcher.end()))

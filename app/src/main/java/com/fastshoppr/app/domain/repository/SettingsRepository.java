@@ -40,4 +40,8 @@ public interface SettingsRepository {
   boolean isOnboardingCompleted();
 
   void setOnboardingCompleted(boolean completed);
+
+  boolean isWalmartStoreVerified();
+
+  void setWalmartStoreVerified(boolean verified);
 }
