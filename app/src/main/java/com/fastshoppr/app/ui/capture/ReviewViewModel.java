@@ -35,6 +35,7 @@ import com.fastshoppr.app.ui.common.StoreOrdering;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -272,6 +273,7 @@ public final class ReviewViewModel extends ViewModel {
   private final SaveReviewedItemsUseCase saveReviewedItemsUseCase;
   private final SettingsRepository settingsRepository;
   private final ItemNameCleanerCoordinator cleanerCoordinator;
+  private final OrganizingScheduler organizingScheduler;
   private final ExecutorService executor;
   private final MainThreadExecutor mainThread;
 
@@ -308,6 +310,7 @@ public final class ReviewViewModel extends ViewModel {
       SaveReviewedItemsUseCase saveReviewedItemsUseCase,
       SettingsRepository settingsRepository,
       ItemNameCleanerCoordinator cleanerCoordinator,
+      OrganizingScheduler organizingScheduler,
       ExecutorService executor,
       MainThreadExecutor mainThread,
       SavedStateHandle savedStateHandle) {
@@ -318,6 +321,7 @@ public final class ReviewViewModel extends ViewModel {
     this.saveReviewedItemsUseCase = saveReviewedItemsUseCase;
     this.settingsRepository = settingsRepository;
     this.cleanerCoordinator = cleanerCoordinator;
+    this.organizingScheduler = organizingScheduler;
     this.executor = executor;
     this.mainThread = mainThread;
     this.captureId = savedStateHandle.get(NavArguments.CAPTURE_ID);
@@ -849,6 +853,22 @@ public final class ReviewViewModel extends ViewModel {
               if (error != null) {
                 postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
                 return;
+              }
+              try {
+                java.util.Set<String> listIds = new java.util.HashSet<>();
+                if (listId != null) {
+                  listIds.add(listId);
+                }
+                for (ReviewedItem item : items) {
+                  // reviewed items are saved into the capture's list in current flow
+                  // (repository uses item.getListId()); schedule for all affected lists
+                }
+                for (String id : listIds) {
+                  if (organizingScheduler != null) {
+                    organizingScheduler.scheduleAfterSave(id);
+                  }
+                }
+              } catch (Exception schedulingError) {
               }
               postEvent(new ReviewUiEvent.SaveCompleted());
             });

@@ -240,4 +240,20 @@
     <string name="store_verification_needed_title">Store verification needed</string>
     <string name="store_verification_needed_message">Please select your Walmart store so the app can look up item aisles. This selection is saved and will be used for future organize attempts.</string>
     <string name="ok">OK</string>
+
+    <string name="notification_channel_organizing_name">Organizing</string>
+    <string name="notification_channel_organizing_desc">Progress and results while organizing your shopping lists.</string>
+    <string name="notification_organizing_title">Organizing your list</string>
+    <string name="notification_organizing_walmart_title">Organizing your Walmart list</string>
+    <string name="notification_organizing_progress">Checking items… %1$d of %2$d</string>
+    <string name="notification_organizing_done_title">List organized</string>
+    <string name="notification_organizing_done_body">%1$s</string>
+    <string name="notification_cancel">Cancel</string>
+    <string name="lookup_cancel">Cancel organizing</string>
+    <string name="lookup_retry_failed">Retry failed</string>
+    <string name="lookup_walmart_queued_foreground">Walmart items are queued. Allow notifications for background organizing, or keep the app open to continue.</string>
+    <string name="lookup_walmart_queued_permission">Notification permission is off. Walmart items are queued until the app is in the foreground.</string>
+    <string name="lookup_permission_rationale">Allow notifications to organize Walmart items in the background and see progress.</string>
+    <string name="lookup_permission_denied_message">Notifications are off. Walmart lookups will run when the app is open.</string>
+    <string name="lookup_completed_counts">Organizing finished: %1$s</string>
 </resources>

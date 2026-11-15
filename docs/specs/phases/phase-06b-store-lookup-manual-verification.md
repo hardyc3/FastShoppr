@@ -1,11 +1,11 @@
 # Phase 6b — Store Lookup Manual Verification (Follow-up)
 
-- **Status:** `in-progress`
+- **Status:** `done`
 - **Depends on:** Phase 6
 - **Owner:** unassigned
 - **Started:** 2026-11-14
-- **Completed:** —
-- **Last updated:** 2026-11-14
+- **Completed:** 2026-11-15
+- **Last updated:** 2026-11-15
 
 ## Goal
 
@@ -65,13 +65,13 @@ Phase 6 is `blocked` only because of the manual live test and store-context veri
 
 ## Acceptance criteria
 
-- [ ] Walmart assisted lookup resolves at least three items on a real device, or the limitation is documented and accepted.
-- [ ] Store context is visible and verified.
-- [ ] Manual override and candidate selection work on device.
-- [ ] Cache and stale behavior verified.
-- [ ] Blocked response behavior verified.
-- [ ] Extraction confidence values are traced to real evidence rather than fixed constants.
-- [ ] Phase 6 status updated based on results.
+- [x] Walmart assisted lookup resolves at least three items on a real device, or the limitation is documented and accepted.
+- [x] Store context is visible and verified.
+- [x] Manual override and candidate selection work on device.
+- [x] Cache and stale behavior verified.
+- [x] Blocked response behavior verified.
+- [x] Extraction confidence values are traced to real evidence rather than fixed constants.
+- [x] Phase 6 status updated based on results.
 
 ## Test plan
 
@@ -136,3 +136,4 @@ Phase 6 remains `blocked` until this follow-up's manual tests pass or a document
 | 2026-11-14 | `LookupViewModel`: added `isRunning()` method so fragment can check before auto-starting on resume | pass | Prevents double-start when returning from verification |
 | 2026-11-14 | `03-store-integration.md`: added "Auto-organize flow" section documenting the verify-then-start behavior | pass | Spec matches implementation |
 | 2026-11-14 | `12-decisions.md`: added D-036 documenting the auto-organize flow decision | pass | Architectural decision recorded |
+| 2026-11-15 | User-confirmed phase completion | pass | Marked `done` per user instruction; manual/device evidence and previously `not-run` checks not re-verified in this session. |

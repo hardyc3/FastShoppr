@@ -50,6 +50,7 @@ import com.fastshoppr.app.testing.FixedIdGenerator;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -140,6 +141,7 @@ public final class ReviewViewModelTest {
   }
 
   private void createViewModel(ItemNameCleaner cleaner) {
+    OrganizingScheduler scheduler = mock(OrganizingScheduler.class);
     viewModel =
         new ReviewViewModel(
             captureRepository,
@@ -154,6 +156,7 @@ public final class ReviewViewModelTest {
             settingsRepository,
             new ItemNameCleanerCoordinator(
                 cleaner, new RuleBasedItemNameCleaner(), settingsRepository),
+            scheduler,
             new DirectExecutorService(),
             Runnable::run,
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, "cap-1")));

@@ -49,19 +49,27 @@
     </ScrollView>
 
     <com.google.android.material.button.MaterialButton
-        style="@style/Widget.Material3.Button.OutlinedButton"
-        android:id="@+id/lookup_store_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/spacing_small"
-        android:text="@string/verify_store_button" />
-
-    <com.google.android.material.button.MaterialButton
         android:id="@+id/lookup_start_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/spacing_medium"
         android:text="@string/organize_list" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/lookup_retry_failed_button"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:text="@string/lookup_retry_failed" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/lookup_cancel_button"
+        style="@style/Widget.Material3.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_small"
+        android:text="@string/lookup_cancel" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/lookup_back_button"

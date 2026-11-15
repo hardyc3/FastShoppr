@@ -7,8 +7,10 @@ package com.fastshoppr.app;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
+import static androidx.test.espresso.action.ViewActions.pressImeActionButton;
 import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
+import static androidx.test.espresso.matcher.RootMatchers.isDialog;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
 import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
@@ -78,12 +80,15 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.create_list_button)).perform(click());
       onFocusedView(withText(android.R.string.ok)).perform(click());
 
-      waitForText("Shopping list");
-      onFocusedView(withId(R.id.store_selector_button)).perform(click());
-      onFocusedView(withText("Home Depot")).perform(click());
-      onFocusedView(withText(android.R.string.ok)).perform(click());
-      waitForText("Store: Home Depot");
-      scrollToPosition(0);
+      waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
+
+      // Empty list shows no store sections until a store is added.
+      waitForText(R.string.no_stores);
+      onFocusedView(withId(R.id.add_store_button)).perform(click());
+      androidx.test.espresso.Espresso.onView(withId(R.id.store_name_input))
+          .inRoot(isDialog())
+          .perform(replaceText("Walmart"), pressImeActionButton());
+
       waitForContentDescription("Add item to Walmart");
       onFocusedView(withContentDescription("Add item to Walmart"))
           .perform(replaceText("milk"), clickAddItemButton());
@@ -104,7 +109,7 @@ public final class ManualListsFlowTest {
 
       onFocusedView(withId(R.id.sort_toggle_button)).perform(click());
       onFocusedView(withId(R.id.sort_toggle_button))
-          .check(matches(withText(R.string.sort_descending)));
+          .check(matches(withContentDescription(R.string.sort_descending)));
 
       onFocusedView(withId(R.id.list_detail_recycler))
           .perform(
@@ -117,12 +122,10 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.save_item_button)).perform(click());
       waitForItemText("milk 2%");
 
-      scrollToPosition(2);
       onFocusedView(withContentDescription("Add item to Walmart")).perform(replaceText("eggs"));
       waitForText("eggs");
       scenario.recreate();
       waitForContentDescription("Add item to Walmart");
-      scrollToPosition(2);
       onFocusedView(withText("eggs")).check(matches(isDisplayed()));
     }
   }
@@ -232,6 +235,10 @@ public final class ManualListsFlowTest {
 
   private static void waitForText(String text) {
     waitFor(() -> onFocusedView(withText(text)).check(matches(isDisplayed())));
+  }
+
+  private static void waitForText(int textRes) {
+    waitFor(() -> onFocusedView(withText(textRes)).check(matches(isDisplayed())));
   }
 
   /** Matches the raw text of a list item row, ignoring the hidden display name field. */
