@@ -21,6 +21,7 @@ public final class SettingsPreferences {
   private static final String KEY_LAST_CALENDAR_MONTH = "last_calendar_month";
   private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
   private static final String KEY_WALMART_STORE_VERIFIED = "walmart_store_verified";
+  private static final String KEY_PREFERRED_SHOPPING_TIME = "preferred_shopping_time";
 
   private final SharedPreferences preferences;
 
@@ -103,5 +104,13 @@ public final class SettingsPreferences {
 
   public void setWalmartStoreVerified(boolean verified) {
     preferences.edit().putBoolean(KEY_WALMART_STORE_VERIFIED, verified).apply();
+  }
+
+  public String getPreferredShoppingTime() {
+    return preferences.getString(KEY_PREFERRED_SHOPPING_TIME, null);
+  }
+
+  public void setPreferredShoppingTime(String time) {
+    preferences.edit().putString(KEY_PREFERRED_SHOPPING_TIME, time).apply();
   }
 }

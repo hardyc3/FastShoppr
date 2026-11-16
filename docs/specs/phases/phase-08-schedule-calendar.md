@@ -1,11 +1,11 @@
 # Phase 8 — Schedule and Calendar
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** Phase 3, Phase 7
 - **Owner:** unassigned
-- **Started:** —
+- **Started:** 2026-11-16
 - **Completed:** —
-- **Last updated:** 2026-11-13
+- **Last updated:** 2026-11-16
 
 ## Goal
 
@@ -95,15 +95,15 @@ Dates exist in the data model. This phase adds the user-facing scheduling and ca
 
 ## Technical approach
 
-- `ui/calendar/CalendarFragment.java`, `CalendarViewModel.java`, `MonthAdapter.java`.
+- `ui/calendar/CalendarFragment.java`, `CalendarViewModel.java`, `CalendarDayAdapter.java`, `UpcomingAdapter.java`.
 - `ui/settings/ScheduleFragment.java`, `ScheduleViewModel.java`.
-- `work/ScheduleCheckWorker.java`.
+- `work/ScheduleCheckWorker.java`, `ScheduleWorkerScheduler.java`, `ScheduleNotificationHelper.java`.
 - `domain/usecase/CreateScheduledListUseCase.java`.
 - `domain/usecase/DeferItemUseCase.java`.
 - `domain/usecase/ResolveDatePhraseUseCase.java`.
+- `domain/usecase/HandleOverdueListUseCase.java`.
 - `domain/date/DatePhraseParser.java`.
 - `domain/date/NearestListResolver.java`.
-- `ui/components/OverdueDialogFragment.java`.
 - Use `java.time.LocalDate`, `Clock`, and `SharedPreferences`.
 - Use WorkManager periodic work and an on-open check.
 - Use `MaterialDatePicker` for manual dates.
@@ -112,7 +112,7 @@ Dates exist in the data model. This phase adds the user-facing scheduling and ca
 
 - Populate `ShoppingSchedule`.
 - Add `targetDate` index usage.
-- Add `missed` representation: prefer archiving the past list or an item status field; document the choice in the completion log.
+- **Missed representation (chosen):** archiving the past list (soft archive). Unchecked items remain in the archived list and are not carried forward; checked items are unchanged. See `docs/specs/06-scheduling-dates-calendar.md`.
 - Add preferred shopping time to `SettingsPreferences`.
 - No other schema change expected.
 
@@ -125,6 +125,31 @@ Dates exist in the data model. This phase adds the user-facing scheduling and ca
 - Overdue dialog.
 - Store hours section in list detail.
 - Strings and accessibility labels.
+
+## Implementation status (2026-11-16)
+
+**Implemented / in place (needs verification):**
+
+- Preferred shopping time stored in settings/preferences/repository.
+- List/item data/query support for range, nearest future, past unchecked, and unchecked-item move/target-date alignment.
+- Deterministic date parsing and resolution: `DatePhraseParser`, `NearestListResolver`, `ResolveDatePhraseUseCase`, `DeferItemUseCase`.
+- Scheduled list creation/advance/notification logic and worker wiring: `CreateScheduledListUseCase`, `ScheduleCheckWorker`, `ScheduleWorkerScheduler`, `ScheduleNotificationHelper`; periodic and app-open checks wired.
+- Schedule settings UI/navigation/layout (`ScheduleFragment`, `ScheduleViewModel`, `ScheduleUiState`): interval/next date/enable-disable/notify, preferred shopping time, conflict handling, notification permission requested when enabling schedule with notify (Android 13+ as applicable).
+- Calendar UI (`CalendarFragment`, `CalendarViewModel`, day/upcoming adapters/layouts): month grid with list badges, current-day highlight, open list or offer create for empty date, upcoming list, persisted last calendar month, day accessibility descriptions.
+- Deferral in list-detail typed add flow: deterministic parsing, nearest existing active list on/after resolved date (or create for resolved date), confirmation showing resolved/target dates when different, past/ambiguous confirmation, phrase-removal confirmation option, and "next shopping day" without resolvable schedule prompts user to choose date or configure schedule.
+- Overdue prompt in lists: once per past list per app session, options move unchecked / keep / mark missed, checked items never moved, target date shown, create-next offered when no future list exists (preferring next scheduled date when available). Missed implemented as archive of past list.
+- Store hours/visit section in list detail: manual hours entry saved to `Store.hoursJson`, hours shown for selected date when known, open/closed shown only when explicitly present and parseable (otherwise stated unavailable/unknown), visit suggestion uses preferred shopping time when available and does not guess or use busyness data.
+- Auto-created empty lists surface default/last-used stores (up to 3) in list-detail UI for quick add.
+- Unit tests added/updated: `domain.date.DatePhraseParserTest`, `NearestListResolverTest`, `ResolveDatePhraseUseCaseTest`, `HandleOverdueListUseCaseTest`, `AdvanceScheduleUseCaseTest` (including month-end case).
+
+## Remaining work
+
+- **Capture/review deferral gap:** deterministic natural-language deferral parsing and per-line confirmation are not fully wired in capture/review save flows; manual per-item date picker and list-detail typed add flow are available. Implement and verify in capture/review if required for Phase 8 acceptance, or formally document scope deferral in completion/review.
+- **Test coverage to complete per plan:** schedule advancement edge cases (DST/time zone/month-end) with fixed clock/zone as needed, full supported date-phrase coverage, nearest-list/create behavior, deferral Room transaction/move, `ScheduleCheckWorker` (WorkManager test), calendar UI (Espresso), overdue dialog/options (Espresso), and notification/fake coverage as appropriate.
+- **Required verification (not yet recorded as passing):** `./gradlew assembleDebug`, `./gradlew testDebugUnitTest`, `./gradlew lintDebug`, `./gradlew spotlessCheck`, and `./gradlew connectedDebugAndroidTest` on an emulator or physical device. Fix any failures and record command/test evidence.
+- **Manual demos 1–7:** execute and record results in completion log.
+- **Acceptance criteria:** verify and check off all criteria only after evidence shows required tests/checks ran and passed.
+- **Completion:** keep phase `in-progress` until completion gate is satisfied and review is complete; then mark `done` in this file and `docs/specs/README.md`.
 
 ## Acceptance criteria
 
@@ -181,10 +206,20 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 ## Open questions
 
 - Should the schedule support multiple active schedules later?
-- Should missed items be archived with the list or kept with an item status?
+- (Resolved for Phase 8) Missed representation: archive past list (soft archive), unchecked items not carried forward.
+
+## Spec-gap resolution (2026-11-16)
+
+- **Deferral target:** nearest existing active list on/after resolved date, else create for resolved date. Confirmation shows resolved vs target date when different; phrase removal requires user confirmation. Implemented in list-detail typed add flow.
+- **Next shopping day (no schedule):** prompts user to choose date or configure schedule (no silent add).
+- **Overdue:** moves unchecked items to nearest future active list; if none exists, offers create for next scheduled date when available (else next day). "Missed" archives the past list (soft archive); unchecked items remain in archived list and are not carried forward. Checked items never moved.
+- **Store hours/visit:** hours shown for selected date when known; open/closed shown only if explicitly present and parseable (otherwise stated unavailable/unknown). Visit suggestion uses preferred time when available and never guesses or uses busyness data.
+- **Auto-created list default store sections:** surfaced as suggested stores (default/last-used, up to 3) in list-detail UI for quick add on auto-created empty lists (consistent with item-grouped store sections).
+- **Capture/review deferral parsing:** deterministic phrase parsing and per-line confirmation in capture/review save flows are a documented follow-up gap if required for acceptance; manual per-item date picker and list-detail typed add flow are available. See `docs/specs/06-scheduling-dates-calendar.md`.
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-16 | Implementation (partial) | in-progress | Implemented core Phase 8 data/domain/work/UI flows and initial unit tests (schedule settings/calendar/deferral-in-list-detail/overdue/store-hours/auto-create wiring; see "Implementation status"). Spec clarifications recorded in `docs/specs/06-scheduling-dates-calendar.md` and "Spec-gap resolution". Required build/lint/unit/instrumented verification and full plan coverage (incl. `connectedDebugAndroidTest` on emulator/device), demos 1–7, and acceptance evidence not yet completed; phase remains `in-progress`. |
+| 2026-11-16 | Phase spec update | in-progress | Updated this document to reflect current implementation status, spec-gap resolutions, and remaining work/evidence needed. |

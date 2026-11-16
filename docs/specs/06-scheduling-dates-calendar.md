@@ -53,7 +53,7 @@ Rules:
 - Use WorkManager to check for a due list at least once per day.
 - Also check on app open so the behavior is correct even if periodic work was delayed.
 - If a list for `nextShoppingDate` does not exist, create it.
-- New auto-created lists include the user's default store sections (last used stores, up to three).
+- New auto-created lists present the user's default store sections for quick add (last used stores, up to three). In this app store sections are item-groupings; an empty auto-created list surfaces those stores in the list detail UI so the user can add items without extra setup.
 - If a list already exists for that date, do not duplicate it.
 - Post a notification when a list is auto-created if notifications are enabled.
 - The notification opens the new list.
@@ -85,14 +85,16 @@ Users can write or say things like:
 **Behavior:**
 
 1. Parse the item text and date phrase.
-2. **Auto-resolve deterministic phrases without user confirmation** (see table below).
+2. **Auto-resolve deterministic phrases without user confirmation** (see table below), but always confirm before applying the move when the resolved date is in the past, ambiguous, or the user must approve phrase removal.
 3. If phrase is ambiguous, show the parsed date and let the user correct it.
-4. Remove the date phrase from `rawText` only if the user confirms the split in review.
+4. Remove the date phrase from `rawText`/item name only when the user confirms (e.g. remove-phrase option in the deferral confirmation).
 5. Resolve the phrase to a target `LocalDate`.
 6. Find the nearest shopping list on or after that date.
-7. If no list exists, create one for the resolved date (user confirmed or default based on schedule enablement).
-8. Move the item to that list.
-9. The item disappears from the current list and appears on the target list.
+7. If no list exists, create one for the resolved date.
+8. Move/add the item to that target list's date transactionally (target item/list date aligned).
+9. The item appears on the target list (and is not added to the current list when deferred at entry).
+
+**Phase 8 implementation note:** deterministic parsing/confirmation is wired in the list-detail typed add flow. Capture/review natural-language deferral parsing and per-line confirmation is a follow-up gap if not present in this phase; manual per-item date picker remains available.
 
 **Parsing precedence:**
 
@@ -135,9 +137,9 @@ When the app opens and a past list has unchecked items, show a prompt.
 
 Options:
 
-1. **Move unchecked items to the next list** — update `targetDate` and move them in one transaction.
+1. **Move unchecked items to the next list** — update `targetDate` and move them in one transaction to the nearest future active list (or a created future list if none exists).
 2. **Keep on the past list** — leave the list unchanged; it remains in history.
-3. **Mark as missed** — set a `missed` state or archive the list; items are not carried forward.
+3. **Mark as missed** — items are not carried forward.
 
 Rules:
 
@@ -145,18 +147,17 @@ Rules:
 - Do not auto-move without consent.
 - Checked items are never moved.
 - The prompt shows the item count and the target list date.
-- If no future list exists, offer to create one.
+- If no future list exists, offer to create one (preferring the next scheduled date when available).
 - The user can dismiss the prompt and handle it later.
+
+**Representation (Phase 8):** "Missed" is implemented by archiving the past list (soft archive). Unchecked items remain in that archived list and are not carried forward; checked items are unchanged. This avoids silent item loss and keeps history consistent with archive semantics.
 
 ## Store hours and visit planning
 
-- Store hours may come from the retailer page or be entered manually.
-- Show "Open now", "Closes at 9 PM", or "Closed" using the device's local time.
-- When a shopping date is selected, show the store's hours for that day.
-- Suggest a visit window based on:
-  - Store opening hours.
-  - The user's selected shopping date.
-  - Optional preferred time of day.
+- Store hours may come from the retailer page or be entered manually (stored locally, e.g. `Store.hoursJson` text).
+- When a shopping date/list is selected, show the store's hours for that date when known.
+- Show open/closed state **only** when hours are explicitly present and parseable for the relevant day/time; otherwise state that open/closed is unknown/unavailable (do not guess).
+- Suggest a visit window based on known store hours and the user's preferred shopping time when available; if hours or preferred time are missing/unparseable, state that a suggestion is unavailable and do not guess.
 - Do not claim to know how busy a store is.
 - Do not integrate Google Popular Times, Google Maps busyness, or unofficial Maps scraping.
 - If hours are unknown, say so and do not guess.

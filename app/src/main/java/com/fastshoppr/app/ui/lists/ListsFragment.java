@@ -17,15 +17,26 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentListsBinding;
+import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.repository.ListItemRepository;
+import com.fastshoppr.app.domain.repository.ScheduleRepository;
+import com.fastshoppr.app.domain.repository.ShoppingListRepository;
+import com.fastshoppr.app.domain.time.Clock;
+import com.fastshoppr.app.domain.usecase.HandleOverdueListUseCase;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import javax.inject.Inject;
 
 @AndroidEntryPoint
 public final class ListsFragment extends Fragment implements ShoppingListAdapter.Listener {
@@ -33,6 +44,14 @@ public final class ListsFragment extends Fragment implements ShoppingListAdapter
   private FragmentListsBinding binding;
   private ListsViewModel viewModel;
   private ShoppingListAdapter adapter;
+
+  @Inject ShoppingListRepository listRepository;
+  @Inject ListItemRepository itemRepository;
+  @Inject ScheduleRepository scheduleRepository;
+  @Inject HandleOverdueListUseCase overdueUseCase;
+  @Inject OverduePromptTracker overduePromptTracker;
+  @Inject Clock clock;
+  @Inject ExecutorService executor;
 
   @Nullable
   @Override
@@ -129,6 +148,64 @@ public final class ListsFragment extends Fragment implements ShoppingListAdapter
   @Override
   public void onArchiveList(String listId) {
     viewModel.archiveList(listId);
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    checkOverdue();
+  }
+
+  private void checkOverdue() {
+    if (listRepository == null || executor == null) return;
+    executor.execute(() -> {
+      try {
+        LocalDate today = Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault()).toLocalDate();
+        List<ShoppingList> past = listRepository.getPastListsWithUncheckedItems(today);
+        for (ShoppingList pl : past) {
+          if (!overduePromptTracker.shouldPrompt(pl.getId())) continue;
+          overduePromptTracker.markPrompted(pl.getId());
+          int unchecked = 0;
+          try { unchecked = (int) itemRepository.getByList(pl.getId()).stream().filter(i -> !i.isChecked()).count(); } catch (Exception ignored) {}
+          ShoppingList next = listRepository.findNearestActiveOnOrAfter(today);
+          java.time.LocalDate suggestedCreateDate = today.plusDays(1);
+          try {
+            com.fastshoppr.app.domain.model.ShoppingSchedule s = scheduleRepository.getActive();
+            if (s != null && s.isEnabled() && !s.getNextShoppingDate().isBefore(today)) {
+              suggestedCreateDate = s.getNextShoppingDate();
+            }
+          } catch (Exception ignored) {}
+          final int u = unchecked;
+          final ShoppingList nextList = next;
+          final java.time.LocalDate createDate = suggestedCreateDate;
+          if (!isAdded() || getView() == null) return;
+          requireActivity().runOnUiThread(() -> showOverdueDialog(pl, u, nextList, today, createDate));
+          break; // one prompt at a time per resume
+        }
+      } catch (Exception ignored) {
+      }
+    });
+  }
+
+  private void showOverdueDialog(ShoppingList past, int unchecked, ShoppingList next, LocalDate today, LocalDate suggestedCreateDate) {
+    if (!isAdded()) return;
+    String targetInfo = next != null ? next.getShoppingDate().toString() : suggestedCreateDate.toString();
+    String msg = getString(R.string.overdue_message, unchecked, past.getShoppingDate().toString())
+        + "\n" + getString(R.string.overdue_target, targetInfo);
+    MaterialAlertDialogBuilder b = new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.overdue_title)
+        .setMessage(msg)
+        .setNeutralButton(R.string.overdue_keep, (d, w) -> { /* keep */ })
+        .setNegativeButton(R.string.overdue_missed, (d, w) ->
+            overdueUseCase.apply(HandleOverdueListUseCase.Action.MISSED, past.getId(), null, null));
+    if (next != null) {
+      b.setPositiveButton(getString(R.string.overdue_move) + " (" + next.getShoppingDate() + ")", (d, w) ->
+          overdueUseCase.apply(HandleOverdueListUseCase.Action.MOVE_UNCHECKED, past.getId(), next.getId(), null));
+    } else {
+      b.setPositiveButton(getString(R.string.overdue_create_next) + " (" + suggestedCreateDate + ")", (d, w) ->
+          overdueUseCase.apply(HandleOverdueListUseCase.Action.MOVE_UNCHECKED, past.getId(), null, suggestedCreateDate));
+    }
+    b.show();
   }
 
   @Override

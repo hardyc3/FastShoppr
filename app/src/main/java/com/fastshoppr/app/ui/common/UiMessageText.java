@@ -24,6 +24,7 @@ public final class UiMessageText {
       case INK_STROKES_REQUIRED -> R.string.ink_strokes_required;
       case SPLIT_FAILED -> R.string.split_failed;
       case NO_CLEANUP_CANDIDATES -> R.string.ai_cleanup_no_candidates;
+      case DEFER_NEEDS_SCHEDULE -> R.string.defer_needs_schedule;
     };
   }
 }

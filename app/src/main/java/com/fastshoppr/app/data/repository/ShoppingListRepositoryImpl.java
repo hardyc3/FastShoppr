@@ -87,6 +87,15 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
   }
 
   @Override
+  public LiveData<List<ShoppingListSummary>> observeActiveSummariesInRange(
+      LocalDate startInclusive, LocalDate endInclusive) {
+    return Transformations.map(
+        listDao.observeActiveSummariesInRange(
+            startInclusive.format(DATE_FORMAT), endInclusive.format(DATE_FORMAT)),
+        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+  }
+
+  @Override
   public LiveData<ShoppingList> observeById(String id) {
     return Transformations.map(
         listDao.observeById(id),
@@ -96,6 +105,24 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
   @Override
   public List<ShoppingList> getActive() {
     return listDao.getActive().stream().map(ShoppingListMapper::toDomain).toList();
+  }
+
+  @Override
+  public List<ShoppingListSummary> getActiveSummaries() {
+    return listDao.getActiveSummaries().stream().map(ShoppingListMapper::toSummary).toList();
+  }
+
+  @Override
+  public List<ShoppingList> getPastListsWithUncheckedItems(LocalDate today) {
+    return listDao.getPastListsWithUncheckedItems(today.format(DATE_FORMAT)).stream()
+        .map(ShoppingListMapper::toDomain)
+        .toList();
+  }
+
+  @Override
+  public ShoppingList findNearestActiveOnOrAfter(LocalDate date) {
+    ShoppingListEntity entity = listDao.findNearestActiveOnOrAfter(date.format(DATE_FORMAT));
+    return entity == null ? null : ShoppingListMapper.toDomain(entity);
   }
 
   @Override

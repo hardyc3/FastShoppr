@@ -71,6 +71,43 @@ public interface ShoppingListDao {
           + "WHERE shoppingDate = :shoppingDate AND isArchived = 0 AND deletedAt IS NULL")
   int countActiveByDate(String shoppingDate);
 
+  @Query(
+      "SELECT l.*, "
+          + "(SELECT COUNT(*) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS itemCount, "
+          + "(SELECT COUNT(DISTINCT i.storeId) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS storeCount "
+          + "FROM shopping_lists l "
+          + "WHERE l.isArchived = 0 AND l.deletedAt IS NULL "
+          + "AND l.shoppingDate >= :startDate AND l.shoppingDate <= :endDate "
+          + "ORDER BY l.shoppingDate ASC")
+  LiveData<List<ShoppingListSummaryEntity>> observeActiveSummariesInRange(
+      String startDate, String endDate);
+
+  @Query(
+      "SELECT l.*, "
+          + "(SELECT COUNT(*) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS itemCount, "
+          + "(SELECT COUNT(DISTINCT i.storeId) FROM list_items i "
+          + "WHERE i.listId = l.id AND i.deletedAt IS NULL) AS storeCount "
+          + "FROM shopping_lists l "
+          + "WHERE l.isArchived = 0 AND l.deletedAt IS NULL ORDER BY l.shoppingDate ASC")
+  List<ShoppingListSummaryEntity> getActiveSummaries();
+
+  @Query(
+      "SELECT * FROM shopping_lists "
+          + "WHERE isArchived = 0 AND deletedAt IS NULL AND shoppingDate >= :date "
+          + "ORDER BY shoppingDate ASC LIMIT 1")
+  ShoppingListEntity findNearestActiveOnOrAfter(String date);
+
+  @Query(
+      "SELECT * FROM shopping_lists "
+          + "WHERE isArchived = 0 AND deletedAt IS NULL AND shoppingDate < :today "
+          + "AND EXISTS (SELECT 1 FROM list_items i WHERE i.listId = shopping_lists.id "
+          + "AND i.deletedAt IS NULL AND i.isChecked = 0) "
+          + "ORDER BY shoppingDate ASC")
+  List<ShoppingListEntity> getPastListsWithUncheckedItems(String today);
+
   @Insert
   void insert(ShoppingListEntity list);
 

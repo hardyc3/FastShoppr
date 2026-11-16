@@ -47,7 +47,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 6b | Store lookup manual verification | `done` | 6 |
 | 6c | Lookup extraction confidence and regex simplification | `done` | 6b |
 | 7 | Background routing | `done` | 5, 6, 6b |
-| 8 | Schedule & calendar | `not-started` | 3, 7 |
+| 8 | Schedule & calendar | `in-progress` | 3, 7 |
 | 9 | MVP release | `not-started` | 8 |
 | 10 | Pricing spike | `not-started` | 9 |
 | 11 | Price comparison | `not-started` | 10 |

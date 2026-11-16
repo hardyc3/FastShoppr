@@ -34,5 +34,7 @@ public interface ListItemRepository {
 
   ListItem moveToDate(String itemId, LocalDate targetDate, String targetListName);
 
+  int moveUncheckedItemsToList(String sourceListId, String targetListId, LocalDate targetDate);
+
   int purgeDeletedBefore(long cutoffMillis);
 }

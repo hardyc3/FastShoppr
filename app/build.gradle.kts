@@ -8,6 +8,7 @@ android {
     compileSdk = 36
     buildToolsVersion = "36.1.0"
 
+
     defaultConfig {
         applicationId = "com.fastshoppr.app"
         minSdk = 30

@@ -47,6 +47,8 @@ public final class SettingsFragment extends Fragment {
     binding.switchAiCleanup.setOnCheckedChangeListener(
         (buttonView, isChecked) -> viewModel.setAiCleanupEnabled(isChecked));
     binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
+    binding.btnOpenSchedule.setOnClickListener(
+        v -> Navigation.findNavController(v).navigate(R.id.action_settings_to_schedule));
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.load();

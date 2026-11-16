@@ -85,6 +85,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_small"
             android:text="@string/organize_list" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/store_hours_button"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_small"
+            android:text="@string/store_hours_title" />
     </LinearLayout>
 
     <FrameLayout
