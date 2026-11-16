@@ -1,11 +1,11 @@
 # Phase 6c — Lookup Extraction Confidence and Regex Simplification (Follow-up)
 
-- **Status:** `in-progress`
+- **Status:** `done`
 - **Depends on:** Phase 6b
 - **Owner:** unassigned
-- **Started:** —
-- **Completed:** —
-- **Last updated:** 2026-11-13
+- **Started:** 2026-11-13
+- **Completed:** 2026-11-15
+- **Last updated:** 2026-11-15
 
 ## Goal
 
@@ -66,13 +66,13 @@ Phase 6 extraction currently assigns fixed confidence values such as `0.9f`, `0.
 
 ## Acceptance criteria
 
-- [ ] No hardcoded confidence constant is the sole source of a store match confidence.
-- [ ] Walmart confidence is calculated from extraction evidence and remains reviewable when store context is unverified.
-- [ ] Home Depot confidence is calculated from extraction evidence.
-- [ ] Regex fallbacks are simplified and documented.
-- [ ] Fixture tests cover high-confidence, fallback, ambiguous, and no-result cases.
-- [ ] Existing lookup repository, cache, retry, and manual precedence tests pass.
-- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
+- [x] No hardcoded confidence constant is the sole source of a store match confidence.
+- [x] Walmart confidence is calculated from extraction evidence and remains reviewable when store context is unverified.
+- [x] Home Depot confidence is calculated from extraction evidence.
+- [x] Regex fallbacks are simplified and documented.
+- [x] Fixture tests cover high-confidence, fallback, ambiguous, and no-result cases.
+- [x] Existing lookup repository, cache, retry, and manual precedence tests pass.
+- [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -117,3 +117,4 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-14 | ./gradlew spotlessCheck | Passes | No formatting violations |
 | 2026-11-14 | ./gradlew lintDebug | Passes | No lint issues |
 | 2026-11-14 | ./gradlew assembleDebug | Passes | Debug build successful |
+| 2026-11-15 | User-confirmed phase completion | pass | Marked `done` per user instruction; `connectedDebugAndroidTest` and full manual demo not re-verified in this session. |

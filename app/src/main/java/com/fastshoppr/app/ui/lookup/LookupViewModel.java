@@ -5,29 +5,24 @@
  */
 package com.fastshoppr.app.ui.lookup;
 
-import android.os.Handler;
-import android.os.Looper;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
-import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.model.ListItem;
-import com.fastshoppr.app.domain.model.LookupSource;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
-import com.fastshoppr.app.domain.repository.AisleLookupRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
-import com.fastshoppr.app.domain.time.Clock;
-import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
-import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
-import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.fastshoppr.app.work.OrganizingCounts;
+import com.fastshoppr.app.work.OrganizingProgressStore;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
@@ -35,233 +30,156 @@ import javax.inject.Inject;
 @HiltViewModel
 public final class LookupViewModel extends ViewModel {
 
-  public static final class Progress {
-    public final int done;
-    public final int total;
-    public final String status;
-    public final String logLine;
-    public final boolean running;
-    public final boolean stopped;
-    public final StoreLookupResult.Multiple multiple;
-    public final String multipleItemId;
-
-    public Progress(
-        int done,
-        int total,
-        String status,
-        String logLine,
-        boolean running,
-        boolean stopped,
-        StoreLookupResult.Multiple multiple,
-        String multipleItemId) {
-      this.done = done;
-      this.total = total;
-      this.status = status;
-      this.logLine = logLine;
-      this.running = running;
-      this.stopped = stopped;
-      this.multiple = multiple;
-      this.multipleItemId = multipleItemId;
-    }
-  }
-
   private final String listId;
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
-  private final LookupItemUseCase lookupItemUseCase;
-  private final SetItemAisleUseCase setItemAisleUseCase;
-  private final ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
+  private final OrganizingScheduler scheduler;
+  private final OrganizingProgressStore progressStore;
   private final ExecutorService executor;
-  private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
   private final MutableLiveData<String> storeContext = new MutableLiveData<>("");
   private final MutableLiveData<Boolean> hasWalmart = new MutableLiveData<>(false);
-  private final MutableLiveData<Progress> progress = new MutableLiveData<>();
-  private final StringBuilder log = new StringBuilder();
-  private volatile boolean running;
-
-  private final Clock clock;
+  private final MutableLiveData<Boolean> walmartVerified = new MutableLiveData<>(false);
+  private final MediatorLiveData<OrganizingProgressStore.Progress> progress =
+      new MediatorLiveData<>();
+  private final MutableLiveData<OrganizingCounts> counts = new MutableLiveData<>();
+  private final MutableLiveData<String> perStoreDetails = new MutableLiveData<>("");
 
   @Inject
   public LookupViewModel(
       ListItemRepository itemRepository,
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
-      LookupItemUseCase lookupItemUseCase,
-      SetItemAisleUseCase setItemAisleUseCase,
-      ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
+      OrganizingScheduler scheduler,
+      OrganizingProgressStore progressStore,
       ExecutorService executor,
-      Clock clock,
       SavedStateHandle savedStateHandle) {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
-    this.lookupItemUseCase = lookupItemUseCase;
-    this.setItemAisleUseCase = setItemAisleUseCase;
-    this.applyLookupCandidateUseCase = applyLookupCandidateUseCase;
+    this.scheduler = scheduler;
+    this.progressStore = progressStore;
     this.executor = executor;
-    this.clock = clock;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
+    progress.addSource(progressStore.observe(), this::onProgressMap);
   }
 
-  public LiveData<String> getStoreContext() {
-    return storeContext;
-  }
-
-  /** True when the list contains at least one Walmart item; gates the store-picker button. */
-  public LiveData<Boolean> getHasWalmart() {
-    return hasWalmart;
-  }
-
-  public LiveData<Progress> getProgress() {
-    return progress;
+  private void onProgressMap(Map<String, OrganizingProgressStore.Progress> map) {
+    progress.setValue(map == null ? null : map.get(listId));
+    // refresh counts/details as work progresses
+    loadContext();
   }
 
   public String getListId() {
     return listId;
   }
 
+  public LiveData<String> getStoreContext() {
+    return storeContext;
+  }
+
+  public LiveData<Boolean> getHasWalmart() {
+    return hasWalmart;
+  }
+
+  public LiveData<Boolean> getWalmartVerified() {
+    return walmartVerified;
+  }
+
+  public LiveData<OrganizingProgressStore.Progress> getProgress() {
+    return progress;
+  }
+
+  public LiveData<OrganizingCounts> getCounts() {
+    return counts;
+  }
+
+  public LiveData<String> getPerStoreDetails() {
+    return perStoreDetails;
+  }
+
   public boolean isRunning() {
-    return running;
+    OrganizingProgressStore.Progress p = progress.getValue();
+    return p != null && p.running;
   }
 
   public void loadContext() {
-    executor.execute(
-        () -> {
-          List<ListItem> items = itemRepository.getByList(listId);
-          String context = "";
-          boolean walmartPresent = false;
-          for (ListItem item : items) {
-            Store store = resolveStoreForItem(item);
-            if (store != null) {
-              if (store.getBrand() == StoreBrand.WALMART) {
-                walmartPresent = true;
-              }
-              if (context.isEmpty()) {
-                String addr = store.getAddressLine();
-                context = store.getName() + (addr == null || addr.isBlank() ? "" : " — " + addr);
-              }
-            }
-          }
-          boolean finalWalmart = walmartPresent;
-          String finalContext = context;
-          mainHandler.post(
-              () -> {
-                storeContext.setValue(finalContext);
-                hasWalmart.setValue(finalWalmart);
-              });
-        });
-  }
-
-  public void start(boolean forceRefresh) {
-    if (running) {
-      return;
-    }
-    running = true;
-    log.setLength(0);
-    postProgress(0, 0, "Starting lookup…", "Starting lookup…", true, false, null, null);
-    executor.execute(() -> run(forceRefresh));
-  }
-
-  private void run(boolean forceRefresh) {
-    List<ListItem> items = itemRepository.getByList(listId);
-    List<ListItem> eligible = new ArrayList<>();
-    for (ListItem item : items) {
-      if (item.getLookupSource() == LookupSource.MANUAL && !forceRefresh) {
-        continue;
-      }
-      eligible.add(item);
-    }
-    int total = eligible.size();
-    int found = 0;
-    int needsReview = 0;
-    int notFound = 0;
-    int errors = 0;
-
-    for (int i = 0; i < eligible.size(); i++) {
-      ListItem item = eligible.get(i);
-      String label = item.getDisplayName();
-      postProgress(i, total, "Checking " + label, null, true, false, null, null);
-      try {
-        AisleLookupRepository.LookupOutcome outcome =
-            lookupItemUseCase.lookupNow(item.getId(), forceRefresh);
-        String line = formatOutcome(outcome, item);
-        append(line);
-        if (outcome.blocked) {
-          running = false;
-          postProgress(i + 1, total, "Lookup stopped: " + line, line, false, true, null, null);
-          return;
-        }
-        if (outcome.item != null) {
-          switch (outcome.item.getLookupStatus()) {
-            case FOUND -> found++;
-            case NEEDS_REVIEW -> needsReview++;
-            case NOT_FOUND -> notFound++;
-            case ERROR -> errors++;
-            default -> {}
-          }
-        }
-        if (outcome.result instanceof StoreLookupResult.Multiple multiple) {
-          postProgress(
-              i, total, "Choose a match for " + label, line, true, false, multiple, item.getId());
-          // wait briefly is not possible here; UI will handle dialog and user can continue by
-          // tapping start again
-          // but to keep harness simple we pause run by stopping after prompting
-          running = false;
-          postProgress(
-              i + 1,
-              total,
-              "Selection needed for " + label,
-              line,
-              false,
-              false,
-              multiple,
-              item.getId());
-          return;
-        }
-      } catch (Exception e) {
-        errors++;
-        append("Error: " + label + " - " + e.getMessage());
-      }
-      postProgress(i + 1, total, "Checked " + label, null, true, false, null, null);
-    }
-    running = false;
-    String summary =
-        "Found "
-            + found
-            + ", needs review "
-            + needsReview
-            + ", not found "
-            + notFound
-            + ", errors "
-            + errors
-            + ".";
-    append(summary);
-    postProgress(total, total, summary, summary, false, false, null, null);
-  }
-
-  public void applyCandidate(String itemId, StoreLookupResult.Found candidate) {
+    walmartVerified.postValue(settingsRepository.isWalmartStoreVerified());
     executor.execute(
         () -> {
           try {
-            ListItem updated = applyLookupCandidateUseCase.applyNow(itemId, candidate);
-            append(
-                updated.getLookupSource() == LookupSource.MANUAL
-                    ? "Manual value kept for " + updated.getDisplayName()
-                    : "Applied candidate: "
-                        + (candidate.getProductName() == null
-                            ? updated.getDisplayName()
-                            : candidate.getProductName()));
-          } catch (Exception e) {
-            append("Failed to apply candidate: " + e.getMessage());
+            List<ListItem> items = itemRepository.getByList(listId);
+            counts.postValue(OrganizingCounts.from(items));
+            String context = "";
+            boolean walmartPresent = false;
+            StringBuilder details = new StringBuilder();
+            java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
+            java.util.Map<String, String> storeNames = new java.util.LinkedHashMap<>();
+            for (ListItem item : items) {
+              Store store = resolveStoreForItem(item);
+              if (store != null) {
+                if (store.getBrand() == StoreBrand.WALMART) {
+                  walmartPresent = true;
+                }
+                if (context.isEmpty()) {
+                  String addr = store.getAddressLine();
+                  context = store.getName() + (addr == null || addr.isBlank() ? "" : " — " + addr);
+                }
+                storeNames.putIfAbsent(store.getId(), store.getName());
+                int[] c = byStore.computeIfAbsent(store.getId(), k -> new int[5]);
+                com.fastshoppr.app.domain.model.LookupStatus s = item.getLookupStatus();
+                if (s == com.fastshoppr.app.domain.model.LookupStatus.FOUND) c[0]++;
+                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW) c[1]++;
+                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NOT_FOUND) c[2]++;
+                else if (s == com.fastshoppr.app.domain.model.LookupStatus.ERROR) c[3]++;
+                else c[4]++; // pending/queued/in-progress
+              }
+            }
+            for (java.util.Map.Entry<String, int[]> e : byStore.entrySet()) {
+              if (details.length() > 0) details.append("\n");
+              String name = storeNames.getOrDefault(e.getKey(), "Store");
+              int[] c = e.getValue();
+              details
+                  .append(name)
+                  .append(": found ")
+                  .append(c[0])
+                  .append(", review ")
+                  .append(c[1])
+                  .append(", not found ")
+                  .append(c[2])
+                  .append(", errors ")
+                  .append(c[3])
+                  .append(", pending ")
+                  .append(c[4]);
+            }
+            perStoreDetails.postValue(details.toString());
+            hasWalmart.postValue(walmartPresent);
+            storeContext.postValue(context);
+          } catch (Exception ignored) {
           }
         });
+  }
+
+  public void organizeNow() {
+    scheduler.organizeNow(listId);
+  }
+
+  public void retryFailed() {
+    scheduler.retryFailed(listId);
+  }
+
+  public void cancel() {
+    scheduler.cancel(listId);
+  }
+
+  public boolean canPostNotifications() {
+    return scheduler.canPostNotifications();
   }
 
   private Store resolveStoreForItem(ListItem item) {
     try {
-      if (item.getStoreId() != null) {
+      if (item != null && item.getStoreId() != null) {
         return storeRepository.getById(item.getStoreId());
       }
     } catch (Exception ignored) {
@@ -282,60 +200,5 @@ public final class LookupViewModel extends ViewModel {
     } catch (Exception ignored) {
     }
     return null;
-  }
-
-  private String formatOutcome(AisleLookupRepository.LookupOutcome outcome, ListItem original) {
-    if (outcome == null || outcome.item == null) return "No result";
-    ListItem item = outcome.item;
-    String name = item.getDisplayName();
-    switch (item.getLookupStatus()) {
-      case FOUND:
-        return "Found: "
-            + name
-            + " → "
-            + (item.getAisle() == null ? "aisle" : item.getAisle())
-            + (outcome.stale ? " (saved, may be outdated)" : "");
-      case NEEDS_REVIEW:
-        return "Needs review: " + name;
-      case NOT_FOUND:
-        return "Not found: " + name;
-      case ERROR:
-        return "Error: "
-            + name
-            + (item.getLookupError() == null ? "" : " - " + item.getLookupError());
-      default:
-        return "Checked: " + name;
-    }
-  }
-
-  private void append(String line) {
-    if (line == null) return;
-    synchronized (log) {
-      if (log.length() > 0) log.append('\n');
-      log.append(line);
-    }
-  }
-
-  public String getLogText() {
-    synchronized (log) {
-      return log.toString();
-    }
-  }
-
-  private void postProgress(
-      int done,
-      int total,
-      String status,
-      String logLine,
-      boolean runningNow,
-      boolean stopped,
-      StoreLookupResult.Multiple multiple,
-      String multipleItemId) {
-    if (logLine != null) append(logLine);
-    mainHandler.post(
-        () ->
-            progress.setValue(
-                new Progress(
-                    done, total, status, null, runningNow, stopped, multiple, multipleItemId)));
   }
 }

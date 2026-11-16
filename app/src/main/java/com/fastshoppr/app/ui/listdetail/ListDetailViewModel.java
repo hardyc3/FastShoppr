@@ -35,6 +35,7 @@ import com.fastshoppr.app.ui.common.StoreOrdering;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ public final class ListDetailViewModel extends ViewModel {
   private final SetItemAisleUseCase setItemAisleUseCase;
   private final LookupItemUseCase lookupItemUseCase;
   private final ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
+  private final OrganizingScheduler organizingScheduler;
   private final ListDetailRowsBuilder rowsBuilder;
   private final SavedStateHandle savedStateHandle;
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -83,6 +85,7 @@ public final class ListDetailViewModel extends ViewModel {
   private boolean storesLoaded;
   private SortDirection sortDirection;
   private String pendingStoreId;
+  private Store pendingStore;
   private UiError loadError;
   private long addGeneration;
 
@@ -99,6 +102,7 @@ public final class ListDetailViewModel extends ViewModel {
       SetItemAisleUseCase setItemAisleUseCase,
       LookupItemUseCase lookupItemUseCase,
       ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
+      OrganizingScheduler organizingScheduler,
       SortItemsUseCase sortItemsUseCase,
       SavedStateHandle savedStateHandle) {
     this.listRepository = listRepository;
@@ -112,6 +116,7 @@ public final class ListDetailViewModel extends ViewModel {
     this.setItemAisleUseCase = setItemAisleUseCase;
     this.lookupItemUseCase = lookupItemUseCase;
     this.applyLookupCandidateUseCase = applyLookupCandidateUseCase;
+    this.organizingScheduler = organizingScheduler;
     this.rowsBuilder = new ListDetailRowsBuilder(sortItemsUseCase);
     this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
@@ -166,6 +171,9 @@ public final class ListDetailViewModel extends ViewModel {
                 return;
               }
               settingsRepository.setLastUsedStoreId(storeId);
+              if (organizingScheduler != null) {
+                organizingScheduler.scheduleAfterSave(listId);
+              }
               mainHandler.post(
                   () -> {
                     savedStateHandle.remove(draftKey(storeId));
@@ -287,12 +295,28 @@ public final class ListDetailViewModel extends ViewModel {
       return;
     }
 
-    List<Store> orderedStores = StoreOrdering.byBrandThenName(stores);
+    List<Store> sourceStores = stores;
+    if (pendingStoreId != null && pendingStore != null) {
+      boolean present = false;
+      for (Store s : sourceStores) {
+        if (pendingStoreId.equals(s.getId())) {
+          present = true;
+          break;
+        }
+      }
+      if (!present) {
+        List<Store> merged = new ArrayList<>(sourceStores);
+        merged.add(pendingStore);
+        sourceStores = merged;
+      }
+    }
+    List<Store> orderedStores = StoreOrdering.byBrandThenName(sourceStores);
 
     // Only show stores that have items assigned to them.
     // Also include a store that was just added (pendingStoreId) even if empty,
     // so the user can add items to it right away.
     List<Store> storesWithItems = new ArrayList<>();
+    boolean pendingStillEmpty = false;
     for (Store store : orderedStores) {
       boolean hasItems = false;
       for (ListItem item : items) {
@@ -301,11 +325,18 @@ public final class ListDetailViewModel extends ViewModel {
           break;
         }
       }
-      if (hasItems || store.getId().equals(pendingStoreId)) {
+      boolean isPending = store.getId().equals(pendingStoreId);
+      if (hasItems || isPending) {
         storesWithItems.add(store);
       }
+      if (isPending && !hasItems) {
+        pendingStillEmpty = true;
+      }
     }
-    pendingStoreId = null;
+    if (!pendingStillEmpty) {
+      pendingStoreId = null;
+      pendingStore = null;
+    }
 
     List<ListDetailRow> rows =
         rowsBuilder.build(storesWithItems, items, sortDirection, this::getDraft, addGeneration);
@@ -345,9 +376,21 @@ public final class ListDetailViewModel extends ViewModel {
             null,
             System.currentTimeMillis(),
             System.currentTimeMillis());
-    storeRepository.save(store);
-    pendingStoreId = store.getId();
-    rebuild();
+    new Thread(
+            () -> {
+              try {
+                storeRepository.save(store);
+                mainHandler.post(
+                    () -> {
+                      pendingStoreId = store.getId();
+                      pendingStore = store;
+                      rebuild();
+                    });
+              } catch (Exception e) {
+                postError(UiError.SAVE_FAILED);
+              }
+            })
+        .start();
   }
 
   private String getDraft(String storeId) {

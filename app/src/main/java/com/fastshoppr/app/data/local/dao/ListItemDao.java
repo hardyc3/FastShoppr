@@ -82,4 +82,25 @@ public interface ListItemDao {
 
   @Query("DELETE FROM list_items WHERE deletedAt IS NOT NULL AND deletedAt < :cutoff")
   int purgeDeletedBefore(long cutoff);
+
+  @Query(
+      "SELECT * FROM list_items WHERE listId = :listId AND deletedAt IS NULL "
+          + "AND lookupStatus IN (:statuses) "
+          + "AND (lookupSource IS NULL OR lookupSource != 'MANUAL') "
+          + "ORDER BY sortPosition ASC")
+  List<ListItemEntity> getByListAndLookupStatuses(String listId, List<String> statuses);
+
+  @Query(
+      "UPDATE list_items SET lookupStatus = :status, updatedAt = :updatedAt "
+          + "WHERE id = :id AND deletedAt IS NULL "
+          + "AND (lookupSource IS NULL OR lookupSource != 'MANUAL')")
+  int setLookupStatusIfNotManual(String id, String status, long updatedAt);
+
+  @Query(
+      "UPDATE list_items SET lookupStatus = :status, updatedAt = :updatedAt "
+          + "WHERE listId = :listId AND deletedAt IS NULL "
+          + "AND lookupStatus IN (:fromStatuses) "
+          + "AND (lookupSource IS NULL OR lookupSource != 'MANUAL')")
+  int setLookupStatusForList(
+      String listId, List<String> fromStatuses, String status, long updatedAt);
 }

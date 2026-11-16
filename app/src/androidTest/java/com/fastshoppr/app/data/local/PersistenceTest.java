@@ -65,7 +65,8 @@ public final class PersistenceTest {
             firstDatabase.listItemDao(),
             firstDatabase.captureSessionDao(),
             clock,
-            idGenerator);
+            idGenerator,
+            null);
     ListItemRepository firstItemRepository =
         new ListItemRepositoryImpl(
             firstDatabase,

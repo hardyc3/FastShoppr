@@ -20,6 +20,7 @@ import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -37,6 +38,7 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
   private final CaptureSessionDao captureDao;
   private final Clock clock;
   private final IdGenerator idGenerator;
+  private final OrganizingScheduler organizingScheduler;
 
   @Inject
   public ShoppingListRepositoryImpl(
@@ -45,13 +47,15 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
       ListItemDao itemDao,
       CaptureSessionDao captureDao,
       Clock clock,
-      IdGenerator idGenerator) {
+      IdGenerator idGenerator,
+      OrganizingScheduler organizingScheduler) {
     this.database = database;
     this.listDao = listDao;
     this.itemDao = itemDao;
     this.captureDao = captureDao;
     this.clock = clock;
     this.idGenerator = idGenerator;
+    this.organizingScheduler = organizingScheduler;
   }
 
   @Override
@@ -169,6 +173,9 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
           itemDao.softDeleteByList(id, deletedAt);
           captureDao.softDeleteByList(id, deletedAt);
         });
+    if (organizingScheduler != null) {
+      organizingScheduler.cancel(id);
+    }
   }
 
   @Override

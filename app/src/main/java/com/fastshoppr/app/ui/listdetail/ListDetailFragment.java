@@ -58,6 +58,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.listDetailRecycler.setAdapter(adapter);
 
     binding.sortToggleButton.setOnClickListener(v -> viewModel.toggleSortDirection());
+    binding.addStoreButton.setOnClickListener(v -> showAddStoreDialog());
     binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
     binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
     binding.organizeButton.setOnClickListener(
@@ -128,6 +129,50 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
               Snackbar.LENGTH_SHORT)
           .show();
     }
+  }
+
+  private void showAddStoreDialog() {
+    View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_store, null);
+    android.widget.Spinner spinner = dialogView.findViewById(R.id.store_spinner);
+    android.widget.EditText nameInput = dialogView.findViewById(R.id.store_name_input);
+    if (nameInput != null) {
+      nameInput.setEnabled(true);
+    }
+    if (spinner != null) {
+      spinner.setVisibility(View.GONE);
+    }
+    androidx.appcompat.app.AlertDialog dialog =
+        new MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.add_store_title)
+            .setView(dialogView)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.add_store_add, null)
+            .create();
+    dialog.setOnShowListener(
+        d ->
+            dialog
+                .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                .setOnClickListener(
+                    v -> {
+                      String name = nameInput == null ? "" : textOf(nameInput.getText());
+                      if (!name.trim().isEmpty()) {
+                        viewModel.addStore(name.trim());
+                        dialog.dismiss();
+                      }
+                    }));
+    if (nameInput != null) {
+      nameInput.setOnEditorActionListener(
+          (v, actionId, event) -> {
+            String name = textOf(nameInput.getText());
+            if (!name.trim().isEmpty()) {
+              viewModel.addStore(name.trim());
+              dialog.dismiss();
+              return true;
+            }
+            return false;
+          });
+    }
+    dialog.show();
   }
 
   private void showStorePicker() {

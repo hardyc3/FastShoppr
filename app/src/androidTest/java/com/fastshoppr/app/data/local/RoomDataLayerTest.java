@@ -82,7 +82,7 @@ public final class RoomDataLayerTest {
     idGenerator = new UuidGenerator();
     listRepository =
         new ShoppingListRepositoryImpl(
-            database, listDao, itemDao, captureDao, new FakeClock(), idGenerator);
+            database, listDao, itemDao, captureDao, new FakeClock(), idGenerator, null);
     itemRepository =
         new ListItemRepositoryImpl(database, itemDao, listDao, new FakeClock(), idGenerator);
     storeRepository = new StoreRepositoryImpl(database, storeDao, new FakeClock());

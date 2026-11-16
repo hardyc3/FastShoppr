@@ -81,6 +81,11 @@ public final class ListDetailStateRestorationTest {
     listId = list.getId();
     Store walmart = storeRepository.findByBrand(StoreBrand.WALMART);
     walmartId = walmart.getId();
+    // List detail shows store sections only when a store has items (or is pending).
+    addItemUseCase
+        .add(
+            listId, walmartId, "milk", null, null, com.fastshoppr.app.domain.model.ItemSource.TYPED)
+        .join();
   }
 
   @Test
@@ -140,6 +145,7 @@ public final class ListDetailStateRestorationTest {
         setItemAisleUseCase,
         lookupItemUseCase,
         applyLookupCandidateUseCase,
+        null,
         sortItemsUseCase,
         handle);
   }
