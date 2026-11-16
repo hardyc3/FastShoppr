@@ -1,6 +1,9 @@
 # FastShoppr Agent Guides
 
-Human-readable role guides for focused coding/review agents in this repository. These are **not** executable configs; use them as prompt/context when running an agent.
+The agent role guides previously stored here have moved to `.opencode/agents/` so OpenCode can load them as actual agents.
+
+- Location: `.opencode/agents/<name>.md`
+- Each file uses OpenCode agent frontmatter (`description`, `mode`) plus the original guide as the system prompt.
 
 ## Global rules (apply to every agent)
 
@@ -17,15 +20,15 @@ Human-readable role guides for focused coding/review agents in this repository. 
 
 | File | Purpose |
 |---|---|
-| `refactor.md` | Restructure/improve code with **aggressive refactor allowed** (APIs/modules may change) while preserving behavior and obeying tests/architecture/invariants. |
-| `pre-commit-review.md` | Review staged/changed code before commit; blocks on correctness, invariant, security, and policy violations. |
-| `security-review.md` | Focused security/privacy review (permissions, secrets, logging, store access, input handling, release safety). |
-| `performance-review.md` | Focused performance review (main-thread work, Room queries, background/lookup behavior, UI/rendering, memory). |
-| `maintainability-review.md` | Focused readability/structure/testability review aligned with repo patterns. |
-| `spec-alignment-ux-review.md` | Review against product/spec requirements and user experience (flows, states, accessibility cues, copy/feedback). |
-| `phase-implementer.md` | Implement only the current phase, run required checks, update acceptance evidence/logs. |
-| `spec-docs-updater.md` | Keep specs, phase files, decisions, and completion logs aligned with actual behavior/changes. |
-| `spec-architecture-auditor.md` | Audit another agent's deliverable for conformance to specs, architecture/layer rules, invariants, security policy, and phase scope; blocks drift. |
+| `.opencode/agents/refactor.md` | Restructure/improve code with **aggressive refactor allowed** (APIs/modules may change) while preserving behavior and obeying tests/architecture/invariants. |
+| `.opencode/agents/pre-commit-review.md` | Review staged/changed code before commit; blocks on correctness, invariant, security, and policy violations. |
+| `.opencode/agents/security-review.md` | Focused security/privacy review (permissions, secrets, logging, store access, input handling, release safety). |
+| `.opencode/agents/performance-review.md` | Focused performance review (main-thread work, Room queries, background/lookup behavior, UI/rendering, memory). |
+| `.opencode/agents/maintainability-review.md` | Focused readability/structure/testability review aligned with repo patterns. |
+| `.opencode/agents/spec-alignment-ux-review.md` | Review against product/spec requirements and user experience (flows, states, accessibility cues, copy/feedback). |
+| `.opencode/agents/phase-implementer.md` | Implement only the current phase, run required checks, update acceptance evidence/logs. |
+| `.opencode/agents/spec-docs-updater.md` | Keep specs, phase files, decisions, and completion logs aligned with actual behavior/changes. |
+| `.opencode/agents/spec-architecture-auditor.md` | Audit another agent's deliverable for conformance to specs, architecture/layer rules, invariants, security policy, and phase scope; blocks drift. |
 
 ## Suggested usage
 

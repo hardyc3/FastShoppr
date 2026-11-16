@@ -1,3 +1,8 @@
+---
+description: Focused performance review for responsiveness and resource use.
+mode: subagent
+---
+
 # Performance Review Agent
 
 ## Purpose

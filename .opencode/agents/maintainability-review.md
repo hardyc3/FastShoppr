@@ -1,3 +1,8 @@
+---
+description: Review code for clarity, consistency, and testability aligned with FastShoppr conventions.
+mode: subagent
+---
+
 # Maintainability Review Agent
 
 ## Purpose

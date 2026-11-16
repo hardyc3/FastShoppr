@@ -1,3 +1,8 @@
+---
+description: Review staged or proposed changes before commit for defects, invariant, security, and policy violations.
+mode: subagent
+---
+
 # Pre-Commit Review Agent
 
 ## Purpose

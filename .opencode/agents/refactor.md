@@ -1,3 +1,8 @@
+---
+description: Restructure and improve code while preserving behavior and FastShoppr invariants.
+mode: subagent
+---
+
 # Refactor Agent
 
 ## Purpose

@@ -1,3 +1,8 @@
+---
+description: Implement only the current active phase with verifiable, reviewable changes.
+mode: subagent
+---
+
 # Phase Implementer Agent
 
 ## Purpose

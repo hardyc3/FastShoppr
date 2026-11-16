@@ -1,3 +1,8 @@
+---
+description: Audit another agent's deliverable for conformance to specs, architecture, and phase scope.
+mode: subagent
+---
+
 # Spec & Architecture Auditor Agent
 
 ## Purpose

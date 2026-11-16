@@ -1,3 +1,8 @@
+---
+description: Review changes against FastShoppr product/spec requirements and UX quality.
+mode: subagent
+---
+
 # Spec Alignment & UX Review Agent
 
 ## Purpose

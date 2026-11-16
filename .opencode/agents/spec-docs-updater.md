@@ -1,3 +1,8 @@
+---
+description: Keep FastShoppr specs and project docs aligned with actual behavior.
+mode: subagent
+---
+
 # Spec/Docs Updater Agent
 
 ## Purpose

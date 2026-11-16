@@ -1,3 +1,8 @@
+---
+description: Focused security and privacy review of FastShoppr changes.
+mode: subagent
+---
+
 # Security Review Agent
 
 ## Purpose
