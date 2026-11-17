@@ -14,7 +14,8 @@ public final class CalendarDay {
   public final boolean isToday;
   public final ShoppingListSummary summary; // null if none
 
-  public CalendarDay(LocalDate date, boolean inMonth, boolean isToday, ShoppingListSummary summary) {
+  public CalendarDay(
+      LocalDate date, boolean inMonth, boolean isToday, ShoppingListSummary summary) {
     this.date = date;
     this.inMonth = inMonth;
     this.isToday = isToday;

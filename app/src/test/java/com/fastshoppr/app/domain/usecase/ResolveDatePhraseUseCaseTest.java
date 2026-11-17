@@ -28,15 +28,20 @@ public final class ResolveDatePhraseUseCaseTest {
     ScheduleRepository scheduleRepo = mock(ScheduleRepository.class);
     ShoppingListRepository listRepo = mock(ShoppingListRepository.class);
     when(listRepo.findNearestActiveOnOrAfter(LocalDate.of(2026, 11, 14))).thenReturn(null);
-    ShoppingSchedule schedule = new ShoppingSchedule(
-        "s1", 1, IntervalUnit.WEEKS, LocalDate.of(2026, 11, 7), true, true, null, 1, 1);
+    ShoppingSchedule schedule =
+        new ShoppingSchedule(
+            "s1", 1, IntervalUnit.WEEKS, LocalDate.of(2026, 11, 7), true, true, null, 1, 1);
     when(scheduleRepo.getActive()).thenReturn(schedule);
 
-    ResolveDatePhraseUseCase useCase = new ResolveDatePhraseUseCase(
-        scheduleRepo, new NearestListResolver(listRepo), new DirectExecutorService());
+    ResolveDatePhraseUseCase useCase =
+        new ResolveDatePhraseUseCase(
+            scheduleRepo, new NearestListResolver(listRepo), new DirectExecutorService());
 
     Optional<ResolveDatePhraseUseCase.Result> opt =
-        useCase.resolve("coffee next shopping day", LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 2)).get();
+        useCase
+            .resolve(
+                "coffee next shopping day", LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 2))
+            .get();
 
     assertTrue(opt.isPresent());
     assertEquals(LocalDate.of(2026, 11, 14), opt.get().resolvedDate().orElseThrow());
@@ -49,11 +54,15 @@ public final class ResolveDatePhraseUseCaseTest {
     ShoppingListRepository listRepo = mock(ShoppingListRepository.class);
     when(scheduleRepo.getActive()).thenReturn(null);
 
-    ResolveDatePhraseUseCase useCase = new ResolveDatePhraseUseCase(
-        scheduleRepo, new NearestListResolver(listRepo), new DirectExecutorService());
+    ResolveDatePhraseUseCase useCase =
+        new ResolveDatePhraseUseCase(
+            scheduleRepo, new NearestListResolver(listRepo), new DirectExecutorService());
 
     Optional<ResolveDatePhraseUseCase.Result> opt =
-        useCase.resolve("coffee next shopping day", LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 2)).get();
+        useCase
+            .resolve(
+                "coffee next shopping day", LocalDate.of(2026, 11, 7), LocalDate.of(2026, 11, 2))
+            .get();
 
     assertTrue(opt.isPresent());
     assertFalse(opt.get().resolvedDate().isPresent());

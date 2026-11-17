@@ -40,9 +40,7 @@ public final class ScheduleWorkerScheduler {
         new PeriodicWorkRequest.Builder(ScheduleCheckWorker.class, 1, TimeUnit.DAYS).build();
     WorkManager.getInstance(context)
         .enqueueUniquePeriodicWork(
-            ScheduleContracts.UNIQUE_WORK_SCHEDULE_CHECK,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request);
+            ScheduleContracts.UNIQUE_WORK_SCHEDULE_CHECK, ExistingPeriodicWorkPolicy.KEEP, request);
   }
 
   public void checkOnAppOpen() {
@@ -59,7 +57,6 @@ public final class ScheduleWorkerScheduler {
   public void enqueueImmediateCheck() {
     OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(ScheduleCheckWorker.class).build();
     WorkManager.getInstance(context)
-        .enqueueUniqueWork(
-            "schedule_check_once", ExistingWorkPolicy.REPLACE, request);
+        .enqueueUniqueWork("schedule_check_once", ExistingWorkPolicy.REPLACE, request);
   }
 }

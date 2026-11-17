@@ -25,17 +25,26 @@ public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAd
   private final Listener listener;
   private List<CalendarDay> days = new ArrayList<>();
 
-  public CalendarDayAdapter(Listener listener) { this.listener = listener; }
+  public CalendarDayAdapter(Listener listener) {
+    this.listener = listener;
+  }
 
   public void submit(List<CalendarDay> days) {
+    int previous = this.days.size();
     this.days = days == null ? new ArrayList<>() : days;
-    notifyDataSetChanged();
+    if (previous > 0) {
+      notifyItemRangeRemoved(0, previous);
+    }
+    if (!this.days.isEmpty()) {
+      notifyItemRangeInserted(0, this.days.size());
+    }
   }
 
   @NonNull
   @Override
   public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    View v = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_calendar_day, parent, false);
+    View v =
+        LayoutInflater.from(parent.getContext()).inflate(R.layout.item_calendar_day, parent, false);
     return new Holder(v);
   }
 
@@ -57,17 +66,23 @@ public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAd
     h.text.setTypeface(null, d.isToday ? Typeface.BOLD : Typeface.NORMAL);
     boolean hasList = d.summary != null;
     h.dot.setVisibility(hasList ? View.VISIBLE : View.GONE);
-    String desc = d.date.toString() + (d.isToday ? ", today" : "") + (hasList ? ", has shopping list" : ", no list");
+    String desc =
+        d.date.toString()
+            + (d.isToday ? ", today" : "")
+            + (hasList ? ", has shopping list" : ", no list");
     h.itemView.setContentDescription(desc);
     h.itemView.setOnClickListener(v -> listener.onDayClick(d));
   }
 
   @Override
-  public int getItemCount() { return days.size(); }
+  public int getItemCount() {
+    return days.size();
+  }
 
   static final class Holder extends RecyclerView.ViewHolder {
     final TextView text;
     final View dot;
+
     Holder(@NonNull View itemView) {
       super(itemView);
       text = itemView.findViewById(R.id.textDay);

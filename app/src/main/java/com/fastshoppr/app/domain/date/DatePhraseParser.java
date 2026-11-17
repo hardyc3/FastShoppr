@@ -49,13 +49,7 @@ public final class DatePhraseParser {
   private static final Pattern TRAILING_PUNCTUATION = Pattern.compile("[\\s.,!?;:]+$");
 
   private static final Rule TOMORROW =
-      rule(
-          "\\btomorrow\\b",
-          Anchor.TODAY,
-          false,
-          false,
-          "",
-          (m, today, list) -> today.plusDays(1));
+      rule("\\btomorrow\\b", Anchor.TODAY, false, false, "", (m, today, list) -> today.plusDays(1));
 
   private static final Rule TODAY =
       rule("\\btoday\\b", Anchor.TODAY, false, false, "", (m, today, list) -> today);

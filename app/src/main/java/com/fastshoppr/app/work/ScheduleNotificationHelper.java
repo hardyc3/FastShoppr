@@ -11,7 +11,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import com.fastshoppr.app.MainActivity;
@@ -28,9 +27,6 @@ public final class ScheduleNotificationHelper {
   public ScheduleNotificationHelper() {}
 
   public void ensureChannel(Context context) {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
-      return;
-    }
     NotificationChannel channel =
         new NotificationChannel(
             ScheduleContracts.CHANNEL_SCHEDULE,
@@ -52,18 +48,14 @@ public final class ScheduleNotificationHelper {
     Intent intent = new Intent(context, MainActivity.class);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
     intent.putExtra(OrganizingContracts.EXTRA_LIST_ID, list.getId());
-    int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-      flags |= PendingIntent.FLAG_IMMUTABLE;
-    }
+    int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
     PendingIntent pendingIntent =
         PendingIntent.getActivity(context, (list.getId().hashCode() ^ 0x51), intent, flags);
     Notification notification =
         new NotificationCompat.Builder(context, ScheduleContracts.CHANNEL_SCHEDULE)
             .setSmallIcon(R.drawable.ic_launcher)
             .setContentTitle(context.getString(R.string.notification_schedule_created_title))
-            .setContentText(
-                context.getString(R.string.notification_schedule_created_body, date))
+            .setContentText(context.getString(R.string.notification_schedule_created_body, date))
             .setAutoCancel(true)
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)

@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
+import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
@@ -19,9 +20,7 @@ import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import dagger.hilt.android.lifecycle.HiltViewModel;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
@@ -129,8 +128,7 @@ public final class ListsViewModel extends ViewModel {
       return;
     }
 
-    LocalDate today =
-        Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault()).toLocalDate();
+    LocalDate today = LocalDateTimes.today(clock);
     List<ShoppingListSummary> upcoming = new ArrayList<>();
     List<ShoppingListSummary> past = new ArrayList<>();
     for (ShoppingListSummary summary : active) {

@@ -153,7 +153,8 @@ public final class ListItemRepositoryImpl implements ListItemRepository {
   }
 
   @Override
-  public int moveUncheckedItemsToList(String sourceListId, String targetListId, LocalDate targetDate) {
+  public int moveUncheckedItemsToList(
+      String sourceListId, String targetListId, LocalDate targetDate) {
     return database.runInTransaction(
         () -> {
           List<ListItemEntity> unchecked = itemDao.getUncheckedByList(sourceListId);

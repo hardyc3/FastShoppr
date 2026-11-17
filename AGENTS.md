@@ -15,7 +15,7 @@ Store sections for Lowe's, Target, Smiths, and custom stores may exist in the UI
 
 ## Current phase
 
-**Phase 8 — Schedule & calendar** is `in-progress` (see `docs/specs/phases/phase-08-schedule-calendar.md`). Phase 6/6b/6c/7 are `done`. Do not start a later phase until the current phase is marked complete and reviewed.
+**Phase 8 — Schedule & calendar** is `done` (see `docs/specs/phases/phase-08-schedule-calendar.md`) and awaits review. Phase 9 is `not-started`. Do not start a later phase until the current phase is marked complete and reviewed.
 
 Do not start a later phase until the current phase is marked complete and reviewed.
 

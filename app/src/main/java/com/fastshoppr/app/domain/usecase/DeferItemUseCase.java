@@ -37,10 +37,7 @@ public final class DeferItemUseCase {
   }
 
   public CompletableFuture<ListItem> defer(
-      String itemId,
-      LocalDate targetDate,
-      String targetListName,
-      String confirmedRawTextOrNull) {
+      String itemId, LocalDate targetDate, String targetListName, String confirmedRawTextOrNull) {
     Objects.requireNonNull(targetDate, "targetDate");
     return CompletableFuture.supplyAsync(
         () -> {
@@ -51,7 +48,7 @@ public final class DeferItemUseCase {
             String newRaw = TextNormalizer.collapseWhitespace(confirmedRawTextOrNull);
             if (newRaw != null && !newRaw.isBlank()) {
               ListItem updated =
-                  ListItem.from(moved)
+                  ListItem.builderFrom(moved)
                       .rawText(newRaw)
                       .displayName(newRaw)
                       .normalizedText(TextNormalizer.normalizeForLookup(newRaw))

@@ -43,8 +43,6 @@
     <string name="lookup_title">Organize list</string>
 
     <string name="calendar_title">Calendar</string>
-    <string name="calendar_body">Shopping dates and recurring schedules will be implemented in Phase 8.</string>
-
     <string name="settings_title">Settings</string>
 
 
@@ -265,16 +263,12 @@
     <string name="schedule_interval_value_hint">Every</string>
     <string name="schedule_interval_days">Days</string>
     <string name="schedule_interval_weeks">Weeks</string>
-    <string name="schedule_next_date">Next shopping date</string>
+    <string name="schedule_next_date_value">Next shopping date: %1$s</string>
     <string name="schedule_pick_next_date">Pick next date</string>
     <string name="schedule_save">Save schedule</string>
     <string name="schedule_saved">Schedule saved.</string>
     <string name="schedule_save_failed">Could not save schedule.</string>
     <string name="schedule_disabled_message">Schedule disabled.</string>
-    <string name="schedule_summary_every_n_days">Every %1$d days · next %2$s</string>
-    <string name="schedule_summary_every_n_weeks">Every %1$d weeks · next %2$s</string>
-    <string name="schedule_none">No recurring schedule.</string>
-    <string name="schedule_preferred_time">Preferred shopping time</string>
     <string name="schedule_preferred_time_hint">e.g. 10:00 AM (optional)</string>
     <string name="schedule_preferred_time_pick">Pick preferred time</string>
     <string name="schedule_preferred_time_clear">Clear preferred time</string>
@@ -295,11 +289,17 @@
     <string name="calendar_create_list_prompt">Create list for %1$s?</string>
     <string name="calendar_upcoming_title">Upcoming shopping dates</string>
     <string name="calendar_no_upcoming">No upcoming shopping dates.</string>
-    <string name="calendar_badge_content_description">%1$d shopping lists</string>
+    <string name="calendar_upcoming_row_title">%1$s · %2$s</string>
+    <string name="calendar_weekday_sun">S</string>
+    <string name="calendar_weekday_mon">M</string>
+    <string name="calendar_weekday_tue">T</string>
+    <string name="calendar_weekday_wed">W</string>
+    <string name="calendar_weekday_thu">T</string>
+    <string name="calendar_weekday_fri">F</string>
+    <string name="calendar_weekday_sat">S</string>
 
     <!-- Deferral -->
     <string name="defer_title">Defer item</string>
-    <string name="defer_pick_date">Pick date</string>
     <string name="defer_parsed_message">Move to %1$s?</string>
     <string name="defer_remove_phrase">Remove date phrase from item name</string>
     <string name="defer_confirm">Move item</string>
@@ -312,21 +312,19 @@
 
     <!-- Overdue -->
     <string name="overdue_title">Past shopping list</string>
-    <string name="overdue_message">%1$d unchecked item(s) on %2$s. What would you like to do?</string>
+    <plurals name="overdue_message">
+        <item quantity="one">%1$d unchecked item on %2$s. What would you like to do?</item>
+        <item quantity="other">%1$d unchecked items on %2$s. What would you like to do?</item>
+    </plurals>
     <string name="overdue_target">Target list date: %1$s</string>
     <string name="overdue_move">Move unchecked to next list</string>
     <string name="overdue_keep">Keep on past list</string>
     <string name="overdue_missed">Mark as missed</string>
-    <string name="overdue_no_future_prompt">No future list found. Create one for the next date?</string>
     <string name="overdue_create_next">Create next list</string>
-    <string name="overdue_dismiss">Not now</string>
 
     <!-- Store hours / visit planning -->
     <string name="store_hours_title">Store hours &amp; visit</string>
     <string name="store_hours_unknown">Hours unknown for this store.</string>
-    <string name="store_hours_open_now">Open now · closes at %1$s</string>
-    <string name="store_hours_closed_now">Closed now · opens %1$s</string>
-    <string name="store_hours_closed_day">Closed on this day.</string>
     <string name="store_hours_for_date">Hours on %1$s: %2$s</string>
     <string name="store_hours_open_closed_unavailable">Open/closed: unavailable (hours not parseable). No busyness data used.</string>
     <string name="store_hours_open_closed_unknown">Open/closed: unknown (hours not provided).</string>

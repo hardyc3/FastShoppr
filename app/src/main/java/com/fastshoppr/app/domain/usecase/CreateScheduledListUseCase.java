@@ -7,9 +7,9 @@ package com.fastshoppr.app.domain.usecase;
 
 import android.content.Context;
 import androidx.core.app.NotificationManagerCompat;
+import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.ShoppingSchedule;
-import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
@@ -17,12 +17,8 @@ import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.work.ScheduleNotificationHelper;
 import dagger.hilt.android.qualifiers.ApplicationContext;
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
@@ -70,8 +66,7 @@ public final class CreateScheduledListUseCase {
           if (schedule == null || !schedule.isEnabled()) {
             return new Result(false, null, false);
           }
-          LocalDate today =
-              Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault()).toLocalDate();
+          LocalDate today = LocalDateTimes.today(clock);
           if (schedule.getNextShoppingDate().isAfter(today)) {
             return new Result(false, null, false);
           }
@@ -80,8 +75,7 @@ public final class CreateScheduledListUseCase {
           String name = "Shopping list " + dateLabel;
           ShoppingList existing = listRepository.findNearestActiveOnOrAfter(dueDate);
           boolean createdNew = existing == null || !existing.getShoppingDate().equals(dueDate);
-          ShoppingList list =
-              listRepository.getOrCreate(dueDate, name, schedule.getId(), true);
+          ShoppingList list = listRepository.getOrCreate(dueDate, name, schedule.getId(), true);
           if (createdNew) {
             seedDefaultStoreSections(list);
           }

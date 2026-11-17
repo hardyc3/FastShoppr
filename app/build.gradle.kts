@@ -129,6 +129,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.espresso.contrib)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestAnnotationProcessor(libs.hilt.compiler)
 }

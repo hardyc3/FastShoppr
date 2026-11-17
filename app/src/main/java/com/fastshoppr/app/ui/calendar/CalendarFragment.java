@@ -37,7 +37,9 @@ public final class CalendarFragment extends Fragment
 
   @Nullable
   @Override
-  public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+  public View onCreateView(
+      @NonNull LayoutInflater inflater,
+      @Nullable ViewGroup container,
       @Nullable Bundle savedInstanceState) {
     binding = FragmentCalendarBinding.inflate(inflater, container, false);
     return binding.getRoot();
@@ -47,7 +49,8 @@ public final class CalendarFragment extends Fragment
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
     viewModel = new ViewModelProvider(this).get(CalendarViewModel.class);
-    binding.toolbar.setNavigationOnClickListener(v -> Navigation.findNavController(v).popBackStack());
+    binding.toolbar.setNavigationOnClickListener(
+        v -> Navigation.findNavController(v).popBackStack());
     dayAdapter = new CalendarDayAdapter(this);
     upcomingAdapter = new CalendarUpcomingAdapter(this);
     binding.recyclerDays.setLayoutManager(new GridLayoutManager(requireContext(), 7));
@@ -62,8 +65,10 @@ public final class CalendarFragment extends Fragment
 
   private void render(CalendarUiState state) {
     if (binding == null || state == null) return;
-    String monthName = state.month.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault())
-        + " " + state.month.getYear();
+    String monthName =
+        state.month.getMonth().getDisplayName(TextStyle.FULL, Locale.getDefault())
+            + " "
+            + state.month.getYear();
     binding.textMonth.setText(monthName);
     dayAdapter.submit(state.days);
     upcomingAdapter.submit(state.upcoming);
@@ -78,11 +83,15 @@ public final class CalendarFragment extends Fragment
       openList(day.summary.getList().getId());
     } else {
       new MaterialAlertDialogBuilder(requireContext())
-          .setMessage(getString(R.string.calendar_create_list_prompt,
-              day.date.format(DateTimeFormatter.ISO_LOCAL_DATE)))
-          .setPositiveButton(R.string.create_list, (d, w) -> {
-            viewModel.createListFor(day.date, getString(R.string.list_name_default));
-          })
+          .setMessage(
+              getString(
+                  R.string.calendar_create_list_prompt,
+                  day.date.format(DateTimeFormatter.ISO_LOCAL_DATE)))
+          .setPositiveButton(
+              R.string.create_list,
+              (d, w) -> {
+                viewModel.createListFor(day.date, getString(R.string.list_name_default));
+              })
           .setNegativeButton(R.string.cancel, null)
           .show();
     }
@@ -99,5 +108,8 @@ public final class CalendarFragment extends Fragment
   }
 
   @Override
-  public void onDestroyView() { super.onDestroyView(); binding = null; }
+  public void onDestroyView() {
+    super.onDestroyView();
+    binding = null;
+  }
 }

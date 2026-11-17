@@ -7,9 +7,9 @@ package com.fastshoppr.app.ui.calendar;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MediatorLiveData;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
+import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
@@ -17,10 +17,8 @@ import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.CreateListUseCase;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.DayOfWeek;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -39,35 +37,56 @@ public final class CalendarViewModel extends ViewModel {
   private final MediatorLiveData<CalendarUiState> state = new MediatorLiveData<>();
   private LiveData<List<ShoppingListSummary>> monthSource;
   private LiveData<List<ShoppingListSummary>> upcomingSource;
-  private final Observer<List<ShoppingListSummary>> monthObserver = s -> { monthSummaries = s == null ? List.of() : s; rebuild(); };
-  private final Observer<List<ShoppingListSummary>> upcomingObserver = s -> { upcomingSummaries = s == null ? List.of() : s; rebuild(); };
+  private final Observer<List<ShoppingListSummary>> monthObserver =
+      s -> {
+        monthSummaries = s == null ? List.of() : s;
+        rebuild();
+      };
+  private final Observer<List<ShoppingListSummary>> upcomingObserver =
+      s -> {
+        upcomingSummaries = s == null ? List.of() : s;
+        rebuild();
+      };
 
   private YearMonth month;
   private List<ShoppingListSummary> monthSummaries = List.of();
   private List<ShoppingListSummary> upcomingSummaries = List.of();
 
   @Inject
-  public CalendarViewModel(ShoppingListRepository listRepository, SettingsRepository settingsRepository,
-      CreateListUseCase createListUseCase, Clock clock) {
+  public CalendarViewModel(
+      ShoppingListRepository listRepository,
+      SettingsRepository settingsRepository,
+      CreateListUseCase createListUseCase,
+      Clock clock) {
     this.listRepository = listRepository;
     this.settingsRepository = settingsRepository;
     this.createListUseCase = createListUseCase;
     this.clock = clock;
   }
 
-  public LiveData<CalendarUiState> getState() { return state; }
+  public LiveData<CalendarUiState> getState() {
+    return state;
+  }
 
   public void init() {
     if (month != null) return;
     YearMonth now = YearMonth.from(today());
     String saved = settingsRepository.getLastCalendarMonth();
-    try { if (saved != null) now = YearMonth.parse(saved); } catch (Exception ignored) {}
+    try {
+      if (saved != null) now = YearMonth.parse(saved);
+    } catch (Exception ignored) {
+    }
     setMonth(now);
     observeUpcoming();
   }
 
-  public void prevMonth() { setMonth(month.minusMonths(1)); }
-  public void nextMonth() { setMonth(month.plusMonths(1)); }
+  public void prevMonth() {
+    setMonth(month.minusMonths(1));
+  }
+
+  public void nextMonth() {
+    setMonth(month.plusMonths(1));
+  }
 
   private void setMonth(YearMonth ym) {
     this.month = ym;
@@ -101,7 +120,9 @@ public final class CalendarViewModel extends ViewModel {
     LocalDate today = today();
     for (LocalDate d = gridStart; !d.isAfter(gridEnd); d = d.plusDays(1)) {
       boolean inMonth = YearMonth.from(d).equals(month);
-      days.add(new CalendarDay(inMonth ? d : null, inMonth, d.equals(today), inMonth ? byDate.get(d) : null));
+      days.add(
+          new CalendarDay(
+              inMonth ? d : null, inMonth, d.equals(today), inMonth ? byDate.get(d) : null));
     }
     state.setValue(new CalendarUiState(month, days, upcomingSummaries));
   }
@@ -111,7 +132,7 @@ public final class CalendarViewModel extends ViewModel {
   }
 
   private LocalDate today() {
-    return Instant.ofEpochMilli(clock.nowMillis()).atZone(ZoneId.systemDefault()).toLocalDate();
+    return LocalDateTimes.today(clock);
   }
 
   @Override

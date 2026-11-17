@@ -70,4 +70,36 @@ public final class AdvanceScheduleUseCaseTest {
 
     assertEquals(LocalDate.of(2026, 2, 5), result.getNextShoppingDate());
   }
+
+  @Test
+  public void advancesAcrossSpringForwardWithoutShiftingDate() throws Exception {
+    ScheduleRepository repository = mock(ScheduleRepository.class);
+    ShoppingSchedule schedule =
+        new ShoppingSchedule(
+            "id", 1, IntervalUnit.WEEKS, LocalDate.of(2026, 3, 7), true, true, null, 1, 1);
+    when(repository.getById("id")).thenReturn(schedule);
+
+    ShoppingSchedule result =
+        new AdvanceScheduleUseCase(repository, new FixedClock(10), new DirectExecutorService())
+            .advance("id")
+            .get();
+
+    assertEquals(LocalDate.of(2026, 3, 14), result.getNextShoppingDate());
+  }
+
+  @Test
+  public void advancesAcrossFallBackWithoutShiftingDate() throws Exception {
+    ScheduleRepository repository = mock(ScheduleRepository.class);
+    ShoppingSchedule schedule =
+        new ShoppingSchedule(
+            "id", 1, IntervalUnit.WEEKS, LocalDate.of(2026, 10, 31), true, true, null, 1, 1);
+    when(repository.getById("id")).thenReturn(schedule);
+
+    ShoppingSchedule result =
+        new AdvanceScheduleUseCase(repository, new FixedClock(10), new DirectExecutorService())
+            .advance("id")
+            .get();
+
+    assertEquals(LocalDate.of(2026, 11, 7), result.getNextShoppingDate());
+  }
 }

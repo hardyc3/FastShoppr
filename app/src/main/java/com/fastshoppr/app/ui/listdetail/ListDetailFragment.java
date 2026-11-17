@@ -27,8 +27,6 @@ import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
-import java.util.concurrent.ExecutorService;
-import javax.inject.Inject;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
@@ -37,6 +35,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
+import java.util.concurrent.ExecutorService;
+import javax.inject.Inject;
 
 @AndroidEntryPoint
 public final class ListDetailFragment extends Fragment implements ListDetailAdapter.Listener {
@@ -106,6 +106,8 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
       binding.listDetailState.showLoading();
       return;
     }
+    binding.listDetailName.setText(state.getListName());
+    binding.listDetailDate.setText(formatDate(state.getShoppingDate()));
     if (state.getRows().isEmpty()) {
       binding.listDetailRecycler.setVisibility(View.GONE);
       binding.listDetailState.showMessage(getString(R.string.no_stores));
@@ -114,8 +116,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
     binding.listDetailState.showContent();
     binding.listDetailRecycler.setVisibility(View.VISIBLE);
-    binding.listDetailName.setText(state.getListName());
-    binding.listDetailDate.setText(formatDate(state.getShoppingDate()));
     binding.sortToggleButton.setContentDescription(
         state.getSortDirection() == SortDirection.ASC
             ? getString(R.string.sort_ascending)
@@ -148,10 +148,16 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showDeferralDialog(ListDetailUiEvent.RequestDeferral req) {
-    String targetText = req.targetListDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+    String targetText =
+        req.targetListDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
     String msg = getString(R.string.defer_parsed_message, targetText);
     if (!req.resolvedDate().equals(req.targetListDate())) {
-      msg = msg + "\n(" + getString(R.string.defer_nearest_list_note, req.resolvedDate().toString(), targetText) + ")";
+      msg =
+          msg
+              + "\n("
+              + getString(
+                  R.string.defer_nearest_list_note, req.resolvedDate().toString(), targetText)
+              + ")";
     }
     if (req.needsConfirmation()) {
       msg = msg + "\n\n" + getString(R.string.defer_confirm_date_warning);
@@ -160,12 +166,22 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     com.google.android.material.dialog.MaterialAlertDialogBuilder b =
         new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.defer_title)
-            .setMessage(msg + (req.note() == null || req.note().isBlank() ? "" : "\n\n" + req.note()))
-            .setMultiChoiceItems(new String[] {getString(R.string.defer_remove_phrase)}, new boolean[] {true},
+            .setMessage(
+                msg + (req.note() == null || req.note().isBlank() ? "" : "\n\n" + req.note()))
+            .setMultiChoiceItems(
+                new String[] {getString(R.string.defer_remove_phrase)},
+                new boolean[] {true},
                 (d, which, isChecked) -> remove[0] = isChecked)
-            .setPositiveButton(R.string.defer_confirm, (d, w) -> viewModel.confirmDeferredAdd(
-                req.storeId(), req.originalText(), req.itemTextWithoutPhrase(),
-                req.targetListDate(), req.existingTargetListId(), remove[0]))
+            .setPositiveButton(
+                R.string.defer_confirm,
+                (d, w) ->
+                    viewModel.confirmDeferredAdd(
+                        req.storeId(),
+                        req.originalText(),
+                        req.itemTextWithoutPhrase(),
+                        req.targetListDate(),
+                        req.existingTargetListId(),
+                        remove[0]))
             .setNegativeButton(R.string.cancel, null);
     b.show();
   }
@@ -174,12 +190,23 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.defer_needs_schedule_title)
         .setMessage(R.string.defer_needs_schedule)
-        .setPositiveButton(R.string.defer_choose_date, (d, w) ->
-            DatePickerUtil.showDatePicker(this,
-                java.time.LocalDate.now(),
-                date -> viewModel.confirmDeferredAdd(req.storeId(), req.originalText(), req.itemTextWithoutPhrase(), date, null, true)))
-        .setNeutralButton(R.string.defer_open_schedule, (d, w) ->
-            Navigation.findNavController(requireView()).navigate(R.id.schedule))
+        .setPositiveButton(
+            R.string.defer_choose_date,
+            (d, w) ->
+                DatePickerUtil.showDatePicker(
+                    this,
+                    java.time.LocalDate.now(),
+                    date ->
+                        viewModel.confirmDeferredAdd(
+                            req.storeId(),
+                            req.originalText(),
+                            req.itemTextWithoutPhrase(),
+                            date,
+                            null,
+                            true)))
+        .setNeutralButton(
+            R.string.defer_open_schedule,
+            (d, w) -> Navigation.findNavController(requireView()).navigate(R.id.schedule))
         .setNegativeButton(R.string.cancel, null)
         .show();
   }
@@ -195,10 +222,13 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
       return;
     }
     String[] names = new String[state.getStores().size()];
-    for (int i = 0; i < state.getStores().size(); i++) names[i] = state.getStores().get(i).getName();
+    for (int i = 0; i < state.getStores().size(); i++)
+      names[i] = state.getStores().get(i).getName();
     new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.store_hours_title)
-        .setItems(names, (d, which) -> showStoreHoursFor(state.getStores().get(which), state.getShoppingDate()))
+        .setItems(
+            names,
+            (d, which) -> showStoreHoursFor(state.getStores().get(which), state.getShoppingDate()))
         .setNegativeButton(R.string.cancel, null)
         .show();
   }
@@ -206,19 +236,25 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   private void showStoreHoursFor(Store store, java.time.LocalDate date) {
     String hours = store.getHoursJson();
     boolean hasHours = hours != null && !hours.isBlank();
-    String base = hasHours
-        ? getString(R.string.store_hours_for_date, date.toString(), hours.trim())
-        : getString(R.string.store_hours_unknown);
-    // Open/closed shown only when hours explicitly present and parseable; not parsed here -> unavailable.
-    String openClosed = hasHours
-        ? getString(R.string.store_hours_open_closed_unavailable)
-        : getString(R.string.store_hours_open_closed_unknown);
+    String base =
+        hasHours
+            ? getString(R.string.store_hours_for_date, date.toString(), hours.trim())
+            : getString(R.string.store_hours_unknown);
+    // Open/closed shown only when hours explicitly present and parseable; not parsed here ->
+    // unavailable.
+    String openClosed =
+        hasHours
+            ? getString(R.string.store_hours_open_closed_unavailable)
+            : getString(R.string.store_hours_open_closed_unknown);
     String pref = settingsRepository == null ? null : settingsRepository.getPreferredShoppingTime();
     String suggestion;
     if (!hasHours || pref == null || pref.isBlank()) {
       suggestion = getString(R.string.visit_suggestion_unknown);
     } else {
-      suggestion = getString(R.string.visit_suggestion, pref + " (" + getString(R.string.visit_suggestion_verify_hours) + ")");
+      suggestion =
+          getString(
+              R.string.visit_suggestion,
+              pref + " (" + getString(R.string.visit_suggestion_verify_hours) + ")");
     }
     String message = base + "\n" + openClosed + "\n\n" + suggestion;
     new MaterialAlertDialogBuilder(requireContext())
@@ -237,22 +273,45 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
         .setTitle(R.string.edit_store_hours)
         .setView(input)
         .setNegativeButton(R.string.cancel, null)
-        .setPositiveButton(R.string.save, (d, w) -> {
-          String text = input.getText() == null ? null : input.getText().toString().trim();
-          if (executor == null || storeRepository == null) return;
-          executor.execute(() -> {
-            try {
-              Store updated = new Store(store.getId(), store.getBrand(), store.getName(),
-                  store.getAddressLine(), store.getCity(), store.getState(), store.getPostalCode(),
-                  store.getLatitude(), store.getLongitude(), store.isCustom(), store.isDefault(),
-                  store.isArchived(), text == null || text.isEmpty() ? null : text,
-                  store.getCreatedAt(), clock.nowMillis());
-              storeRepository.save(updated);
-              if (isAdded()) requireActivity().runOnUiThread(() ->
-                  Snackbar.make(binding.getRoot(), R.string.store_hours_saved, Snackbar.LENGTH_SHORT).show());
-            } catch (Exception ignored) { }
-          });
-        })
+        .setPositiveButton(
+            R.string.save,
+            (d, w) -> {
+              String text = input.getText() == null ? null : input.getText().toString().trim();
+              if (executor == null || storeRepository == null) return;
+              executor.execute(
+                  () -> {
+                    try {
+                      Store updated =
+                          new Store(
+                              store.getId(),
+                              store.getBrand(),
+                              store.getName(),
+                              store.getAddressLine(),
+                              store.getCity(),
+                              store.getState(),
+                              store.getPostalCode(),
+                              store.getLatitude(),
+                              store.getLongitude(),
+                              store.isCustom(),
+                              store.isDefault(),
+                              store.isArchived(),
+                              text == null || text.isEmpty() ? null : text,
+                              store.getCreatedAt(),
+                              clock.nowMillis());
+                      storeRepository.save(updated);
+                      if (isAdded())
+                        requireActivity()
+                            .runOnUiThread(
+                                () ->
+                                    Snackbar.make(
+                                            binding.getRoot(),
+                                            R.string.store_hours_saved,
+                                            Snackbar.LENGTH_SHORT)
+                                        .show());
+                    } catch (Exception ignored) {
+                    }
+                  });
+            })
         .show();
   }
 

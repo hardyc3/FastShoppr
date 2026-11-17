@@ -51,13 +51,13 @@
         android:orientation="horizontal"
         android:paddingStart="@dimen/screen_padding"
         android:paddingEnd="@dimen/screen_padding">
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="S"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="M"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="W"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="T"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="F"/>
-        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="S"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_sun"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_mon"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_tue"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_wed"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_thu"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_fri"/>
+        <TextView style="@style/TextAppearance.Material3.LabelSmall" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:gravity="center" android:text="@string/calendar_weekday_sat"/>
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
