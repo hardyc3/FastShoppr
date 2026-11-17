@@ -19,11 +19,14 @@ import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.AddItemUseCase;
 import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
+import com.fastshoppr.app.domain.usecase.DeferItemUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
 import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
+import com.fastshoppr.app.domain.usecase.ResolveDatePhraseUseCase;
 import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
 import com.fastshoppr.app.domain.usecase.ToggleItemCheckedUseCase;
@@ -31,6 +34,7 @@ import com.fastshoppr.app.ui.listdetail.ListDetailRow;
 import com.fastshoppr.app.ui.listdetail.ListDetailUiState;
 import com.fastshoppr.app.ui.listdetail.ListDetailViewModel;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
 import java.time.LocalDate;
@@ -60,9 +64,13 @@ public final class ListDetailStateRestorationTest {
   @Inject ToggleItemCheckedUseCase toggleItemCheckedUseCase;
   @Inject DeleteItemUseCase deleteItemUseCase;
   @Inject MoveItemToDateUseCase moveItemToDateUseCase;
+  @Inject DeferItemUseCase deferItemUseCase;
+  @Inject ResolveDatePhraseUseCase resolveDatePhraseUseCase;
+  @Inject Clock clock;
   @Inject SetItemAisleUseCase setItemAisleUseCase;
   @Inject LookupItemUseCase lookupItemUseCase;
   @Inject ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
+  @Inject OrganizingScheduler organizingScheduler;
   @Inject SortItemsUseCase sortItemsUseCase;
 
   private String listId;
@@ -142,10 +150,13 @@ public final class ListDetailStateRestorationTest {
         toggleItemCheckedUseCase,
         deleteItemUseCase,
         moveItemToDateUseCase,
+        deferItemUseCase,
+        resolveDatePhraseUseCase,
+        clock,
         setItemAisleUseCase,
         lookupItemUseCase,
         applyLookupCandidateUseCase,
-        null,
+        organizingScheduler,
         sortItemsUseCase,
         handle);
   }

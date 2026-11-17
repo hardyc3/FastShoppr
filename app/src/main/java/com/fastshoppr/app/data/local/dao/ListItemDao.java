@@ -31,6 +31,11 @@ public interface ListItemDao {
           + "ORDER BY sortPosition ASC")
   List<ListItemEntity> getByList(String listId);
 
+  @Query(
+      "SELECT * FROM list_items WHERE listId = :listId AND deletedAt IS NULL "
+          + "AND isChecked = 0 ORDER BY sortPosition ASC")
+  List<ListItemEntity> getUncheckedByList(String listId);
+
   @Query("SELECT * FROM list_items WHERE listId = :listId")
   List<ListItemEntity> getByListIncludingDeleted(String listId);
 

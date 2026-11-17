@@ -12,6 +12,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
+import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.ShoppingList;
@@ -22,11 +23,14 @@ import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.AddItemUseCase;
 import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
+import com.fastshoppr.app.domain.usecase.DeferItemUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
 import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
+import com.fastshoppr.app.domain.usecase.ResolveDatePhraseUseCase;
 import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
 import com.fastshoppr.app.domain.usecase.ToggleItemCheckedUseCase;
@@ -57,6 +61,9 @@ public final class ListDetailViewModel extends ViewModel {
   private final ToggleItemCheckedUseCase toggleItemCheckedUseCase;
   private final DeleteItemUseCase deleteItemUseCase;
   private final MoveItemToDateUseCase moveItemToDateUseCase;
+  private final DeferItemUseCase deferItemUseCase;
+  private final ResolveDatePhraseUseCase resolveDatePhraseUseCase;
+  private final Clock clock;
   private final SetItemAisleUseCase setItemAisleUseCase;
   private final LookupItemUseCase lookupItemUseCase;
   private final ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
@@ -99,6 +106,9 @@ public final class ListDetailViewModel extends ViewModel {
       ToggleItemCheckedUseCase toggleItemCheckedUseCase,
       DeleteItemUseCase deleteItemUseCase,
       MoveItemToDateUseCase moveItemToDateUseCase,
+      DeferItemUseCase deferItemUseCase,
+      ResolveDatePhraseUseCase resolveDatePhraseUseCase,
+      Clock clock,
       SetItemAisleUseCase setItemAisleUseCase,
       LookupItemUseCase lookupItemUseCase,
       ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
@@ -113,6 +123,9 @@ public final class ListDetailViewModel extends ViewModel {
     this.toggleItemCheckedUseCase = toggleItemCheckedUseCase;
     this.deleteItemUseCase = deleteItemUseCase;
     this.moveItemToDateUseCase = moveItemToDateUseCase;
+    this.deferItemUseCase = deferItemUseCase;
+    this.resolveDatePhraseUseCase = resolveDatePhraseUseCase;
+    this.clock = clock;
     this.setItemAisleUseCase = setItemAisleUseCase;
     this.lookupItemUseCase = lookupItemUseCase;
     this.applyLookupCandidateUseCase = applyLookupCandidateUseCase;
@@ -162,6 +175,121 @@ public final class ListDetailViewModel extends ViewModel {
       postError(UiError.RAW_TEXT_TOO_LONG);
       return;
     }
+    java.time.LocalDate today = LocalDateTimes.today(clock);
+    java.time.LocalDate currentListDate = list != null ? list.getShoppingDate() : today;
+    resolveDatePhraseUseCase
+        .resolve(trimmed, currentListDate, today)
+        .whenComplete(
+            (opt, err) -> {
+              if (err == null && opt != null && opt.isPresent()) {
+                var r = opt.get();
+                if (r.resolvedDate().isPresent()) {
+                  var p = r.parsed();
+                  java.time.LocalDate targetListDate = r.resolvedDate().get();
+                  String existingTargetListId = null;
+                  if (r.nearestList().isPresent()
+                      && r.nearestList().get().existingList().isPresent()) {
+                    existingTargetListId = r.nearestList().get().existingList().get().getId();
+                    targetListDate = r.nearestList().get().existingList().get().getShoppingDate();
+                  } else if (r.nearestList().isPresent()) {
+                    targetListDate = r.nearestList().get().targetDate();
+                  }
+                  boolean needsConfirm =
+                      p.needsConfirmation()
+                          || (r.nearestList().isPresent()
+                              && r.nearestList().get().needsConfirmation());
+                  String note = p.note();
+                  if (r.nearestList().isPresent() && r.nearestList().get().needsConfirmation()) {
+                    note =
+                        (note == null || note.isBlank())
+                            ? "Resolved date is before today."
+                            : note + " Resolved date is before today.";
+                  }
+                  events.postValue(
+                      new SingleEvent<>(
+                          new ListDetailUiEvent.RequestDeferral(
+                              storeId,
+                              trimmed,
+                              p.itemText(),
+                              p.phrase(),
+                              r.resolvedDate().get(),
+                              targetListDate,
+                              existingTargetListId,
+                              needsConfirm,
+                              note)));
+                  return;
+                }
+                if (r.requiresSchedule() || (r.parsed() != null && r.parsed().requiresSchedule())) {
+                  var p = r.parsed();
+                  events.postValue(
+                      new SingleEvent<>(
+                          new ListDetailUiEvent.NeedsScheduleDate(
+                              storeId,
+                              trimmed,
+                              p == null ? trimmed : p.itemText(),
+                              p == null ? "" : p.phrase())));
+                  return;
+                }
+              }
+              addItemNow(storeId, trimmed);
+            });
+  }
+
+  public void confirmDeferredAdd(
+      String storeId,
+      String originalText,
+      String itemTextWithoutPhrase,
+      java.time.LocalDate targetListDate,
+      String existingTargetListId,
+      boolean removePhrase) {
+    String itemText = removePhrase ? itemTextWithoutPhrase : originalText;
+    String finalText = itemText == null ? originalText : itemText.trim();
+    if (finalText.isEmpty()) finalText = originalText;
+    String listName = (list != null && list.getName() != null) ? list.getName() : "Shopping list";
+    final java.time.LocalDate date = targetListDate;
+    final String existingId = existingTargetListId;
+    final String finalStoreId = storeId;
+    final String finalItemText = finalText;
+    new Thread(
+            () -> {
+              try {
+                com.fastshoppr.app.domain.model.ShoppingList targetList;
+                if (existingId != null && !existingId.isBlank()) {
+                  targetList = listRepository.getById(existingId);
+                } else {
+                  targetList = listRepository.getOrCreate(date, listName, null, false);
+                }
+                addItemUseCase
+                    .add(
+                        targetList.getId(),
+                        finalStoreId,
+                        finalItemText,
+                        null,
+                        null,
+                        ItemSource.TYPED)
+                    .whenComplete(
+                        (item, error) -> {
+                          if (error != null) {
+                            postError(UiError.DEFER_FAILED);
+                            return;
+                          }
+                          settingsRepository.setLastUsedStoreId(finalStoreId);
+                          mainHandler.post(
+                              () -> {
+                                savedStateHandle.remove(draftKey(finalStoreId));
+                                addGeneration++;
+                                rebuild();
+                              });
+                          postMessage(UiMessage.ITEM_DEFERRED);
+                        });
+              } catch (Exception e) {
+                postError(UiError.DEFER_FAILED);
+              }
+            })
+        .start();
+  }
+
+  private void addItemNow(String storeId, String trimmed) {
     addItemUseCase
         .add(listId, storeId, trimmed, null, null, ItemSource.TYPED)
         .whenComplete(
@@ -312,9 +440,9 @@ public final class ListDetailViewModel extends ViewModel {
     }
     List<Store> orderedStores = StoreOrdering.byBrandThenName(sourceStores);
 
-    // Only show stores that have items assigned to them.
-    // Also include a store that was just added (pendingStoreId) even if empty,
-    // so the user can add items to it right away.
+    // Show stores with items, plus pending/added store, plus default/last-used (up to 3) for
+    // auto-created/empty lists.
+    java.util.Set<String> included = new java.util.LinkedHashSet<>();
     List<Store> storesWithItems = new ArrayList<>();
     boolean pendingStillEmpty = false;
     for (Store store : orderedStores) {
@@ -328,9 +456,32 @@ public final class ListDetailViewModel extends ViewModel {
       boolean isPending = store.getId().equals(pendingStoreId);
       if (hasItems || isPending) {
         storesWithItems.add(store);
+        included.add(store.getId());
       }
-      if (isPending && !hasItems) {
-        pendingStillEmpty = true;
+      if (isPending && !hasItems) pendingStillEmpty = true;
+    }
+    if (items.isEmpty() && list != null && list.isAutoCreated()) {
+      String def = settingsRepository.getDefaultStoreId();
+      String last = settingsRepository.getLastUsedStoreId();
+      String[] pref = new String[] {def, last};
+      for (String id : pref) {
+        if (id == null || included.contains(id) || included.size() >= 3) continue;
+        for (Store s : orderedStores) {
+          if (id.equals(s.getId())) {
+            storesWithItems.add(s);
+            included.add(s.getId());
+            break;
+          }
+        }
+      }
+      if (storesWithItems.size() < 3) {
+        for (Store s : orderedStores) {
+          if (included.size() >= 3) break;
+          if (!included.contains(s.getId())) {
+            storesWithItems.add(s);
+            included.add(s.getId());
+          }
+        }
       }
     }
     if (!pendingStillEmpty) {

@@ -236,6 +236,32 @@ public final class RoomDataLayerTest {
     assertTrue(storeRepository.getById(walmart.getId()).isArchived());
   }
 
+  @Test
+  public void moveUncheckedItemsToListMovesOnlyUncheckedAndUpdatesTargetDate() {
+    ShoppingList past = listRepository.getOrCreate(DATE_ONE, "Past", null, false);
+    ShoppingList future = listRepository.getOrCreate(DATE_TWO, "Future", null, false);
+
+    ListItem unchecked = itemRepositoryItem(past.getId(), DATE_ONE, 0);
+    ListItem checked =
+        ListItem.builderFrom(itemRepositoryItem(past.getId(), DATE_ONE, 1))
+            .id(idGenerator.newId())
+            .isChecked(true)
+            .build();
+    itemRepository.insert(unchecked);
+    itemRepository.insert(checked);
+
+    int moved = itemRepository.moveUncheckedItemsToList(past.getId(), future.getId(), DATE_TWO);
+
+    assertEquals(1, moved);
+    assertEquals(1, itemRepository.getByList(past.getId()).size());
+    assertTrue(itemRepository.getByList(past.getId()).get(0).isChecked());
+    assertEquals(1, itemRepository.getByList(future.getId()).size());
+    ListItem movedItem = itemRepository.getByList(future.getId()).get(0);
+    assertEquals(unchecked.getId(), movedItem.getId());
+    assertEquals(DATE_TWO, movedItem.getTargetDate());
+    assertEquals(future.getId(), movedItem.getListId());
+  }
+
   private ListItem itemRepositoryItem(String listId, LocalDate targetDate, int sortPosition) {
     String storeId = storeRepository.findByBrand(StoreBrand.WALMART).getId();
     return ListItem.builder()

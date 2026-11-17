@@ -44,4 +44,8 @@ public interface SettingsRepository {
   boolean isWalmartStoreVerified();
 
   void setWalmartStoreVerified(boolean verified);
+
+  String getPreferredShoppingTime();
+
+  void setPreferredShoppingTime(String time);
 }

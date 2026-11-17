@@ -21,9 +21,18 @@ public interface ShoppingListRepository {
 
   LiveData<List<ShoppingListSummary>> observeArchivedSummaries();
 
+  LiveData<List<ShoppingListSummary>> observeActiveSummariesInRange(
+      LocalDate startInclusive, LocalDate endInclusive);
+
   LiveData<ShoppingList> observeById(String id);
 
   List<ShoppingList> getActive();
+
+  List<ShoppingListSummary> getActiveSummaries();
+
+  List<ShoppingList> getPastListsWithUncheckedItems(LocalDate today);
+
+  ShoppingList findNearestActiveOnOrAfter(LocalDate date);
 
   ShoppingList getById(String id);
 

@@ -153,6 +153,25 @@ public final class ListItemRepositoryImpl implements ListItemRepository {
   }
 
   @Override
+  public int moveUncheckedItemsToList(
+      String sourceListId, String targetListId, LocalDate targetDate) {
+    return database.runInTransaction(
+        () -> {
+          List<ListItemEntity> unchecked = itemDao.getUncheckedByList(sourceListId);
+          String date = targetDate.format(DATE_FORMAT);
+          int moved = 0;
+          long now = clock.nowMillis();
+          for (ListItemEntity item : unchecked) {
+            Integer max = itemDao.getMaxSortPosition(targetListId, item.storeId);
+            int sortPosition = max == null ? 0 : max + 1;
+            itemDao.moveToDate(item.id, targetListId, date, sortPosition, now);
+            moved++;
+          }
+          return moved;
+        });
+  }
+
+  @Override
   public int purgeDeletedBefore(long cutoffMillis) {
     return itemDao.purgeDeletedBefore(cutoffMillis);
   }

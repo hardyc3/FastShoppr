@@ -8,6 +8,7 @@ android {
     compileSdk = 36
     buildToolsVersion = "36.1.0"
 
+
     defaultConfig {
         applicationId = "com.fastshoppr.app"
         minSdk = 30
@@ -128,6 +129,7 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso.core)
     androidTestImplementation(libs.androidx.test.espresso.contrib)
     androidTestImplementation(libs.androidx.room.testing)
+    androidTestImplementation(libs.androidx.work.testing)
     androidTestImplementation(libs.hilt.android.testing)
     androidTestAnnotationProcessor(libs.hilt.compiler)
 }

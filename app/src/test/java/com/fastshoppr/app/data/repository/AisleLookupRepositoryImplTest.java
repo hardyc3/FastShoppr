@@ -477,6 +477,12 @@ public class AisleLookupRepositoryImplTest {
     }
 
     @Override
+    public int moveUncheckedItemsToList(
+        String sourceListId, String targetListId, LocalDate targetDate) {
+      return 0;
+    }
+
+    @Override
     public int purgeDeletedBefore(long cutoffMillis) {
       return 0;
     }
