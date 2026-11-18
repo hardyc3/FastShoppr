@@ -12,6 +12,8 @@ import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.concurrent.MainThreadExecutor;
 import com.fastshoppr.app.domain.model.AiAvailability;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
+import com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase;
+import com.fastshoppr.app.ui.common.SingleEvent;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import javax.inject.Inject;
 
@@ -54,8 +56,10 @@ public final class SettingsViewModel extends ViewModel {
 
   private final SettingsRepository settingsRepository;
   private final ItemNameCleanerCoordinator cleanerCoordinator;
+  private final DeleteAllDataUseCase deleteAllDataUseCase;
   private final MainThreadExecutor mainThread;
   private final MutableLiveData<SettingsUiState> state = new MutableLiveData<>();
+  private final MutableLiveData<SingleEvent<Boolean>> deleteEvent = new MutableLiveData<>();
 
   private boolean aiCleanupEnabled;
   private AiStatus aiStatus = AiStatus.CHECKING;
@@ -66,9 +70,11 @@ public final class SettingsViewModel extends ViewModel {
   public SettingsViewModel(
       SettingsRepository settingsRepository,
       ItemNameCleanerCoordinator cleanerCoordinator,
+      DeleteAllDataUseCase deleteAllDataUseCase,
       MainThreadExecutor mainThread) {
     this.settingsRepository = settingsRepository;
     this.cleanerCoordinator = cleanerCoordinator;
+    this.deleteAllDataUseCase = deleteAllDataUseCase;
     this.mainThread = mainThread;
     this.aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
     state.setValue(currentState());
@@ -76,6 +82,19 @@ public final class SettingsViewModel extends ViewModel {
 
   public LiveData<SettingsUiState> getState() {
     return state;
+  }
+
+  public LiveData<SingleEvent<Boolean>> getDeleteEvent() {
+    return deleteEvent;
+  }
+
+  /** Clears local data after the user confirms the destructive action. */
+  public void deleteAllData() {
+    deleteAllDataUseCase
+        .execute()
+        .whenComplete(
+            (ignored, error) ->
+                postToMain(() -> deleteEvent.postValue(new SingleEvent<>(error == null))));
   }
 
   public void load() {

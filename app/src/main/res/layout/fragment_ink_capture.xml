@@ -7,7 +7,9 @@
         android:id="@+id/inkCanvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/colorSurface" />
+        android:background="?attr/colorSurface"
+        android:contentDescription="@string/a11y_ink_canvas"
+        android:importantForAccessibility="yes" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"

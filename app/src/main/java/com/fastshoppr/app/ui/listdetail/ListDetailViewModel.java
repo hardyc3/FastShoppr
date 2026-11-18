@@ -566,5 +566,6 @@ public final class ListDetailViewModel extends ViewModel {
     listLiveData.removeObserver(listObserver);
     itemsLiveData.removeObserver(itemsObserver);
     storesLiveData.removeObserver(storesObserver);
+    mainHandler.removeCallbacksAndMessages(null);
   }
 }

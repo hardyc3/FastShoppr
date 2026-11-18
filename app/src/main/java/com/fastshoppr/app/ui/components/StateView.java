@@ -38,6 +38,7 @@ public final class StateView extends LinearLayout {
     binding.stateProgress.setVisibility(View.GONE);
     binding.stateMessage.setText(message);
     binding.stateMessage.setVisibility(View.VISIBLE);
+    binding.stateMessage.announceForAccessibility(message);
     binding.stateAction.setVisibility(View.GONE);
   }
 

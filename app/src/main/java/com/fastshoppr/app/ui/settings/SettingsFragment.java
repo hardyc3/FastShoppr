@@ -16,6 +16,8 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentSettingsBinding;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -49,9 +51,39 @@ public final class SettingsFragment extends Fragment {
     binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
     binding.btnOpenSchedule.setOnClickListener(
         v -> Navigation.findNavController(v).navigate(R.id.action_settings_to_schedule));
+    binding.btnDeleteAllData.setOnClickListener(v -> confirmDeleteAllData());
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
+    viewModel
+        .getDeleteEvent()
+        .observe(
+            getViewLifecycleOwner(),
+            event -> {
+              Boolean success = event.getContentIfNotHandled();
+              if (success == null || binding == null) {
+                return;
+              }
+              if (success) {
+                Navigation.findNavController(binding.getRoot()).popBackStack();
+              } else {
+                Snackbar.make(
+                        binding.getRoot(),
+                        R.string.settings_delete_all_failed,
+                        Snackbar.LENGTH_LONG)
+                    .show();
+              }
+            });
     viewModel.load();
+  }
+
+  private void confirmDeleteAllData() {
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.settings_delete_all_title)
+        .setMessage(R.string.settings_delete_all_message)
+        .setNegativeButton(R.string.cancel, null)
+        .setPositiveButton(
+            R.string.settings_delete_all_confirm, (dialog, which) -> viewModel.deleteAllData())
+        .show();
   }
 
   private void render(SettingsViewModel.SettingsUiState state) {

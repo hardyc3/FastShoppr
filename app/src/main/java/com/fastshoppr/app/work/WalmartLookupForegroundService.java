@@ -42,6 +42,14 @@ public class WalmartLookupForegroundService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
+    if (intent != null && OrganizingContracts.ACTION_CANCEL_ALL.equals(intent.getAction())) {
+      // Delete-all-data cancels every run and must not post a completion notification afterwards.
+      progressStore.setSuppressCompletion(true);
+      cancelled.set(true);
+      stopForeground(STOP_FOREGROUND_REMOVE);
+      stopSelf();
+      return START_NOT_STICKY;
+    }
     if (intent != null && OrganizingContracts.ACTION_CANCEL.equals(intent.getAction())) {
       String listId = intent.getStringExtra(OrganizingContracts.EXTRA_LIST_ID);
       if (listId != null && listId.equals(currentListId)) {
@@ -60,6 +68,7 @@ public class WalmartLookupForegroundService extends Service {
     }
     currentListId = listId;
     cancelled.set(false);
+    progressStore.setSuppressCompletion(false);
 
     Notification notification =
         notificationHelper.buildProgress(
@@ -164,6 +173,11 @@ public class WalmartLookupForegroundService extends Service {
   }
 
   private void handleCancelled(String listId) {
+    if (progressStore.shouldSuppressCompletion()) {
+      notificationHelper.cancel(listId);
+      progressStore.clear(listId);
+      return;
+    }
     try {
       long now = System.currentTimeMillis();
       List<ListItem> latest = itemRepository.getByList(listId);
@@ -216,6 +230,11 @@ public class WalmartLookupForegroundService extends Service {
   }
 
   private void finish(String listId) {
+    if (progressStore.shouldSuppressCompletion()) {
+      notificationHelper.cancel(listId);
+      progressStore.clear(listId);
+      return;
+    }
     try {
       List<ListItem> latest = itemRepository.getByList(listId);
       OrganizingCounts counts = OrganizingCounts.from(latest);

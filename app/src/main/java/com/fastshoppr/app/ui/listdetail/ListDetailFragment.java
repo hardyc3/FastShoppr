@@ -374,7 +374,9 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   @Override
-  public void onItemChecked(String itemId, boolean checked) {}
+  public void onItemChecked(String itemId, boolean checked) {
+    viewModel.setChecked(itemId, checked);
+  }
 
   @Override
   public void onItemEdit(ListItem item) {

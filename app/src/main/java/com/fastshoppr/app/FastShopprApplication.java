@@ -6,6 +6,8 @@
 package com.fastshoppr.app;
 
 import android.app.Application;
+import android.content.pm.ApplicationInfo;
+import android.os.StrictMode;
 import androidx.annotation.NonNull;
 import androidx.work.Configuration;
 import com.fastshoppr.app.work.ScheduleWorkerDeps;
@@ -17,6 +19,21 @@ public final class FastShopprApplication extends Application implements Configur
   @Override
   public void onCreate() {
     super.onCreate();
+    if (isDebuggable()) {
+      StrictMode.setThreadPolicy(
+          new StrictMode.ThreadPolicy.Builder()
+              .detectDiskReads()
+              .detectDiskWrites()
+              .detectNetwork()
+              .penaltyLog()
+              .build());
+      StrictMode.setVmPolicy(
+          new StrictMode.VmPolicy.Builder()
+              .detectLeakedClosableObjects()
+              .detectLeakedRegistrationObjects()
+              .penaltyLog()
+              .build());
+    }
     try {
       ScheduleWorkerDeps.get(this).scheduleWorkerScheduler().ensurePeriodicCheck();
     } catch (Exception ignored) {
@@ -27,6 +44,11 @@ public final class FastShopprApplication extends Application implements Configur
   @NonNull
   @Override
   public Configuration getWorkManagerConfiguration() {
-    return new Configuration.Builder().setMinimumLoggingLevel(android.util.Log.INFO).build();
+    int minimumLoggingLevel = isDebuggable() ? android.util.Log.INFO : android.util.Log.WARN;
+    return new Configuration.Builder().setMinimumLoggingLevel(minimumLoggingLevel).build();
+  }
+
+  private boolean isDebuggable() {
+    return (getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
   }
 }

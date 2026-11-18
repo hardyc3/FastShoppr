@@ -1,11 +1,11 @@
 # Phase 9 — MVP Release
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** Phase 8
 - **Owner:** unassigned
-- **Started:** —
+- **Started:** 2026-11-17
 - **Completed:** —
-- **Last updated:** 2026-11-13
+- **Last updated:** 2026-11-17
 
 ## Goal
 
@@ -95,8 +95,11 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 
 ## Data changes
 
-- Backup rules only.
-- No schema change unless a release blocker requires one; if so, add a migration and test.
+- Backup rules disable cloud backup and device transfer.
+- Room schema v3→v4 adds two composite indexes on `list_items` for the list-detail queries
+  (`listId`, `deletedAt`, `sortPosition`) and (`listId`, `deletedAt`, `storeId`, `sortPosition`).
+  This is the documented release-blocker exception for the 100-item performance criterion;
+  `MIGRATION_3_4`, exported schema `4.json`, and a migration test are included.
 
 ## UI changes
 
@@ -149,7 +152,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 5. Defer an item to next week and check the calendar.
 6. Enable TalkBack and complete a checkoff.
 7. Turn on airplane mode and confirm cached data works.
-8. Delete all data and confirm the app returns to onboarding/empty state.
+8. Delete all data and confirm the app returns to empty lists with built-in stores still available; no onboarding screen is shown.
 
 ## Risks
 
@@ -160,11 +163,18 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 ## Open questions
 
-- Should the release include a privacy policy URL or only in-app text?
+- Resolved: the release includes in-app privacy text in Settings plus a repo-root `PRIVACY.md`;
+  no hosted privacy policy URL is used for this MVP (D-038).
 - What is the target Play Store listing date?
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-17 | `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, `assembleRelease` | PASS | Full command set BUILD SUCCESSFUL; 198 unit tests, 0 failures/errors/skipped; lint 0 errors (20 pre-existing warnings). Both unsigned and env-signed release builds succeed with R8 + resource shrinking. |
+| 2026-11-17 | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 35 tests, 0 failures/errors/skipped with animation scales disabled. Includes delete-all, 120-item large-list, and 3→4 migration tests. |
+| 2026-11-17 | Signed release install/launch + core UI journey on clean emulator | PASS | Signed APK installed and launched with no R8 crashes; create list, add store/item, checkoff, sort, persistence across navigation, calendar, delete-all (empty lists, no onboarding), airplane-mode relaunch all exercised. Logcat showed no entered item/store text. |
+| 2026-11-17 | `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | 35 tests, 0 failures/errors/skipped. Device animation scales already 0.0. |
+| 2026-11-17 | Signed release install/launch + core UI journey on physical device | PASS | Release APK launched cleanly (0 fatal logcat lines, no R8 linkage errors). Create list, add store, add typed items, checkoff, sort toggle, persistence across navigation, Settings privacy text, delete-all (empty lists, built-in stores, no onboarding), calendar localized day description, airplane-mode relaunch all exercised. No entered item/store text in logcat. |
+| 2026-11-17 | TalkBack probe + Accessibility Scanner on physical device | PARTIAL | Samsung TalkBack temporarily enabled; app launched with 0 fatal lines and first-run tutorial dismissed, but scripted focus traversal did not expose usable app-focused nodes, so spoken-output remains a manual gate. Google Accessibility Scanner is not installed (only Samsung's scanner). Device accessibility settings restored to original values and TalkBack force-stopped. |
+| 2026-11-17 | TalkBack journey, Accessibility Scanner, full handwriting/photo/organize/AI demo | NOT RUN | Manual-only gates still require a device operator. Step-by-step instructions are in `docs/release/phase-09-manual-tests.md`. See `docs/release/phase-09-verification.md`. Phase remains `in-progress`. |

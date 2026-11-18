@@ -174,5 +174,18 @@ public final class Migrations {
         }
       };
 
+  public static final Migration MIGRATION_3_4 =
+      new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          database.execSQL(
+              "CREATE INDEX IF NOT EXISTS `index_list_items_list_deleted_sort` "
+                  + "ON `list_items` (`listId`, `deletedAt`, `sortPosition`)");
+          database.execSQL(
+              "CREATE INDEX IF NOT EXISTS `index_list_items_list_deleted_store_sort` "
+                  + "ON `list_items` (`listId`, `deletedAt`, `storeId`, `sortPosition`)");
+        }
+      };
+
   private Migrations() {}
 }

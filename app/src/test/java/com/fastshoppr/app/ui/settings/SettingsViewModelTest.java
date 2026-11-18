@@ -7,6 +7,7 @@ package com.fastshoppr.app.ui.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -18,6 +19,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.model.AiAvailability;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
+import com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.junit.Before;
@@ -32,19 +34,25 @@ public final class SettingsViewModelTest {
   private final SettingsRepository settingsRepository = mock(SettingsRepository.class);
   private final ItemNameCleanerCoordinator cleanerCoordinator =
       mock(ItemNameCleanerCoordinator.class);
+  private final DeleteAllDataUseCase deleteAllDataUseCase = mock(DeleteAllDataUseCase.class);
 
   private SettingsViewModel viewModel;
 
   @Before
   public void setUp() {
-    viewModel = new SettingsViewModel(settingsRepository, cleanerCoordinator, Runnable::run);
+    when(deleteAllDataUseCase.execute()).thenReturn(CompletableFuture.completedFuture(null));
+    viewModel =
+        new SettingsViewModel(
+            settingsRepository, cleanerCoordinator, deleteAllDataUseCase, Runnable::run);
   }
 
   @Test
   public void readsPersistedToggleState() {
     when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
 
-    viewModel = new SettingsViewModel(settingsRepository, cleanerCoordinator, Runnable::run);
+    viewModel =
+        new SettingsViewModel(
+            settingsRepository, cleanerCoordinator, deleteAllDataUseCase, Runnable::run);
     SettingsViewModel.SettingsUiState state = viewModel.getState().getValue();
 
     assertTrue(state.isAiCleanupEnabled());
@@ -118,6 +126,25 @@ public final class SettingsViewModelTest {
 
     assertEquals(
         SettingsViewModel.AiStatus.DOWNLOAD_FAILED, viewModel.getState().getValue().getAiStatus());
+  }
+
+  @Test
+  public void deleteAllDataPublishesOneSuccessEvent() {
+    viewModel.deleteAllData();
+
+    verify(deleteAllDataUseCase).execute();
+    assertTrue(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+    assertNull(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+  }
+
+  @Test
+  public void deleteAllDataPublishesFailureEvent() {
+    when(deleteAllDataUseCase.execute())
+        .thenReturn(failedFuture(new IllegalStateException("disk failure")));
+
+    viewModel.deleteAllData();
+
+    assertFalse(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
   }
 
   @Test

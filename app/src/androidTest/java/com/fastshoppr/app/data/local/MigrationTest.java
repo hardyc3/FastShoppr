@@ -80,6 +80,43 @@ public final class MigrationTest {
     versionThree.close();
   }
 
+  @Test
+  public void migratesVersionThreeToVersionFourWithListDetailIndexes() throws IOException {
+    SupportSQLiteDatabase versionThree = helper.createDatabase(TEST_DATABASE, 3);
+    versionThree.execSQL(
+        "INSERT INTO list_items (id, listId, storeId, rawText, displayName, normalizedText, "
+            + "targetDate, lookupStatus, source, isChecked, sortPosition, createdAt, updatedAt) "
+            + "VALUES ('item-1', 'list-1', 'store-1', 'milk', 'milk', 'milk', '2026-11-13', "
+            + "'PENDING', 'TYPED', 0, 0, 1, 1)");
+    versionThree.close();
+
+    SupportSQLiteDatabase versionFour =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            4,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4);
+
+    assertTrue(indexExists(versionFour, "index_list_items_list_deleted_sort"));
+    assertTrue(indexExists(versionFour, "index_list_items_list_deleted_store_sort"));
+    assertEquals(1, rowCount(versionFour, "list_items"));
+    versionFour.close();
+  }
+
+  private static boolean indexExists(SupportSQLiteDatabase database, String index) {
+    Cursor cursor =
+        database.query(
+            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+            new Object[] {index});
+    try {
+      return cursor.moveToFirst();
+    } finally {
+      cursor.close();
+    }
+  }
+
   private static boolean tableExists(SupportSQLiteDatabase database, String table) {
     Cursor cursor =
         database.query(

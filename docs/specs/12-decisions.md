@@ -303,3 +303,19 @@ Format:
 - Rationale: Reducing button taps makes the organize flow faster and less error-prone. Store verification is a one-time step (cookies persist), so most organize attempts proceed directly to lookup.
 - Consequences: `LookupFragment` no longer shows a store button; it either auto-starts or auto-navigates to verification. `WalmartStoreFragment` sets/clears the verified flag. `SettingsRepository` gains `isWalmartStoreVerified`/`setWalmartStoreVerified`. `03-store-integration.md` documents the auto-organize flow.
 
+## D-037 — Phase 9 list-detail indexes require Room schema v4
+
+- Date: 2026-11-17
+- Status: accepted
+- Decision: Phase 9 adds two composite indexes to `list_items`: (`listId`, `deletedAt`, `sortPosition`) and (`listId`, `deletedAt`, `storeId`, `sortPosition`). Room is bumped from schema v3 to v4 with `MIGRATION_3_4`, exported schema `4.json`, and a migration test. This is the release-blocker exception allowed by the Phase 9 data-changes section.
+- Rationale: the 100-item performance criterion reads and sorts items by both list and store on every render. Without these indexes the queries scan all rows for the list, which regresses large-list scroll and sort responsiveness.
+- Consequences: upgrades from v3 run the index-only migration; no data is rewritten. Future list-detail query shapes should reuse these indexes or require a new migration and decision entry.
+
+## D-038 — Privacy notice is in-app plus repo-root `PRIVACY.md`
+
+- Date: 2026-11-17
+- Status: accepted
+- Decision: the MVP privacy notice is delivered as Settings text plus a standalone `PRIVACY.md` in the repository root. No hosted privacy policy URL or account-specific privacy page is introduced in Phases 0–11.
+- Rationale: the app has no backend, account, analytics, or sharing, so a local, reviewable notice is sufficient for the MVP and keeps release documentation in source control.
+- Consequences: `README.md` links to `PRIVACY.md`; the Settings notice must stay consistent with it. A hosted URL, if ever required for a store listing, needs a new decision entry.
+

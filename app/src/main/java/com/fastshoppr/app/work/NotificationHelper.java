@@ -117,6 +117,10 @@ public final class NotificationHelper {
     NotificationManagerCompat.from(context).cancel(notificationId(listId));
   }
 
+  public void cancelAll() {
+    NotificationManagerCompat.from(context).cancelAll();
+  }
+
   private PendingIntent contentIntent(String listId) {
     Intent intent = new Intent(context, MainActivity.class);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

@@ -60,6 +60,24 @@
     <string name="settings_ai_download_action">Download model</string>
     <string name="settings_ai_privacy_note">AI cleanup runs only while the app is open. Nothing is sent to a cloud service, and prompts are never stored.</string>
 
+    <string name="settings_privacy_section">Privacy</string>
+    <string name="settings_privacy_body">Lists, items, handwriting, photos, aisle results, and settings stay on this device. FastShoppr has no account, backend, analytics, or cloud sync. Device backup and transfer are off. Uninstalling removes app data; nothing is restored.</string>
+    <string name="settings_delete_all_title">Delete all data?</string>
+    <string name="settings_delete_all_message">This removes every list, item, capture, cached aisle, setting, and queued task on this device. Built-in stores stay available. This cannot be undone.</string>
+    <string name="settings_delete_all_confirm">Delete everything</string>
+    <string name="settings_delete_all_failed">Could not delete all data. Try again.</string>
+
+    <string name="a11y_open_list_card">Shopping list %1$s, %2$s, %3$s. Double tap to open.</string>
+    <string name="a11y_not_right">Aisle for %1$s is not right. Choose another match or enter an aisle.</string>
+    <string name="a11y_cached_error">Cached result: %1$s</string>
+    <string name="a11y_review_select">Select %1$s for saving</string>
+    <string name="a11y_review_store">Store for %1$s: %2$s. Change store.</string>
+    <string name="a11y_review_date">Shopping date for %1$s: %2$s. Change date.</string>
+    <string name="a11y_ink_canvas">Handwriting area. Draw each shopping item on one line.</string>
+    <string name="calendar_day_today">, today</string>
+    <string name="calendar_day_has_list">, has shopping list</string>
+    <string name="calendar_day_no_list">, no list</string>
+
     <string name="ai_cleanup_action">Clean up names</string>
     <plurals name="ai_cleanup_action_count">
         <item quantity="one">Clean up names (%d)</item>

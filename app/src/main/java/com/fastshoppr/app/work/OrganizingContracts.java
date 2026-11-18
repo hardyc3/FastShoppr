@@ -12,6 +12,7 @@ public final class OrganizingContracts {
   public static final String KEY_FORCE_REFRESH = "force_refresh";
 
   public static final String ACTION_CANCEL = "com.fastshoppr.app.action.CANCEL_ORGANIZING";
+  public static final String ACTION_CANCEL_ALL = "com.fastshoppr.app.action.CANCEL_ALL_ORGANIZING";
   public static final String ACTION_WALMART_PROGRESS = "com.fastshoppr.app.action.WALMART_PROGRESS";
 
   public static final String EXTRA_LIST_ID = "extra_list_id";

@@ -5,7 +5,6 @@
  */
 package com.fastshoppr.app.data.remote.text;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import androidx.exifinterface.media.ExifInterface;
@@ -16,12 +15,12 @@ import com.google.mlkit.vision.text.Text;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import dagger.hilt.android.qualifiers.ApplicationContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
 /**
@@ -32,14 +31,16 @@ public final class MlKitImageTextRecognitionRepository implements ImageTextRecog
 
   private static final int MAX_IMAGE_DIMENSION = 2048;
 
-  private final Context appContext;
+  private final ExecutorService executor;
   private final Object lock = new Object();
 
   private TextRecognizer recognizer;
+  private int inFlight;
+  private boolean closing;
 
   @Inject
-  public MlKitImageTextRecognitionRepository(@ApplicationContext Context appContext) {
-    this.appContext = appContext;
+  public MlKitImageTextRecognitionRepository(ExecutorService executor) {
+    this.executor = executor;
   }
 
   @Override
@@ -49,34 +50,75 @@ public final class MlKitImageTextRecognitionRepository implements ImageTextRecog
       future.complete(List.of());
       return future;
     }
-    try {
-      InputImage image = loadDownscaled(new File(imagePath));
-      recognizer()
-          .process(image)
-          .addOnSuccessListener(text -> future.complete(toLines(text)))
-          .addOnFailureListener(future::completeExceptionally);
-    } catch (IOException | RuntimeException exception) {
-      future.completeExceptionally(exception);
-    }
+    // Decoding and EXIF reads are disk work and can take tens of milliseconds for camera photos.
+    executor.execute(
+        () -> {
+          try {
+            InputImage image = loadDownscaled(new File(imagePath));
+            startRecognition(image, future);
+          } catch (IOException | RuntimeException exception) {
+            future.completeExceptionally(exception);
+          }
+        });
     return future;
   }
 
   @Override
   public void close() {
     synchronized (lock) {
-      if (recognizer != null) {
-        recognizer.close();
-        recognizer = null;
+      closing = true;
+      if (inFlight == 0) {
+        closeRecognizerLocked();
+        closing = false;
       }
     }
   }
 
-  private TextRecognizer recognizer() {
+  private void startRecognition(InputImage image, CompletableFuture<List<RecognizedLine>> future) {
     synchronized (lock) {
+      if (closing) {
+        future.completeExceptionally(
+            new IllegalStateException("Text recognition is closing; retry the capture."));
+        return;
+      }
       if (recognizer == null) {
         recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
       }
-      return recognizer;
+      inFlight++;
+      try {
+        recognizer
+            .process(image)
+            .addOnSuccessListener(
+                text -> {
+                  future.complete(toLines(text));
+                  recognitionFinished();
+                })
+            .addOnFailureListener(
+                error -> {
+                  future.completeExceptionally(error);
+                  recognitionFinished();
+                });
+      } catch (RuntimeException error) {
+        inFlight--;
+        throw error;
+      }
+    }
+  }
+
+  private void recognitionFinished() {
+    synchronized (lock) {
+      inFlight--;
+      if (closing && inFlight == 0) {
+        closeRecognizerLocked();
+        closing = false;
+      }
+    }
+  }
+
+  private void closeRecognizerLocked() {
+    if (recognizer != null) {
+      recognizer.close();
+      recognizer = null;
     }
   }
 

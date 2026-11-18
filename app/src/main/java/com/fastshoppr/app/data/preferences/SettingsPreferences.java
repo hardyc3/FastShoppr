@@ -113,4 +113,11 @@ public final class SettingsPreferences {
   public void setPreferredShoppingTime(String time) {
     preferences.edit().putString(KEY_PREFERRED_SHOPPING_TIME, time).apply();
   }
+
+  /** Removes every stored setting, restoring all defaults. */
+  public void clearAll() {
+    if (!preferences.edit().clear().commit()) {
+      throw new IllegalStateException("Could not persist settings clear");
+    }
+  }
 }

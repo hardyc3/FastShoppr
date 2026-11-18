@@ -13,6 +13,7 @@ import com.fastshoppr.app.data.repository.ScheduleRepositoryImpl;
 import com.fastshoppr.app.data.repository.SettingsRepositoryImpl;
 import com.fastshoppr.app.data.repository.ShoppingListRepositoryImpl;
 import com.fastshoppr.app.data.repository.StoreRepositoryImpl;
+import com.fastshoppr.app.data.repository.UserDataRepositoryImpl;
 import com.fastshoppr.app.domain.repository.AisleCacheRepository;
 import com.fastshoppr.app.domain.repository.AisleLookupRepository;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
@@ -21,6 +22,7 @@ import com.fastshoppr.app.domain.repository.ScheduleRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.repository.UserDataRepository;
 import dagger.Binds;
 import dagger.Module;
 import dagger.hilt.InstallIn;
@@ -64,4 +66,8 @@ public abstract class RepositoryModule {
   @Binds
   @Singleton
   abstract SettingsRepository bindSettingsRepository(SettingsRepositoryImpl implementation);
+
+  @Binds
+  @Singleton
+  abstract UserDataRepository bindUserDataRepository(UserDataRepositoryImpl implementation);
 }
