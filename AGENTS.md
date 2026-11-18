@@ -41,6 +41,8 @@ The Gradle wrapper is committed. Run these commands from the repository root; us
 ./gradlew connectedDebugAndroidTest   # requires a running emulator/device
 ```
 
+Spotless preserves existing Java line endings; the repo has mixed CRLF/LF files.
+
 A phase is not complete unless the relevant commands pass.
 
 ## Technology baseline

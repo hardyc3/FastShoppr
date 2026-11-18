@@ -13,5 +13,6 @@ spotless {
         importOrder()
         trimTrailingWhitespace()
         endWithNewline()
+        lineEndings = com.diffplug.spotless.LineEnding.PRESERVE
     }
 }

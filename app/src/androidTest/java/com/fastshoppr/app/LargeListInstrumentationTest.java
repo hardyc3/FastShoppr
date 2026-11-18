@@ -5,9 +5,6 @@
  */
 package com.fastshoppr.app;
 
-import static androidx.test.espresso.Espresso.onView;
-import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -16,7 +13,6 @@ import android.os.SystemClock;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
@@ -31,6 +27,7 @@ import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Before;
@@ -110,16 +107,42 @@ public final class LargeListInstrumentationTest {
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(LIST_ID));
       waitForRows(scenario);
+      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+
+      AtomicReference<CharSequence> initialDescription = new AtomicReference<>();
+      scenario.onActivity(
+          activity ->
+              initialDescription.set(
+                  activity.findViewById(R.id.sort_toggle_button).getContentDescription()));
+      assertTrue("sort toggle must have a description", initialDescription.get() != null);
 
       long startedAt = SystemClock.elapsedRealtime();
-      onView(withId(R.id.sort_toggle_button)).perform(click());
-      InstrumentationRegistry.getInstrumentation().waitForIdleSync();
+      scenario.onActivity(
+          activity -> activity.findViewById(R.id.sort_toggle_button).performClick());
+      CharSequence updatedDescription = null;
+      while (SystemClock.elapsedRealtime() - startedAt < 2_000L) {
+        AtomicReference<CharSequence> currentDescription = new AtomicReference<>();
+        scenario.onActivity(
+            activity ->
+                currentDescription.set(
+                    activity.findViewById(R.id.sort_toggle_button).getContentDescription()));
+        if (currentDescription.get() != null
+            && !currentDescription.get().equals(initialDescription.get())) {
+          updatedDescription = currentDescription.get();
+          break;
+        }
+        SystemClock.sleep(10L);
+      }
       long elapsed = SystemClock.elapsedRealtime() - startedAt;
 
+      assertTrue("sort toggle did not change direction", updatedDescription != null);
       assertTrue("sort toggle took " + elapsed + " ms", elapsed < 1_000L);
       waitForRows(scenario);
-      onView(withId(R.id.list_detail_recycler))
-          .perform(RecyclerViewActions.scrollToPosition(ITEM_COUNT));
+      scenario.onActivity(
+          activity -> {
+            RecyclerView view = activity.findViewById(R.id.list_detail_recycler);
+            view.scrollToPosition(ITEM_COUNT);
+          });
     }
   }
 

@@ -503,7 +503,7 @@ public final class ListDetailViewModel extends ViewModel {
             null));
   }
 
-  /** Adds a new store (custom or supported brand) and shows it in the list. */
+  /** Creates a custom store and shows it in the list. */
   public void addStore(String name) {
     String trimmed = name == null ? "" : name.trim();
     if (trimmed.isEmpty()) {
@@ -542,6 +542,19 @@ public final class ListDetailViewModel extends ViewModel {
               }
             })
         .start();
+  }
+
+  /** Shows an existing store as a section on this list without creating a duplicate store. */
+  public void addStore(Store store) {
+    if (store == null) {
+      return;
+    }
+    mainHandler.post(
+        () -> {
+          pendingStoreId = store.getId();
+          pendingStore = store;
+          rebuild();
+        });
   }
 
   private String getDraft(String storeId) {

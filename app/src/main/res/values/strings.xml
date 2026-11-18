@@ -214,6 +214,8 @@
     <string name="add_store_hint">Store name</string>
     <string name="add_store_select">Select a store</string>
     <string name="add_store_custom">Or type a custom name</string>
+    <string name="add_store_required">Select a store or enter a custom name.</string>
+    <string name="add_store_load_failed">Could not load stores. Try again.</string>
     <string name="add_store_add">Add</string>
     <string name="camera_allow">Allow camera access</string>
     <string name="capture_retry">Retry</string>

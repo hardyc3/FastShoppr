@@ -5,19 +5,35 @@
     android:orientation="vertical"
     android:padding="16dp">
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/store_spinner"
+        android:text="@string/add_store_select"
+        android:textAppearance="?attr/textAppearanceSubtitle2" />
+
     <Spinner
         android:id="@+id/store_spinner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:layout_marginBottom="12dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:labelFor="@id/store_name_input"
+        android:text="@string/add_store_custom"
+        android:textAppearance="?attr/textAppearanceSubtitle2" />
 
     <android.widget.EditText
         android:id="@+id/store_name_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:hint="@string/add_store_hint"
         android:inputType="text"
         android:maxLines="1"
-        android:enabled="false" />
+        android:minHeight="48dp" />
 
 </LinearLayout>

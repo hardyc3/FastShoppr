@@ -33,8 +33,10 @@ checkoff persists.
 4. Swipe through the list detail screen: **Toggle aisle sort direction**,
    **+ Add store**, **Write by hand**, **Take photo or gallery**,
    **Organize list**, **Store hours & visit** must be announced.
-5. Add a store and one typed item using TalkBack (switch to text-input mode in
-   TalkBack if needed). Confirm the item text and its lookup status are spoken.
+5. Open **+ Add store**. Confirm the dialog exposes both the supported-store
+   spinner and the custom-name field. Add one supported store (for example
+   **Walmart**) and one custom store, then add a typed item to each. Confirm the
+   item text and its lookup status are spoken.
 6. Focus the item checkbox and confirm it announces **Mark milk as checked**
    (or the equivalent item name). Activate it and confirm it changes to
    **Mark milk as not checked**.

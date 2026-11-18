@@ -6,9 +6,14 @@
 package com.fastshoppr.app.ui.listdetail;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -28,6 +33,7 @@ import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
+import com.fastshoppr.app.ui.common.StoreOrdering;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
@@ -35,6 +41,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
@@ -316,15 +324,75 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showAddStoreDialog() {
+    executor.execute(
+        () -> {
+          List<Store> stores;
+          try {
+            stores = StoreOrdering.byBrandThenName(storeRepository.getActive());
+          } catch (Exception e) {
+            if (isAdded() && binding != null) {
+              requireActivity()
+                  .runOnUiThread(
+                      () -> {
+                        if (binding != null) {
+                          Snackbar.make(
+                                  binding.getRoot(),
+                                  R.string.add_store_load_failed,
+                                  Snackbar.LENGTH_SHORT)
+                              .show();
+                        }
+                      });
+            }
+            return;
+          }
+          if (isAdded()) {
+            requireActivity().runOnUiThread(() -> showAddStoreDialog(stores));
+          }
+        });
+  }
+
+  private void showAddStoreDialog(List<Store> stores) {
     View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_store, null);
-    android.widget.Spinner spinner = dialogView.findViewById(R.id.store_spinner);
+    Spinner spinner = dialogView.findViewById(R.id.store_spinner);
     android.widget.EditText nameInput = dialogView.findViewById(R.id.store_name_input);
-    if (nameInput != null) {
-      nameInput.setEnabled(true);
+
+    List<String> labels = new ArrayList<>();
+    labels.add(getString(R.string.add_store_select));
+    for (Store store : stores) {
+      labels.add(store.getName());
     }
-    if (spinner != null) {
-      spinner.setVisibility(View.GONE);
-    }
+    ArrayAdapter<String> spinnerAdapter =
+        new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, labels);
+    spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    spinner.setAdapter(spinnerAdapter);
+    spinner.setOnItemSelectedListener(
+        new AdapterView.OnItemSelectedListener() {
+          @Override
+          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            if (position > 0) {
+              nameInput.setText("");
+            }
+          }
+
+          @Override
+          public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    nameInput.addTextChangedListener(
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+          @Override
+          public void afterTextChanged(Editable s) {
+            if (s.length() > 0 && spinner.getSelectedItemPosition() != 0) {
+              spinner.setSelection(0, false);
+            }
+          }
+        });
+
     androidx.appcompat.app.AlertDialog dialog =
         new MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.add_store_title)
@@ -332,30 +400,33 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.add_store_add, null)
             .create();
+    Runnable addStore =
+        () -> {
+          String name = textOf(nameInput.getText()).trim();
+          if (!name.isEmpty()) {
+            viewModel.addStore(name);
+            dialog.dismiss();
+            return;
+          }
+          int position = spinner.getSelectedItemPosition();
+          if (position > 0 && position <= stores.size()) {
+            viewModel.addStore(stores.get(position - 1));
+            dialog.dismiss();
+            return;
+          }
+          nameInput.setError(getString(R.string.add_store_required));
+          nameInput.requestFocus();
+        };
     dialog.setOnShowListener(
         d ->
             dialog
                 .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
-                .setOnClickListener(
-                    v -> {
-                      String name = nameInput == null ? "" : textOf(nameInput.getText());
-                      if (!name.trim().isEmpty()) {
-                        viewModel.addStore(name.trim());
-                        dialog.dismiss();
-                      }
-                    }));
-    if (nameInput != null) {
-      nameInput.setOnEditorActionListener(
-          (v, actionId, event) -> {
-            String name = textOf(nameInput.getText());
-            if (!name.trim().isEmpty()) {
-              viewModel.addStore(name.trim());
-              dialog.dismiss();
-              return true;
-            }
-            return false;
-          });
-    }
+                .setOnClickListener(v -> addStore.run()));
+    nameInput.setOnEditorActionListener(
+        (v, actionId, event) -> {
+          addStore.run();
+          return true;
+        });
     dialog.show();
   }
 
