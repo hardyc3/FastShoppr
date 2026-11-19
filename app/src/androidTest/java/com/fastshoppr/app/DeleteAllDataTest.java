@@ -9,7 +9,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
@@ -18,7 +21,12 @@ import com.fastshoppr.app.data.local.dao.ShoppingListDao;
 import com.fastshoppr.app.data.local.dao.StoreDao;
 import com.fastshoppr.app.data.local.entity.ShoppingListEntity;
 import com.fastshoppr.app.data.preferences.SettingsPreferences;
+import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.NearbyStoreSource;
+import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.repository.SelectedStoreRepository;
 import com.fastshoppr.app.domain.repository.UserDataRepository;
+import dagger.hilt.android.qualifiers.ApplicationContext;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
 import java.io.File;
@@ -40,7 +48,9 @@ public final class DeleteAllDataTest {
   @Inject ShoppingListDao shoppingListDao;
   @Inject StoreDao storeDao;
   @Inject SettingsPreferences settingsPreferences;
+  @Inject SelectedStoreRepository selectedStoreRepository;
   @Inject CaptureImageStore captureImageStore;
+  @Inject @ApplicationContext Context appContext;
 
   @Before
   public void setUp() {
@@ -70,17 +80,37 @@ public final class DeleteAllDataTest {
             "list-to-delete", "Weekly", "2026-11-20", null, false, false, null, 1_000L, 1_000L));
     settingsPreferences.setAiCleanupEnabled(true);
     settingsPreferences.setLastCalendarMonth("2026-11");
+    selectedStoreRepository.setPostalCode("90210");
+    selectedStoreRepository.select(
+        new NearbyStore(
+            "123",
+            StoreBrand.WALMART,
+            "Walmart #123",
+            null,
+            null,
+            null,
+            "90210",
+            null,
+            null,
+            NearbyStoreSource.MANUAL));
     File image = captureImageStore.newImageFile();
+    SharedPreferences locatorCache =
+        appContext.getSharedPreferences("fastshoppr_store_locator_cache", Context.MODE_PRIVATE);
+    locatorCache.edit().putString("stale-entry", "cached").commit();
 
     assertEquals(1, shoppingListDao.getActive().size());
+    assertTrue(locatorCache.contains("stale-entry"));
     assertNotNull(settingsPreferences.getLastCalendarMonth());
+    assertNotNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
 
     userDataRepository.deleteAllData().get();
 
     assertEquals(0, shoppingListDao.getActive().size());
     assertNull(settingsPreferences.getLastCalendarMonth());
     assertFalse(settingsPreferences.isAiCleanupEnabled());
+    assertNull(selectedStoreRepository.getPostalCode());
+    assertNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
     assertFalse(image.exists());
-    assertEquals(5, storeDao.getActive().size());
+    assertEquals(6, storeDao.getActive().size());
   }
 }

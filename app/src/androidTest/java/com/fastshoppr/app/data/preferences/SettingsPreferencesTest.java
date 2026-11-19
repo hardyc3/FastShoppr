@@ -15,6 +15,7 @@ import android.content.SharedPreferences;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.domain.model.SortDirection;
+import com.fastshoppr.app.domain.model.StoreBrand;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -43,6 +44,8 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.ASC, settings.getSortDirection());
     assertNull(settings.getLastCalendarMonth());
     assertFalse(settings.isOnboardingCompleted());
+    assertNull(settings.getStoreLocatorPostalCode());
+    assertNull(settings.getSelectedStoreJson(StoreBrand.WALMART));
   }
 
   @Test
@@ -55,6 +58,8 @@ public final class SettingsPreferencesTest {
     settings.setSortDirection(SortDirection.DESC);
     settings.setLastCalendarMonth("2026-11");
     settings.setOnboardingCompleted(true);
+    settings.setStoreLocatorPostalCode("90210");
+    settings.setSelectedStoreJson(StoreBrand.WALMART, "{\"id\":\"123\"}");
 
     assertEquals("default-store", settings.getDefaultStoreId());
     assertEquals("last-store", settings.getLastUsedStoreId());
@@ -64,5 +69,7 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.DESC, settings.getSortDirection());
     assertEquals("2026-11", settings.getLastCalendarMonth());
     assertTrue(settings.isOnboardingCompleted());
+    assertEquals("90210", settings.getStoreLocatorPostalCode());
+    assertEquals("{\"id\":\"123\"}", settings.getSelectedStoreJson(StoreBrand.WALMART));
   }
 }

@@ -33,8 +33,9 @@ evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 | `POST_NOTIFICATIONS` | Yes | Scheduled list and organizing progress notifications. | No; when notification is first needed. |
 | `FOREGROUND_SERVICE` | Yes | User-started Walmart WebView lookup service. | Not a runtime permission. |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Yes | Foreground service type for the WebView lookup task. | Not a runtime permission. |
+| `ACCESS_COARSE_LOCATION` | Yes | Suggest nearby branches in Settings → Nearest store. | No; only when **Use my location** is tapped. |
 
-No location, contacts, storage, microphone, SMS, or phone permission is
+No fine location, contacts, storage, microphone, SMS, or phone permission is
 requested. `android.hardware.camera.any` is declared with
 `android:required="false"`, so devices without a camera can still install and
 use the rest of the app. Permission denial is handled without blocking manual
@@ -42,8 +43,9 @@ entry.
 
 ## Dependency audit
 
-Phase 9 adds no new dependencies. Android, Hilt, Room, WorkManager, OkHttp,
-Jsoup, Gson, CameraX, and ML Kit versions remain pinned in
+Phase 9 adds `com.google.android.gms:play-services-location:21.4.0` for a
+last-known coarse location fix used by Settings → Nearest store. Android, Hilt,
+Room, WorkManager, OkHttp, Jsoup, Gson, CameraX, and ML Kit versions remain pinned in
 `gradle/libs.versions.toml`. There is no analytics, advertising, crash-reporting,
 cloud-database, maps, or paid-LLM SDK in the app or test configurations.
 
@@ -81,6 +83,20 @@ so app-private data is not backed up or transferred. This matches
 - Retailer cookies/DOM storage are intentionally retained between lookups so a
   user-picked Walmart store survives (D-032). This exception is disclosed in
   `PRIVACY.md`; **Forget store** and **Delete all data** both clear it.
+
+## Store locator audit
+
+- Settings saves one ZIP and one branch per brand in SharedPreferences; the
+  selected branch is displayed on the Organize screen for brands on the list.
+- Public retailer locator pages are queried with a descriptive user agent, at
+  most one request per second per brand. HTTP 403/429, CAPTCHA, and bot-challenge
+  responses stop the search with a clear message and manual fallback.
+- JSON-LD/application-JSON place objects are parsed without retailer-specific
+  CSS selectors; unknown shapes produce no candidates and no guessed store.
+- Locator results are cached for 60 days in a dedicated SharedPreferences file.
+  **Delete all data** clears the ZIP, selected branches, and locator cache.
+- Coordinates are used only for the locator URL and are never persisted or
+  logged; no full request URL appears in production logs.
 
 ## Secrets and debug shortcuts audit
 
@@ -127,21 +143,27 @@ recorded in the verification table below.
 
 1. Install the release build on a clean device or emulator.
 2. Create a list, add typed and handwritten items, review, and save.
-3. Organize with Walmart and Home Depot. Accept or reject suggestions without
-   changing `rawText`.
-4. Confirm aisle grouping and use the sort-direction toggle.
-5. Defer an item to next week and confirm it appears on the correct list/date in
+3. In **Settings → Nearest store**, save a ZIP, find and save a nearby branch
+   for Walmart and one other brand, and verify the summary. Enter a manual store
+   for a third brand and confirm it appears too.
+4. Organize with Walmart and Home Depot. Accept or reject suggestions without
+   changing `rawText`, and confirm the saved branches appear on the Organize
+   screen for the brands on the list.
+5. Confirm aisle grouping and use the sort-direction toggle.
+6. Defer an item to next week and confirm it appears on the correct list/date in
    the calendar.
-6. Enable TalkBack and complete a checkoff; confirm the new checked state is
+7. Enable TalkBack and complete a checkoff; confirm the new checked state is
    persisted after leaving and reopening the list.
-7. Turn on airplane mode and confirm lists and cached aisles still work.
-8. Open **Settings → Privacy → Delete all data**, confirm, and verify the app
-   returns to empty lists with built-in stores still available.
+8. Turn on airplane mode and confirm lists and cached aisles still work.
+9. Open **Settings → Privacy → Delete all data**, confirm, and verify the app
+   returns to empty lists with built-in stores still available and the ZIP and
+   saved branches cleared.
 
 ## Verification results
 
-Recorded 2026-11-17 on branch `phase9`. A command that does not run or a test
-that fails, errors, or is skipped is not counted as a pass.
+Recorded 2026-11-17 and updated 2026-11-18 on branch `phase9`. A command that
+does not run or a test that fails, errors, or is skipped is not counted as a
+pass.
 
 | Check | Command / method | Result | Evidence / notes |
 |---|---|---|---|
@@ -149,6 +171,9 @@ that fails, errors, or is skipped is not counted as a pass.
 | Unit tests | `./gradlew testDebugUnitTest` | PASS | 198 tests, 0 failures/errors/skipped (43 XML reports). |
 | Lint | `./gradlew lintDebug` | PASS | BUILD SUCCESSFUL; 0 errors, 20 warnings (all pre-existing in untouched code; the `InkCanvasView` `performClick` warning raised earlier in this phase was resolved). ML Kit GenAI dependency metadata emits `e:` lines but does not fail the task. |
 | Formatting | `./gradlew spotlessCheck` | PASS | BUILD SUCCESSFUL after `spotlessApply`. |
+| Nearest-store code gates (2026-11-18) | `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings; instrumentation APK compiles. Instrumentation execution and live manual gates are still pending. |
+| Post-review code gates (2026-11-18) | `spotlessApply`, `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL; 229 unit tests across 50 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings. Added typed blocker/no-cache assertions, no-duplicate Organize context assertion, and corrected selected-store preference-key fake. |
+| Post-review instrumentation (2026-11-18) | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 37 tests, 0 failures/errors/skipped. Includes Settings nearest-store flow and delete-all assertion for ZIP, selected stores, settings, and locator cache. |
 | Release build with R8 | `./gradlew assembleRelease` | PASS | Both unsigned fallback and env-signed builds succeed with R8 + resource shrinking. Signed APK verified with `apksigner` (throwaway key generated outside the repo, never committed). |
 | Instrumentation suite | `./gradlew connectedDebugAndroidTest` | PASS | emulator-5554 (API 36), Android animation scales set to 0: 35 tests, 0 failures/errors/skipped. Also run on a connected physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36, Galaxy A53) with `ANDROID_SERIAL=R5CT7058L2A`: 35 tests, 0 failures/errors/skipped (`TEST-SM-A536U1 - 16-_app-.xml`, 54.667s). Includes `DeleteAllDataTest`, `LargeListInstrumentationTest` and the 3→4 `MigrationTest`. One earlier emulator run hit Espresso's "animations enabled" guard; disabled scales is the standard setup and the reruns passed. |
 | Accessibility scan | TalkBack + Accessibility Scanner | PARTIAL | Manual-only gate. Code-level checklist complete; UI hierarchy spot-checks on both emulator and physical device confirmed content descriptions, 48dp targets, headings and localized calendar descriptions (for example `Mark milk as not checked`, `Aisle: descending`, `2026-11-17, today, no list`). On the physical device Samsung TalkBack was temporarily enabled, the first-run tutorial was dismissed, and the app launched with 0 fatal log lines; however scripted TAB/swipe traversal did not yield usable app-focused nodes, so spoken-output traversal remains unverified. Google Accessibility Scanner is not installed (only Samsung `com.samsung.android.app.vex.scanner` is present), so no Scanner report was produced. Device accessibility settings were restored to their original values. Both spoken-output and Scanner report require a device operator. |
@@ -194,5 +219,8 @@ in `docs/release/phase-09-manual-tests.md`.
    delete confirmation, including a checkoff and verifying it persists after
    leaving and reopening the list.
 2. Accessibility Scanner report with no critical issues.
-3. Full demo steps 2–5 (handwriting/photo capture, organize and AI suggestions,
-   defer to next week) and step 7 cached-aisle behavior in airplane mode.
+3. Full demo steps 2–6 (handwriting/photo capture, nearest-store selection,
+   organize and AI suggestions, defer to next week) and step 8 cached-aisle
+   behavior in airplane mode.
+4. Gate 4 in `docs/release/phase-09-manual-tests.md` (live nearest-store
+   selection, permission flow, Organize context, and delete-all clearing).

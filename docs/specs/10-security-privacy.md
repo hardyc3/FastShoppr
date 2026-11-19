@@ -2,7 +2,7 @@
 
 ## Principles
 
-- Local-first: lists, images, aisle results, prices, and location stay on the device.
+- Local-first: lists, images, aisle results, prices, and saved store selections stay on the device; coordinates are not retained.
 - No backend, no analytics SDK, no cloud sync, and no account in the MVP.
 - Collect the minimum data needed for a feature.
 - Request permissions at the moment of use, not at launch.
@@ -18,14 +18,14 @@
 | Handwriting strokes | Memory/session only | No |
 | Aisle cache | Room | No |
 | Store selection | Room/SharedPreferences | No |
-| Location coordinates | Room/SharedPreferences | No |
+| Location coordinates | Not stored | Only in a public store-locator URL after an explicit "Use my location" tap |
 | Price quotes | Room | No |
 | Preferences | SharedPreferences | No |
 
 ## Threat model
 
 - A malicious or compromised retailer page could attempt to inject scripts or exfiltrate data through the WebView.
-- A lost device could expose local list and location data.
+- A lost device could expose local list data and saved store selections.
 - A parser or AI output could inject unexpected text into the UI.
 - A future sharing feature could introduce access-control and conflict risks.
 
@@ -75,6 +75,8 @@ Rules:
 - Set a descriptive user agent.
 - Do not proxy traffic through a third party.
 - Stop on block responses instead of trying to evade them.
+- A store-locator request may contain a user-entered ZIP or an approximate
+  coordinate in the URL; never log the full URL.
 
 ## WebView security
 

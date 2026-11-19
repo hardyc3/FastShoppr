@@ -7,6 +7,7 @@ package com.fastshoppr.app.data.preferences;
 
 import android.content.SharedPreferences;
 import com.fastshoppr.app.domain.model.SortDirection;
+import com.fastshoppr.app.domain.model.StoreBrand;
 
 public final class SettingsPreferences {
 
@@ -22,6 +23,8 @@ public final class SettingsPreferences {
   private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
   private static final String KEY_WALMART_STORE_VERIFIED = "walmart_store_verified";
   private static final String KEY_PREFERRED_SHOPPING_TIME = "preferred_shopping_time";
+  private static final String KEY_STORE_LOCATOR_POSTAL_CODE = "store_locator_postal_code";
+  private static final String KEY_SELECTED_STORE_PREFIX = "selected_store_";
 
   private final SharedPreferences preferences;
 
@@ -112,6 +115,22 @@ public final class SettingsPreferences {
 
   public void setPreferredShoppingTime(String time) {
     preferences.edit().putString(KEY_PREFERRED_SHOPPING_TIME, time).apply();
+  }
+
+  public String getStoreLocatorPostalCode() {
+    return preferences.getString(KEY_STORE_LOCATOR_POSTAL_CODE, null);
+  }
+
+  public void setStoreLocatorPostalCode(String postalCode) {
+    preferences.edit().putString(KEY_STORE_LOCATOR_POSTAL_CODE, postalCode).apply();
+  }
+
+  public String getSelectedStoreJson(StoreBrand brand) {
+    return preferences.getString(KEY_SELECTED_STORE_PREFIX + brand.name(), null);
+  }
+
+  public void setSelectedStoreJson(StoreBrand brand, String json) {
+    preferences.edit().putString(KEY_SELECTED_STORE_PREFIX + brand.name(), json).apply();
   }
 
   /** Removes every stored setting, restoring all defaults. */

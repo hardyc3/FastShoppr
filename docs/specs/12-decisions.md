@@ -319,3 +319,11 @@ Format:
 - Rationale: the app has no backend, account, analytics, or sharing, so a local, reviewable notice is sufficient for the MVP and keeps release documentation in source control.
 - Consequences: `README.md` links to `PRIVACY.md`; the Settings notice must stay consistent with it. A hosted URL, if ever required for a store listing, needs a new decision entry.
 
+## D-039 — Explicit nearest-store selection is display context in Phase 9
+
+- Date: 2026-11-18
+- Status: accepted (amends D-017 and the store-context section of `03-store-integration.md`)
+- Decision: Phase 9 adds a Settings flow that saves one ZIP code and one physical branch per brand (Walmart, Home Depot, Lowe's, Target, Smiths, Macy's). Candidates come from each retailer's public store-locator page using the saved ZIP or an approximate location fix; the user picks and saves a branch. The saved branch is shown on the Organize screen for brands present on the list. It is verification context only: it never rewrites `rawText`, replaces an aisle, or claims provenance for an automated lookup. Manual name/address entry is always available. Macy's may have a saved branch but has no automated aisle lookup.
+- Rationale: Unexpected aisles are hard to diagnose without knowing which physical store the user means. An explicit, user-controlled branch removes ambiguity while avoiding a silent change to lookup behavior during MVP release hardening. The existing Walmart WebView verification and Home Depot lookup context remain authoritative for automated results.
+- Consequences: Settings uses `ACCESS_COARSE_LOCATION` only when **Use my location** is tapped; denial, blocks, no results, and network failures fall back to ZIP or manual entry. Coordinates are never stored or logged, but the retailer receives the ZIP or coarse coordinate in the public locator URL. Locator responses are cached for 60 days in SharedPreferences, rate limited to one request per second per brand, and cleared by **Delete all data**. No Room migration is added.
+

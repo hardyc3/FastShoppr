@@ -11,5 +11,18 @@ public enum StoreBrand {
   LOWES,
   TARGET,
   SMITHS,
-  CUSTOM
+  MACYS,
+  CUSTOM;
+
+  public String getDisplayName() {
+    return switch (this) {
+      case WALMART -> "Walmart";
+      case HOME_DEPOT -> "Home Depot";
+      case LOWES -> "Lowe's";
+      case TARGET -> "Target";
+      case SMITHS -> "Smiths";
+      case MACYS -> "Macy's";
+      case CUSTOM -> "Custom";
+    };
+  }
 }

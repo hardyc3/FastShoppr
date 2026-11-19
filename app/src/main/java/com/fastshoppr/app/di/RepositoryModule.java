@@ -5,11 +5,14 @@
  */
 package com.fastshoppr.app.di;
 
+import com.fastshoppr.app.data.location.AndroidLocationSource;
+import com.fastshoppr.app.data.remote.storelocator.RetailerStoreLocator;
 import com.fastshoppr.app.data.repository.AisleCacheRepositoryImpl;
 import com.fastshoppr.app.data.repository.AisleLookupRepositoryImpl;
 import com.fastshoppr.app.data.repository.CaptureRepositoryImpl;
 import com.fastshoppr.app.data.repository.ListItemRepositoryImpl;
 import com.fastshoppr.app.data.repository.ScheduleRepositoryImpl;
+import com.fastshoppr.app.data.repository.SelectedStoreRepositoryImpl;
 import com.fastshoppr.app.data.repository.SettingsRepositoryImpl;
 import com.fastshoppr.app.data.repository.ShoppingListRepositoryImpl;
 import com.fastshoppr.app.data.repository.StoreRepositoryImpl;
@@ -18,9 +21,12 @@ import com.fastshoppr.app.domain.repository.AisleCacheRepository;
 import com.fastshoppr.app.domain.repository.AisleLookupRepository;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
+import com.fastshoppr.app.domain.repository.LocationSource;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
+import com.fastshoppr.app.domain.repository.SelectedStoreRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
+import com.fastshoppr.app.domain.repository.StoreDirectoryRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.repository.UserDataRepository;
 import dagger.Binds;
@@ -70,4 +76,18 @@ public abstract class RepositoryModule {
   @Binds
   @Singleton
   abstract UserDataRepository bindUserDataRepository(UserDataRepositoryImpl implementation);
+
+  @Binds
+  @Singleton
+  abstract StoreDirectoryRepository bindStoreDirectoryRepository(
+      RetailerStoreLocator implementation);
+
+  @Binds
+  @Singleton
+  abstract SelectedStoreRepository bindSelectedStoreRepository(
+      SelectedStoreRepositoryImpl implementation);
+
+  @Binds
+  @Singleton
+  abstract LocationSource bindLocationSource(AndroidLocationSource implementation);
 }

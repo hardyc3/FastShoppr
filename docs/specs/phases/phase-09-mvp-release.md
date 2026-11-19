@@ -27,6 +27,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Signing configuration via environment, not committed.
 - Dependency and permission audit.
 - README, privacy text, and demo script.
+- Nearest-store selection in Settings, with the saved branch shown on the Organize screen.
 - Final bug fixes.
 
 ## Out of scope
@@ -35,6 +36,10 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Sharing, sync, Google Sign-In.
 - Price comparison.
 - Automated lookup for Lowe's, Target, or Smiths.
+- Macy's automated aisle lookup (manual aisle entry remains available); its public
+  store locator may still be used to save a physical branch.
+- Automatic first-item store prompting; nearest-store selection is an explicit
+  action in Settings.
 - Major refactors unless required for a release blocker.
 
 ## Requirements
@@ -68,6 +73,21 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - WebView hardened per `10-security-privacy.md`.
 - "Delete all data" action present.
 
+### Nearest-store selection
+
+- Settings saves one ZIP code and one physical store per brand: Walmart, Home
+  Depot, Lowe's, Target, Smiths, and Macy's.
+- The user can find candidates from coarse device location or from the saved ZIP
+  using public retailer store-locator pages, then pick one to save.
+- A manual name/address entry is always available, including when location is
+  denied, no candidates are found, a locator is blocked, or the network fails.
+- The Organize screen shows the saved branch for brands present on the list so
+  the user can verify store context; it does not change `rawText` or aisles.
+- Coordinates are never stored or logged. Locator results are cached for 60 days,
+  requests are rate limited to one per second per brand, and HTTP 403/429 or a
+  bot challenge stops the search with a clear message.
+- "Delete all data" clears the ZIP, all selected stores, and the locator cache.
+
 ### Release build
 
 - R8 enabled with required keep rules.
@@ -100,6 +120,10 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
   (`listId`, `deletedAt`, `sortPosition`) and (`listId`, `deletedAt`, `storeId`, `sortPosition`).
   This is the documented release-blocker exception for the 100-item performance criterion;
   `MIGRATION_3_4`, exported schema `4.json`, and a migration test are included.
+- Nearest-store selection uses SharedPreferences only: `store_locator_postal_code`,
+  one `selected_store_<BRAND>` JSON value per brand, and a separate
+  `fastshoppr_store_locator_cache` preference file with a 60-day TTL. No Room
+  schema change is required, and device coordinates are not persisted.
 
 ## UI changes
 
@@ -108,6 +132,9 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Large-font layout fixes.
 - Dark theme fixes.
 - Privacy/settings text.
+- Settings "Nearest store" section: ZIP, brand picker, nearby search, location
+  button, store picker, manual entry, and saved-store summary.
+- Organize screen store-context lines for saved branches.
 
 ## Acceptance criteria
 
@@ -117,6 +144,10 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - [ ] Offline mode works for lists and cached aisles.
 - [ ] No personal data appears in logs.
 - [ ] Permissions audit is clean.
+- [ ] A ZIP and one physical store can be saved for each of the six supported brands; the summary persists across restarts.
+- [ ] Coarse-location and ZIP searches return a pickable branch list; denial, block, no results, and network failure each show a clear message and leave manual entry available.
+- [ ] Saved branches appear on the Organize screen only for brands present on the list, and never replace `rawText`.
+- [ ] "Delete all data" clears the ZIP, selected stores, and locator cache; coordinates are never stored or logged.
 - [ ] Backup rules exclude sensitive data as documented.
 - [ ] "Delete all data" works and is tested.
 - [ ] Release build succeeds with R8 and resource shrinking.
@@ -136,7 +167,11 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 | Offline journey | Manual | Airplane mode |
 | Release install | Manual | Clean device |
 | Log audit | Manual | No PII |
-| Delete all data | Espresso | Clears DB/cache/prefs |
+| Delete all data | Espresso | Clears DB/cache/prefs and nearest-store selections |
+| Store locator parser/ranking | Unit | JSON-LD/JSON fixtures, distance ordering, dedupe |
+| Selected-store persistence | Unit + Espresso | Per-brand save, clear, Settings summary |
+| Locator failure handling | Unit | Rate limit, cache TTL, 403/429/bot challenge, manual fallback |
+| Organize store context | Unit | Saved branches appended for brands on the list |
 | R8 keep rules | Release build | Launch and core flow |
 
 ## Completion gate
@@ -147,12 +182,16 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 1. Install the release build on a clean device.
 2. Create a list, add typed and handwritten items, review, and save.
-3. Organize with Walmart and Home Depot.
-4. Confirm aisle grouping and sort toggle.
-5. Defer an item to next week and check the calendar.
-6. Enable TalkBack and complete a checkoff.
-7. Turn on airplane mode and confirm cached data works.
-8. Delete all data and confirm the app returns to empty lists with built-in stores still available; no onboarding screen is shown.
+3. In Settings, save a ZIP, find and save a nearby store for Walmart and one
+   other brand, then verify both appear in the saved-store summary; also try
+   manual entry.
+4. Organize with Walmart and Home Depot and confirm the saved branches appear on
+   the Organize screen without changing item text.
+5. Confirm aisle grouping and sort toggle.
+6. Defer an item to next week and check the calendar.
+7. Enable TalkBack and complete a checkoff.
+8. Turn on airplane mode and confirm cached data works.
+9. Delete all data and confirm the app returns to empty lists with built-in stores still available, the ZIP/store selections are cleared, and no onboarding screen is shown.
 
 ## Risks
 
@@ -180,3 +219,8 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-17 | TalkBack journey, Accessibility Scanner, full handwriting/photo/organize/AI demo | NOT RUN | Manual-only gates still require a device operator. Step-by-step instructions are in `docs/release/phase-09-manual-tests.md`. See `docs/release/phase-09-verification.md`. Phase remains `in-progress`. |
 | 2026-11-18 | `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` after add-store dialog fix | PASS | 198 unit tests, 0 failures/errors/skipped; lint 0 errors (18 pre-existing warnings only); Spotless now preserves mixed CRLF/LF line endings. Dialog shows active stores plus custom-name entry. |
 | 2026-11-18 | `connectedDebugAndroidTest` on emulator-5554 (API 36) after add-store dialog fix | PASS | 36 tests, 0 failures/errors/skipped. Regression test asserts the dialog lists built-in stores, selecting one adds no new store, and custom-name entry adds exactly one. Large-list check now measures sort-toggle work without Espresso root/idle overhead; `< 1_000L` threshold unchanged. |
+| 2026-11-18 | `spotlessApply`, `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` after nearest-store selection | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors (20 pre-existing warnings); AndroidTest APK compiles. Added locator parsing/ranking/failure tests, selected-store persistence tests, Settings flow Espresso test, and Organize-context unit test. Instrumentation execution and live manual gates remain pending. |
+| 2026-11-18 | `spotlessApply`, `testDebugUnitTest` after review fixes | PASS | 229 unit tests across 50 reports, 0 failures/errors/skipped. Added typed blocker/no-cache assertions, a no-duplicate Organize context assertion, and corrected the selected-store preference-key fake. |
+| 2026-11-18 | `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` after review fixes | PASS | BUILD SUCCESSFUL; lint 0 errors (20 pre-existing warnings); AndroidTest APK compiles. |
+| 2026-11-18 | `connectedDebugAndroidTest` on emulator-5554 (API 36) after review fixes | PASS | 37 tests, 0 failures/errors/skipped. Includes the Settings nearest-store flow and delete-all assertion for ZIP, selected stores, settings, and locator cache. |
+| 2026-11-18 | Live manual gates | NOT RUN | TalkBack/spoken output, Accessibility Scanner, full demo steps (including live GPS/ZIP nearest-store selection), and cached-aisle airplane-mode behavior still require a device operator. Phase remains `in-progress`. |

@@ -11,19 +11,24 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingCounts;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
@@ -34,6 +39,7 @@ public final class LookupViewModel extends ViewModel {
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
+  private final GetSelectedStoresUseCase getSelectedStores;
   private final OrganizingScheduler scheduler;
   private final OrganizingProgressStore progressStore;
   private final ExecutorService executor;
@@ -51,6 +57,7 @@ public final class LookupViewModel extends ViewModel {
       ListItemRepository itemRepository,
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
+      GetSelectedStoresUseCase getSelectedStores,
       OrganizingScheduler scheduler,
       OrganizingProgressStore progressStore,
       ExecutorService executor,
@@ -58,6 +65,7 @@ public final class LookupViewModel extends ViewModel {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
+    this.getSelectedStores = getSelectedStores;
     this.scheduler = scheduler;
     this.progressStore = progressStore;
     this.executor = executor;
@@ -112,7 +120,9 @@ public final class LookupViewModel extends ViewModel {
             List<ListItem> items = itemRepository.getByList(listId);
             counts.postValue(OrganizingCounts.from(items));
             String context = "";
+            StoreBrand baseBrand = null;
             boolean walmartPresent = false;
+            Set<StoreBrand> presentBrands = new LinkedHashSet<>();
             StringBuilder details = new StringBuilder();
             java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
             java.util.Map<String, String> storeNames = new java.util.LinkedHashMap<>();
@@ -122,7 +132,9 @@ public final class LookupViewModel extends ViewModel {
                 if (store.getBrand() == StoreBrand.WALMART) {
                   walmartPresent = true;
                 }
+                presentBrands.add(store.getBrand());
                 if (context.isEmpty()) {
+                  baseBrand = store.getBrand();
                   String addr = store.getAddressLine();
                   context = store.getName() + (addr == null || addr.isBlank() ? "" : " — " + addr);
                 }
@@ -155,7 +167,7 @@ public final class LookupViewModel extends ViewModel {
             }
             perStoreDetails.postValue(details.toString());
             hasWalmart.postValue(walmartPresent);
-            storeContext.postValue(context);
+            storeContext.postValue(appendSelectedStores(context, baseBrand, presentBrands));
           } catch (Exception ignored) {
           }
         });
@@ -175,6 +187,27 @@ public final class LookupViewModel extends ViewModel {
 
   public boolean canPostNotifications() {
     return scheduler.canPostNotifications();
+  }
+
+  private String appendSelectedStores(
+      String base, StoreBrand baseBrand, Set<StoreBrand> presentBrands) {
+    Map<StoreBrand, NearbyStore> selected = getSelectedStores.execute();
+    List<String> lines = new ArrayList<>();
+    for (StoreBrand brand : presentBrands) {
+      NearbyStore store = selected.get(brand);
+      if (store != null) {
+        lines.add(brand.getDisplayName() + ": " + store.getLabel());
+      }
+    }
+    if (lines.isEmpty()) {
+      return base;
+    }
+    StringBuilder result = new StringBuilder();
+    if (!base.isEmpty() && (baseBrand == null || !selected.containsKey(baseBrand))) {
+      result.append(base).append('\n');
+    }
+    result.append("Saved branches:\n").append(String.join("\n", lines));
+    return result.toString();
   }
 
   private Store resolveStoreForItem(ListItem item) {

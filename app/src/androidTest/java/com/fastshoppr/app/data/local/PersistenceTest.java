@@ -102,7 +102,7 @@ public final class PersistenceTest {
             clock,
             idGenerator);
 
-    assertEquals(5, secondStoreRepository.getActive().size());
+    assertEquals(6, secondStoreRepository.getActive().size());
     ListItem loaded = secondItemRepository.getById(item.getId());
     assertNotNull(loaded);
     assertEquals("milk", loaded.getRawText());

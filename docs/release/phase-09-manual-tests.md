@@ -107,6 +107,32 @@ confirmation and never overwrite `rawText`; aisle grouping/sorting and the
 deferred item/calendar date are correct; cached aisles survive offline and a
 fresh offline lookup fails gracefully.
 
+## Gate 4 — Nearest-store selection
+
+**Goal:** save a physical branch for each brand and verify it appears only as
+store context on the Organize screen.
+
+1. Open **Settings → Nearest store**. Enter a ZIP and tap **Save ZIP**.
+2. Select **Walmart**, tap **Find nearby stores**, pick a branch from the list,
+   and confirm the summary shows it.
+3. Repeat with a second brand using **Use my location**. If the permission
+   dialog appears, confirm the rationale and allow approximate location. If it is
+   denied, confirm the message and that manual entry still works.
+4. Select a third brand and use **Enter store manually**; supply a name and
+   optional address and confirm it appears in the summary.
+5. Restart the app and confirm the ZIP and all three saved branches persist.
+6. Create a list containing items for two of those brands, open Organize, and
+   confirm both saved branches are shown as context lines. Confirm a third saved
+   brand with no items on the list is not shown.
+7. Confirm item text is unchanged and no aisle is invented from the saved branch.
+8. Open **Settings → Privacy → Delete all data** and confirm the ZIP, saved
+   branches, and locator cache are cleared.
+
+**Pass condition:** every supported brand can be saved by locator or manually;
+permission denial and manual fallback behave as documented; saved branches appear
+only for brands on the list and never alter item text or aisles; delete-all
+clears all of the new state.
+
 ---
 
 ## After running
