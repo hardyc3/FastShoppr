@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.when;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.model.AiAvailability;
+import com.fastshoppr.app.domain.model.GeoPoint;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.StoreBrand;
@@ -315,6 +317,56 @@ public final class SettingsViewModelTest {
     assertEquals(
         SettingsViewModel.StoreMessage.SEARCH_FAILED,
         viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+  }
+
+  @Test
+  public void locationSearchPublishesCandidatesWithSearchedBrand() {
+    GeoPoint origin = new GeoPoint(39.78, -89.64);
+    NearbyStore store = nearbyStore();
+    when(locationSource.lastKnownLocation()).thenReturn(CompletableFuture.completedFuture(origin));
+    when(findNearbyStores.execute(StoreBrand.TARGET, origin, null))
+        .thenReturn(CompletableFuture.completedFuture(List.of(store)));
+
+    viewModel.findNearbyUsingLocation(StoreBrand.TARGET);
+
+    SettingsViewModel.StoreSearchResults results =
+        viewModel.getNearbyStoresEvent().getValue().getContentIfNotHandled();
+    assertEquals(StoreBrand.TARGET, results.getBrand());
+    assertEquals(List.of(store), results.getStores());
+    assertFalse(viewModel.getState().getValue().isStoreSearching());
+  }
+
+  @Test
+  public void staleLocationResultDoesNotStartAnotherSearch() {
+    when(getSelectedStores.getPostalCode()).thenReturn("90210");
+    viewModel = newViewModel();
+    CompletableFuture<GeoPoint> pendingLocation = new CompletableFuture<>();
+    when(locationSource.lastKnownLocation()).thenReturn(pendingLocation);
+    when(findNearbyStores.execute(any(), any(), any()))
+        .thenReturn(CompletableFuture.completedFuture(List.of()));
+
+    viewModel.findNearbyUsingLocation(StoreBrand.HOME_DEPOT);
+    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
+    pendingLocation.complete(new GeoPoint(39.78, -89.64));
+
+    verify(findNearbyStores).execute(StoreBrand.WALMART, null, "90210");
+    verify(findNearbyStores, never()).execute(eq(StoreBrand.HOME_DEPOT), any(), any());
+  }
+
+  @Test
+  public void invalidSearchRequestReportsFailureWithoutCrashing() {
+    when(getSelectedStores.getPostalCode()).thenReturn("90210");
+    viewModel = newViewModel();
+    when(findNearbyStores.execute(StoreBrand.WALMART, null, "90210"))
+        .thenThrow(new IllegalArgumentException("unsupported brand"));
+
+    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
+
+    verify(findNearbyStores).execute(StoreBrand.WALMART, null, "90210");
+    assertEquals(
+        SettingsViewModel.StoreMessage.SEARCH_FAILED,
+        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+    assertFalse(viewModel.getState().getValue().isStoreSearching());
   }
 
   @Test

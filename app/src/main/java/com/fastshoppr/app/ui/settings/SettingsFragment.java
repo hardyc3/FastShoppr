@@ -64,13 +64,13 @@ public final class SettingsFragment extends Fragment {
             new ActivityResultContracts.RequestPermission(),
             granted -> {
               if (Boolean.TRUE.equals(granted)) {
-                if (pendingLocationBrand != null) {
+                if (viewModel != null && pendingLocationBrand != null) {
                   viewModel.findNearbyUsingLocation(pendingLocationBrand);
                 }
               } else if (!shouldShowRequestPermissionRationale(
                   Manifest.permission.ACCESS_COARSE_LOCATION)) {
                 showLocationSettingsMessage();
-              } else {
+              } else if (viewModel != null) {
                 viewModel.locationPermissionDenied();
               }
               pendingLocationBrand = null;

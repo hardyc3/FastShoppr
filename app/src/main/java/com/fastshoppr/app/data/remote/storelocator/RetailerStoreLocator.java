@@ -28,6 +28,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 /** Fetches public retailer store-locator pages and extracts branch candidates. */
 @Singleton
@@ -73,9 +76,6 @@ public final class RetailerStoreLocator implements StoreDirectoryRepository {
           }
           rateLimiter.acquire(brand);
           String html = fetch(urlFor(brand, origin, postalCode));
-          if (isBlocked(html)) {
-            throw new StoreLocatorBlockedException(BLOCK_MESSAGE);
-          }
           List<NearbyStore> stores = StoreLocatorParser.parse(html, brand);
           if (!stores.isEmpty()) {
             cache.put(cacheKey, stores);
@@ -100,22 +100,44 @@ public final class RetailerStoreLocator implements StoreDirectoryRepository {
       if (!response.isSuccessful()) {
         throw new IllegalStateException("Store locator returned HTTP " + response.code());
       }
+      String path = response.request().url().encodedPath().toLowerCase(Locale.US);
+      if (path.contains("/blocked")) {
+        throw new StoreLocatorBlockedException(BLOCK_MESSAGE);
+      }
       ResponseBody body = response.body();
-      return body == null ? "" : body.string();
+      String html = body == null ? "" : body.string();
+      if (isBlocked(html)) {
+        throw new StoreLocatorBlockedException(BLOCK_MESSAGE);
+      }
+      return html;
     } catch (IOException error) {
       throw new IllegalStateException("Could not reach the store locator. Try again later.", error);
     }
   }
 
+  /**
+   * Detects a challenge page without rejecting ordinary pages that merely mention CAPTCHA in their
+   * own bot-protection scripts. Only visible text and known challenge containers count.
+   */
   private static boolean isBlocked(String html) {
     if (html == null || html.isBlank()) {
       return false;
     }
+    Document document = Jsoup.parse(html);
+    Element body = document.body();
+    String visibleText = (body == null ? "" : body.text()).toLowerCase(Locale.US);
+    if (visibleText.contains("robot or human")
+        || visibleText.contains("pardon our interruption")
+        || visibleText.contains("access denied")
+        || visibleText.contains("bot challenge")
+        || visibleText.contains("verify you are human")
+        || visibleText.contains("unusual traffic")) {
+      return true;
+    }
     String lower = html.toLowerCase(Locale.US);
-    return lower.contains("robot or human")
-        || lower.contains("captcha")
-        || lower.contains("access denied")
-        || lower.contains("bot challenge");
+    return lower.contains("px-captcha")
+        || lower.contains("id=\"captcha\"")
+        || lower.contains("class=\"g-recaptcha");
   }
 
   private static String encode(String value) {

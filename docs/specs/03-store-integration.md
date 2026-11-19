@@ -48,15 +48,23 @@ Supported locator URL shapes (documented assumptions, not guaranteed APIs):
 | Smiths | `https://www.smithsfoodanddrug.com/stores?query=<query>` |
 | Macy's | `https://www.macys.com/stores?q=<query>` |
 
-The query is either the saved ZIP or an approximate latitude/longitude pair.
+The query is either the saved ZIP or an approximate latitude/longitude pair. On
+a location request the app asks for a fresh coarse fix and falls back to the last
+known fix if no fresh fix arrives; coordinates are used for ranking only.
 `RetailerStoreLocator` identifies FastShoppr in the user agent, waits at most one
 request per second per brand through the shared `RateLimiter`, and stops with a
-clear message plus manual fallback on HTTP 403/429, CAPTCHA, or a bot challenge.
+clear message plus manual fallback on HTTP 403/429 or a visible bot challenge.
+Challenge detection reads visible page text and known challenge containers;
+benign CAPTCHA feature flags in a page's own scripts do not block a valid result.
 `StoreLocatorParser` reads schema.org `LocalBusiness` JSON-LD and place-like
-`application/json` script payloads; it uses no retailer-specific CSS selectors.
+`application/json` script payloads; it uses no retailer-specific CSS selectors
+and ignores generic place objects with neither an address nor coordinates.
 Unknown page shapes yield no candidates and the user is asked to enter the store
 manually. Successful candidate lists are cached in a dedicated
-SharedPreferences file for 60 days; coordinates are never stored or logged.
+SharedPreferences file for 60 days; coordinates are never stored or logged, and
+cached lists keep their nearest-first order because they contain no coordinates.
+Some retailers block plain HTTP locator requests (notably Walmart and Home
+Depot); those brands surface the blocked message and rely on manual entry.
 
 ## Lookup contract
 

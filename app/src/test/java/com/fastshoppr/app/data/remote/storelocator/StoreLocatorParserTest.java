@@ -83,6 +83,20 @@ public final class StoreLocatorParserTest {
   }
 
   @Test
+  public void genericPlaceWithBlankAddressIsIgnored() {
+    String html =
+        """
+        <script type="application/ld+json">
+        {"@type":"store","name":"Macy's Department Store",
+         "address":{"@type":"PostalAddress","streetAddress":"","addressLocality":"",
+                    "addressRegion":"","postalCode":""}}
+        </script>
+        """;
+
+    assertTrue(StoreLocatorParser.parse(html, StoreBrand.MACYS).isEmpty());
+  }
+
+  @Test
   public void invalidCoordinatesDoNotCreateStore() {
     String html =
         """

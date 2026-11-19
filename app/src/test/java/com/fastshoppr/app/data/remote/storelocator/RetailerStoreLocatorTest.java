@@ -117,6 +117,50 @@ public final class RetailerStoreLocatorTest {
     verify(cache, never()).put(anyString(), anyList());
   }
 
+  @Test
+  public void blockedRedirectPathFailsWithBlockedException() {
+    StoreLocatorCache cache = mock(StoreLocatorCache.class);
+    Interceptor interceptor =
+        chain -> response(200, "<html><body>Hi</body></html>", "https://www.walmart.com/blocked");
+    OkHttpClient client = new OkHttpClient.Builder().addInterceptor(interceptor).build();
+    RetailerStoreLocator locator =
+        new RetailerStoreLocator(
+            client, new RateLimiter(() -> System.currentTimeMillis()), cache, DIRECT_EXECUTOR);
+
+    ExecutionException error =
+        assertThrows(
+            ExecutionException.class,
+            () -> locator.findNearby(StoreBrand.WALMART, null, "90210").get());
+
+    assertTrue(error.getCause() instanceof StoreLocatorBlockedException);
+    verify(cache, never()).put(anyString(), anyList());
+  }
+
+  @Test
+  public void benignCaptchaConfigDoesNotBlockStoreResults() throws Exception {
+    String html =
+        """
+        <html><head><script>
+        {"features":{"GLOBAL_CAPTCHA_ENABLED":true},"hooks":[{"event":"captcha"}]}
+        </script></head><body>
+        <script type="application/ld+json">
+        {"name":"Target #1814","identifier":"1814",
+         "address":{"streetAddress":"608 W Main St","addressLocality":"American Fork",
+                    "addressRegion":"UT","postalCode":"84003"}}
+        </script>
+        </body></html>
+        """;
+    StoreLocatorCache cache = mock(StoreLocatorCache.class);
+    RetailerStoreLocator locator =
+        locatorFor(html, 200, cache, new AtomicReference<>(), new AtomicReference<>());
+
+    List<NearbyStore> stores = locator.findNearby(StoreBrand.TARGET, null, "84003").get();
+
+    assertEquals(1, stores.size());
+    assertEquals("1814", stores.get(0).getId());
+    verify(cache).put(anyString(), anyList());
+  }
+
   private static RetailerStoreLocator locatorFor(
       String body,
       int statusCode,
@@ -166,8 +210,12 @@ public final class RetailerStoreLocatorTest {
       };
 
   private static Response response(int code, String body) {
+    return response(code, body, "https://example.com");
+  }
+
+  private static Response response(int code, String body, String url) {
     return new Response.Builder()
-        .request(new Request.Builder().url("https://example.com").build())
+        .request(new Request.Builder().url(url).build())
         .protocol(Protocol.HTTP_1_1)
         .code(code)
         .message(code == 200 ? "OK" : "Blocked")

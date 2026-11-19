@@ -20,7 +20,10 @@ public final class NearbyStoreRanking {
   public static List<NearbyStore> nearestFirst(
       List<NearbyStore> stores, GeoPoint origin, int limit) {
     List<NearbyStore> sorted = new ArrayList<>(stores);
-    if (origin != null) {
+    // Cached candidates deliberately omit coordinates, so keep their already-ranked order
+    // instead of replacing it with an alphabetical sort.
+    boolean anyLocated = sorted.stream().anyMatch(NearbyStore::hasCoordinates);
+    if (origin != null && anyLocated) {
       sorted.sort(
           Comparator.comparingDouble((NearbyStore store) -> distanceMiles(origin, store))
               .thenComparing(NearbyStore::getName, String.CASE_INSENSITIVE_ORDER));

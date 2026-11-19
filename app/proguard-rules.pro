@@ -17,6 +17,9 @@
 -keep class dagger.hilt.android.internal.managers.ViewComponentManager$FragmentContextWrapper { *; }
 
 # Gson payloads decoded from local JSON.
+-keep class com.fastshoppr.app.domain.model.NearbyStore { *; }
+-keep class com.fastshoppr.app.domain.model.StoreBrand { *; }
+-keep class com.fastshoppr.app.domain.model.NearbyStoreSource { *; }
 -keep class com.fastshoppr.app.domain.model.RecognizedLine { *; }
 -keep class com.fastshoppr.app.domain.lookup.LookupCandidatesCodec$Candidate { *; }
 -keep class com.fastshoppr.app.domain.ai.ItemNameOutputValidator$ModelResponse { *; }

@@ -41,6 +41,17 @@ public final class NearbyStoreRankingTest {
     assertEquals(List.of(first, second), ranked);
   }
 
+  @Test
+  public void cachedResultsKeepTheirNearestFirstOrder() {
+    GeoPoint origin = new GeoPoint(39.78, -89.64);
+    NearbyStore nearest = store("nearest", null, null);
+    NearbyStore second = store("second", null, null);
+
+    List<NearbyStore> ranked = NearbyStoreRanking.nearestFirst(List.of(nearest, second), origin, 8);
+
+    assertEquals(List.of(nearest, second), ranked);
+  }
+
   private static NearbyStore store(String name, Double latitude, Double longitude) {
     return new NearbyStore(
         name,

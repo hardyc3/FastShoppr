@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 @HiltViewModel
@@ -353,29 +354,36 @@ public final class SettingsViewModel extends ViewModel {
   private void search(StoreBrand brand, GeoPoint origin, String zip, int requestGeneration) {
     storeSearching = true;
     publish();
-    findNearbyStores
-        .execute(brand, origin, zip)
-        .whenComplete(
-            (stores, error) ->
-                postToMain(
-                    () -> {
-                      if (requestGeneration != storeSearchGeneration) {
-                        return;
-                      }
-                      storeSearching = false;
-                      if (error != null) {
-                        publish();
-                        postStoreMessage(mapLookupError(error));
-                        return;
-                      }
-                      publish();
-                      if (stores == null || stores.isEmpty()) {
-                        postStoreMessage(StoreMessage.NO_RESULTS);
-                      } else {
-                        nearbyStoresEvent.postValue(
-                            new SingleEvent<>(new StoreSearchResults(brand, stores)));
-                      }
-                    }));
+    final CompletableFuture<List<NearbyStore>> searchResult;
+    try {
+      searchResult = findNearbyStores.execute(brand, origin, zip);
+    } catch (IllegalArgumentException invalidRequest) {
+      storeSearching = false;
+      publish();
+      postStoreMessage(StoreMessage.SEARCH_FAILED);
+      return;
+    }
+    searchResult.whenComplete(
+        (stores, error) ->
+            postToMain(
+                () -> {
+                  if (requestGeneration != storeSearchGeneration) {
+                    return;
+                  }
+                  storeSearching = false;
+                  if (error != null) {
+                    publish();
+                    postStoreMessage(mapLookupError(error));
+                    return;
+                  }
+                  publish();
+                  if (stores == null || stores.isEmpty()) {
+                    postStoreMessage(StoreMessage.NO_RESULTS);
+                  } else {
+                    nearbyStoresEvent.postValue(
+                        new SingleEvent<>(new StoreSearchResults(brand, stores)));
+                  }
+                }));
   }
 
   private static StoreMessage mapLookupError(Throwable error) {

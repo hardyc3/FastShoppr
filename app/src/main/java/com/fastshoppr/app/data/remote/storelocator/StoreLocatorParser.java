@@ -98,7 +98,7 @@ public final class StoreLocatorParser {
             || hasText(object, "storeName")
             || hasText(object, "locationName");
     boolean hasAddress =
-        object.has("address")
+        hasNonBlankAddress(object.get("address"))
             || hasText(object, "addressLine1")
             || hasText(object, "address1")
             || hasText(object, "city")
@@ -187,9 +187,32 @@ public final class StoreLocatorParser {
         + store.getPostalCode();
   }
 
-  private static boolean hasText(JsonObject object, String key) {
-    String value = firstText(object, key);
-    return value != null && !value.isBlank();
+  private static boolean hasNonBlankAddress(JsonElement address) {
+    if (address == null || address.isJsonNull()) {
+      return false;
+    }
+    if (address.isJsonPrimitive()) {
+      String value = address.getAsString();
+      return value != null && !value.isBlank();
+    }
+    if (!address.isJsonObject()) {
+      return false;
+    }
+    JsonObject object = address.getAsJsonObject();
+    return hasText(object, "streetAddress", "addressLine1", "address1")
+        || hasText(object, "addressLocality", "city")
+        || hasText(object, "addressRegion", "state")
+        || hasText(object, "postalCode", "zipCode", "zip");
+  }
+
+  private static boolean hasText(JsonObject object, String... keys) {
+    for (String key : keys) {
+      String value = firstText(object, key);
+      if (value != null && !value.isBlank()) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static String firstText(JsonObject object, String... keys) {

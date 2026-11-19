@@ -12,6 +12,7 @@ import dagger.hilt.components.SingletonComponent;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Singleton;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 
 @Module
 @InstallIn(SingletonComponent.class)
@@ -29,16 +30,17 @@ public final class NetworkModule {
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .followRedirects(true)
-        .addInterceptor(
-            chain ->
-                chain.proceed(
-                    chain
-                        .request()
-                        .newBuilder()
-                        .header("User-Agent", USER_AGENT)
-                        .header("Accept-Language", "en-US,en;q=0.9")
-                        .build()))
+        .addInterceptor(chain -> chain.proceed(withDefaultHeaders(chain.request())))
         .build();
+  }
+
+  /** Adds shared headers without overwriting a caller-supplied user agent. */
+  static Request withDefaultHeaders(Request request) {
+    Request.Builder builder = request.newBuilder();
+    if (request.header("User-Agent") == null) {
+      builder.header("User-Agent", USER_AGENT);
+    }
+    return builder.header("Accept-Language", "en-US,en;q=0.9").build();
   }
 
   public static String userAgent() {
