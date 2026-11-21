@@ -16,6 +16,7 @@ import com.fastshoppr.app.data.local.dao.ListItemDao;
 import com.fastshoppr.app.data.local.dao.ShoppingListDao;
 import com.fastshoppr.app.data.local.dao.ShoppingScheduleDao;
 import com.fastshoppr.app.data.local.dao.StoreDao;
+import com.fastshoppr.app.data.local.dao.UserDataDao;
 import com.fastshoppr.app.domain.time.Clock;
 import dagger.Module;
 import dagger.Provides;
@@ -34,7 +35,11 @@ public final class DatabaseModule {
   @Singleton
   static FastShopprDatabase provideDatabase(@ApplicationContext Context context, Clock clock) {
     return Room.databaseBuilder(context, FastShopprDatabase.class, FastShopprDatabase.NAME)
-        .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3)
+        .addMigrations(
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5)
         .addCallback(new DatabaseSeedCallback(clock))
         .build();
   }
@@ -67,5 +72,10 @@ public final class DatabaseModule {
   @Provides
   static AisleCacheDao provideAisleCacheDao(FastShopprDatabase database) {
     return database.aisleCacheDao();
+  }
+
+  @Provides
+  static UserDataDao provideUserDataDao(FastShopprDatabase database) {
+    return database.userDataDao();
   }
 }

@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -44,12 +45,25 @@ public final class OrganizingProgressStore {
 
   private final MutableLiveData<Map<String, Progress>> live = new MutableLiveData<>(Map.of());
   private final Map<String, Progress> map = new LinkedHashMap<>();
+  private final AtomicBoolean suppressCompletion = new AtomicBoolean(false);
 
   @Inject
   public OrganizingProgressStore() {}
 
   public LiveData<Map<String, Progress>> observe() {
     return live;
+  }
+
+  /**
+   * Set while "Delete all data" tears down in-flight runs. The lookup service reads this before
+   * posting any completion notification so no stale organizing state appears after a reset.
+   */
+  public void setSuppressCompletion(boolean suppress) {
+    suppressCompletion.set(suppress);
+  }
+
+  public boolean shouldSuppressCompletion() {
+    return suppressCompletion.get();
   }
 
   @Nullable
@@ -70,6 +84,11 @@ public final class OrganizingProgressStore {
       return;
     }
     map.remove(listId);
+    live.postValue(Collections.unmodifiableMap(new LinkedHashMap<>(map)));
+  }
+
+  public synchronized void clearAll() {
+    map.clear();
     live.postValue(Collections.unmodifiableMap(new LinkedHashMap<>(map)));
   }
 }

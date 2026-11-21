@@ -126,8 +126,17 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
       bindConfidence(line);
       bindDisplayName(line);
 
-      storeButton.setText(listener.storeLabel(line.getStoreId()));
-      dateButton.setText(listener.dateLabel(line.getTargetDate()));
+      String storeLabel = listener.storeLabel(line.getStoreId());
+      String dateLabel = listener.dateLabel(line.getTargetDate());
+      storeButton.setText(storeLabel);
+      dateButton.setText(dateLabel);
+      Context context = binding.getRoot().getContext();
+      checkBox.setContentDescription(
+          context.getString(R.string.a11y_review_select, line.getText()));
+      storeButton.setContentDescription(
+          context.getString(R.string.a11y_review_store, line.getText(), storeLabel));
+      dateButton.setContentDescription(
+          context.getString(R.string.a11y_review_date, line.getText(), dateLabel));
     }
 
     private void bindText(ReviewViewModel.ReviewLine line) {

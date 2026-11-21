@@ -26,6 +26,7 @@ import java.net.URLEncoder;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -97,11 +98,22 @@ public class WalmartWebViewLookupService implements StoreLookupService {
     cookieManager.setAcceptThirdPartyCookies(webView, false);
 
     final AtomicBoolean tornDown = new AtomicBoolean(false);
+    final AtomicReference<String> lastFinishedUrl = new AtomicReference<>();
+    final AtomicReference<Runnable> pendingExtraction = new AtomicReference<>();
+    final AtomicReference<Runnable> pendingTimeout = new AtomicReference<>();
     Runnable cleanup =
         () -> {
           if (!tornDown.compareAndSet(false, true)) {
             // teardown is idempotent; only the first terminal path runs it
             return;
+          }
+          Runnable extraction = pendingExtraction.get();
+          if (extraction != null) {
+            mainHandler.removeCallbacks(extraction);
+          }
+          Runnable timeout = pendingTimeout.get();
+          if (timeout != null) {
+            mainHandler.removeCallbacks(timeout);
           }
           try {
             webView.stopLoading();
@@ -117,6 +129,8 @@ public class WalmartWebViewLookupService implements StoreLookupService {
             // best-effort teardown
           }
         };
+    // Any terminal path, including caller cancellation, must tear the WebView down.
+    future.whenComplete((result, error) -> mainHandler.post(cleanup));
 
     webView.setWebViewClient(
         new WebViewClient() {
@@ -142,9 +156,23 @@ public class WalmartWebViewLookupService implements StoreLookupService {
             if (future.isDone()) {
               return;
             }
-            // give dynamic content a moment, then extract
-            mainHandler.postDelayed(
-                () -> extract(view, request, future, cleanup), EXTRACT_DELAY_MS);
+            String previous = lastFinishedUrl.getAndSet(url);
+            if (url != null && url.equals(previous)) {
+              return;
+            }
+            // A redirect can finish more than one page. Re-arm extraction for each distinct final
+            // URL so the lookup always reads the DOM the user actually landed on.
+            Runnable pending = pendingExtraction.get();
+            if (pending != null) {
+              mainHandler.removeCallbacks(pending);
+            }
+            Runnable extraction =
+                () -> {
+                  pendingExtraction.set(null);
+                  extract(view, request, future, cleanup);
+                };
+            pendingExtraction.set(extraction);
+            mainHandler.postDelayed(extraction, EXTRACT_DELAY_MS);
           }
 
           @Override
@@ -197,8 +225,9 @@ public class WalmartWebViewLookupService implements StoreLookupService {
         "https://www.walmart.com/search?q=" + q + "&facet=fulfillment_method_in_store:In-store";
     webView.loadUrl(url);
 
-    mainHandler.postDelayed(
+    Runnable timeout =
         () -> {
+          pendingTimeout.set(null);
           if (!future.isDone()) {
             future.complete(
                 new StoreLookupResult.Error(
@@ -206,8 +235,9 @@ public class WalmartWebViewLookupService implements StoreLookupService {
                         "Walmart lookup timed out.")));
             cleanup.run();
           }
-        },
-        TIMEOUT_MS);
+        };
+    pendingTimeout.set(timeout);
+    mainHandler.postDelayed(timeout, TIMEOUT_MS);
   }
 
   /** Visible for tests and the store picker: only HTTPS Walmart navigation is allowed. */

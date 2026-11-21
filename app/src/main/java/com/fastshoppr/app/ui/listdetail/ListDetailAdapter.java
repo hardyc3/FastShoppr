@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.PopupMenu;
 import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -171,6 +172,7 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
               .getResources()
               .getQuantityString(
                   R.plurals.store_section_count, header.itemCount(), header.itemCount()));
+      ViewCompat.setAccessibilityHeading(binding.getRoot(), true);
     }
   }
 
@@ -220,6 +222,8 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
 
       binding.getRoot().setOnClickListener(v -> listener.onItemEdit(item));
       binding.itemOverflow.setOnClickListener(v -> showItemMenu(v, item));
+      binding.itemNotRight.setContentDescription(
+          binding.getRoot().getContext().getString(R.string.a11y_not_right, item.getRawText()));
       binding.itemNotRight.setOnClickListener(v -> listener.onItemNotRight(item));
     }
 
@@ -239,7 +243,8 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
               && error != null;
       // Show stale indicator subtly in status/error area; blocked/errors in error color.
       if (error != null && !error.trim().isEmpty()) {
-        binding.itemLookupError.setText(error);
+        binding.itemLookupError.setText(
+            stale ? context.getString(R.string.a11y_cached_error, error) : error);
         binding.itemLookupError.setVisibility(View.VISIBLE);
         binding.itemLookupError.setTextColor(
             stale
@@ -319,6 +324,7 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
 
     private AttentionHeaderViewHolder(ItemAttentionHeaderBinding binding) {
       super(binding.getRoot());
+      ViewCompat.setAccessibilityHeading(binding.getRoot(), true);
     }
   }
 

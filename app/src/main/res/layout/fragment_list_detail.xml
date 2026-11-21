@@ -34,7 +34,7 @@
             <ImageButton
                 android:id="@+id/sort_toggle_button"
                 android:layout_width="48dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:contentDescription="@string/sort_toggle_description"
                 android:src="@drawable/ic_sort" />
 
@@ -60,10 +60,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/capture_write_by_hand"
-                android:textSize="12sp" />
+                android:minHeight="48dp"
+                android:text="@string/capture_write_by_hand" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/capture_photo_button"
@@ -72,10 +70,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="@dimen/spacing_small"
                 android:layout_weight="1"
-                android:ellipsize="end"
-                android:maxLines="1"
-                android:text="@string/capture_take_photo"
-                android:textSize="12sp" />
+                android:minHeight="48dp"
+                android:text="@string/capture_take_photo" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

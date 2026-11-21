@@ -156,7 +156,6 @@ Rules:
 - Text scales with system font size.
 - Color contrast meets WCAG AA where practical.
 - The app supports dark theme.
-- TalkBack can traverse lists, store sections, and the calendar.
 - Error messages are announced and actionable.
 - Do not rely on color alone for status.
 

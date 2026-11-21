@@ -27,6 +27,42 @@ Manual aisle entry is always available and must never depend on a successful loo
 - Never crawl entire catalogs or run lookups for items the user did not enter.
 - Record assumptions in this spec and keep sanitized fixtures for tests.
 
+## Retailer store locator (Phase 9)
+
+Settings can save one ZIP code and one physical branch per brand. The branch is
+displayed on the Organize screen for brands present on the list so the user can
+verify that aisle results belong to the intended store. It is **display
+context only**: it never rewrites `rawText`, never replaces an aisle, and does not
+claim that an automated result was proven against that branch.
+
+Supported locator URL shapes (documented assumptions, not guaranteed APIs):
+
+| Brand | Public page |
+|---|---|
+| Walmart | `https://www.walmart.com/store/finder?location=<query>` |
+| Home Depot | `https://www.homedepot.com/l/store-locator?lat=<lat>&lng=<lng>` or `?zip=<zip>` |
+| Lowe's | `https://www.lowes.com/store?query=<query>` |
+| Target | `https://www.target.com/store-locator/find-stores?search=<query>` |
+| Smiths | `https://www.smithsfoodanddrug.com/stores?query=<query>` |
+
+The query is either the saved ZIP or an approximate latitude/longitude pair. On
+a location request the app asks for a fresh coarse fix and falls back to the last
+known fix if no fresh fix arrives; coordinates are used for ranking only.
+`RetailerStoreLocator` identifies FastShoppr in the user agent, waits at most one
+request per second per brand through the shared `RateLimiter`, and stops with a
+clear message plus manual fallback on HTTP 403/429 or a visible bot challenge.
+Challenge detection reads visible page text and known challenge containers;
+benign CAPTCHA feature flags in a page's own scripts do not block a valid result.
+`StoreLocatorParser` reads schema.org `LocalBusiness` JSON-LD and place-like
+`application/json` script payloads; it uses no retailer-specific CSS selectors
+and ignores generic place objects with neither an address nor coordinates.
+Unknown page shapes yield no candidates and the user is asked to enter the store
+manually. Successful candidate lists are cached in a dedicated
+SharedPreferences file for 60 days; coordinates are never stored or logged, and
+cached lists keep their nearest-first order because they contain no coordinates.
+Some retailers block plain HTTP locator requests (notably Walmart and Home
+Depot); those brands surface the blocked message and rely on manual entry.
+
 ## Lookup contract
 
 ```java
@@ -158,32 +194,39 @@ Home Depot product pages publicly show in-store availability such as `Aisle 52, 
 
 ## Store context
 
-The app must know which physical store's layout to query.
+The app must know which physical store's layout to query. Automated Walmart and
+Home Depot lookups keep the flows documented above: Walmart uses the assisted
+WebView store session (D-032), and Home Depot uses its selected store context.
+The Phase 9 per-branch setting is a separate, explicit way for the user to record
+a physical store and see it on the Organize screen for verification. It is not
+silently applied as a lookup result or treated as proof of an aisle.
 
-Priority order:
+Priority order for a user-visible store context:
 
-1. Store explicitly selected by the user for the item or list.
-2. **Last used store.**
-3. **Nearest store from a recent location fix (auto-selected on first item).**
-4. Manual ZIP/store selection prompt.
+1. Branch explicitly saved for the brand in **Settings → Nearest store**.
+2. Walmart WebView store selected during assisted verification.
+3. Last used store.
+4. Manual entry.
 
-**Auto-selection flow:**
+**Explicit selection flow:**
 
-- On first item addition, request `ACCESS_COARSE_LOCATION` if not previously granted.
-- If granted, use last known location to determine nearest store.
-- Display selected store name and address in list UI with "edited" indicator.
-- User can override store selection via the store picker at any time.
-- Store choice is remembered for the current shopping list session.
-- If location permission is denied, fall back to last used store or ask for ZIP.
+- Save a ZIP in Settings, or tap **Use my location** for the selected brand.
+- Request `ACCESS_COARSE_LOCATION` only on that tap, after showing the rationale.
+- Pass the saved ZIP or approximate location to the public retailer locator,
+  rank candidates nearest first, and let the user pick one.
+- Save one branch per brand; show it in Settings and on the Organize screen when
+  that brand is present on the list.
 
 Rules:
 
-- Do not request location at app launch. Request only on first item addition.
-- Explain why location is needed before requesting: "Find the nearest store for aisle lookup."
-- If permission is denied, use last selected store or ask for ZIP/store selection.
-- Show the store name and address in the list UI so the user can verify it.
-- Never log coordinates.
-- Manual override always available and takes precedence over auto-selection.
+- Do not request location at app launch or on first item addition.
+- If permission is denied, the location is unavailable, the locator is blocked,
+  or no candidates are found, show a clear message and keep manual entry available.
+- Show the saved store name and address so the user can verify it.
+- Never store or log coordinates; the retailer receives only the ZIP or coarse
+  coordinate needed for the public locator request.
+- Manual override always remains available and takes precedence over detected
+  candidates.
 
 ## Caching
 

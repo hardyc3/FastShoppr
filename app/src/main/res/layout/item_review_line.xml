@@ -14,7 +14,7 @@
             android:id="@+id/checkBox"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:focusable="false"
+            android:minHeight="48dp"
             android:clickable="true" />
 
         <androidx.appcompat.widget.AppCompatEditText
@@ -57,8 +57,7 @@
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
+            android:minHeight="48dp"
             android:textSize="12sp"
             android:contentDescription="@string/review_change_store_description" />
 
@@ -69,8 +68,7 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginStart="8dp"
-            android:ellipsize="end"
-            android:maxLines="1"
+            android:minHeight="48dp"
             android:textSize="12sp"
             android:contentDescription="@string/review_change_date_description" />
     </LinearLayout>

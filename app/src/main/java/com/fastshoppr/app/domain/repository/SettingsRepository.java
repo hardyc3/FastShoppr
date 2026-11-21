@@ -48,4 +48,6 @@ public interface SettingsRepository {
   String getPreferredShoppingTime();
 
   void setPreferredShoppingTime(String time);
+
+  void clearAll();
 }

@@ -15,6 +15,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:gravity="center"
+        android:accessibilityLiveRegion="polite"
         android:textAppearance="?attr/textAppearanceBodyLarge"
         android:visibility="gone" />
 

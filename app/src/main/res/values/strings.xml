@@ -60,6 +60,24 @@
     <string name="settings_ai_download_action">Download model</string>
     <string name="settings_ai_privacy_note">AI cleanup runs only while the app is open. Nothing is sent to a cloud service, and prompts are never stored.</string>
 
+    <string name="settings_privacy_section">Privacy</string>
+    <string name="settings_privacy_body">Lists, items, handwriting, photos, aisle results, and settings stay on this device. FastShoppr has no account, backend, analytics, or cloud sync. Device backup and transfer are off. Uninstalling removes app data; nothing is restored.</string>
+    <string name="settings_delete_all_title">Delete all data?</string>
+    <string name="settings_delete_all_message">This removes every list, item, capture, cached aisle, setting, and queued task on this device. Built-in stores stay available. This cannot be undone.</string>
+    <string name="settings_delete_all_confirm">Delete everything</string>
+    <string name="settings_delete_all_failed">Could not delete all data. Try again.</string>
+
+    <string name="a11y_open_list_card">Shopping list %1$s, %2$s, %3$s. Double tap to open.</string>
+    <string name="a11y_not_right">Aisle for %1$s is not right. Choose another match or enter an aisle.</string>
+    <string name="a11y_cached_error">Cached result: %1$s</string>
+    <string name="a11y_review_select">Select %1$s for saving</string>
+    <string name="a11y_review_store">Store for %1$s: %2$s. Change store.</string>
+    <string name="a11y_review_date">Shopping date for %1$s: %2$s. Change date.</string>
+    <string name="a11y_ink_canvas">Handwriting area. Draw each shopping item on one line.</string>
+    <string name="calendar_day_today">, today</string>
+    <string name="calendar_day_has_list">, has shopping list</string>
+    <string name="calendar_day_no_list">, no list</string>
+
     <string name="ai_cleanup_action">Clean up names</string>
     <plurals name="ai_cleanup_action_count">
         <item quantity="one">Clean up names (%d)</item>
@@ -196,6 +214,8 @@
     <string name="add_store_hint">Store name</string>
     <string name="add_store_select">Select a store</string>
     <string name="add_store_custom">Or type a custom name</string>
+    <string name="add_store_required">Select a store or enter a custom name.</string>
+    <string name="add_store_load_failed">Could not load stores. Try again.</string>
     <string name="add_store_add">Add</string>
     <string name="camera_allow">Allow camera access</string>
     <string name="capture_retry">Retry</string>
@@ -333,4 +353,50 @@
     <string name="visit_suggestion_verify_hours">verify store hours; no busyness data</string>
     <string name="edit_store_hours">Edit store hours</string>
     <string name="store_hours_saved">Store hours saved.</string>
+
+    <!-- Nearest store selection -->
+    <string name="settings_store_section">Nearest store</string>
+    <string name="settings_store_summary">ZIP: %1$s</string>
+    <string name="settings_store_zip_unset">ZIP: not set</string>
+    <string name="settings_store_saved_format">%1$s: %2$s</string>
+    <string name="settings_store_no_saved">No stores saved yet. Save one to see it on the organize screen.</string>
+    <string name="settings_store_zip_hint">ZIP code</string>
+    <string name="settings_store_save_zip">Save ZIP</string>
+    <string name="settings_store_brand_label">Store brand</string>
+    <string name="settings_store_find">Find nearby stores</string>
+    <string name="settings_store_use_location">Use my location</string>
+    <string name="settings_store_manual">Enter store manually</string>
+    <string name="settings_store_forget">Remove a saved store</string>
+    <string name="settings_store_forget_title">Remove saved store</string>
+    <string name="settings_store_remove">Remove</string>
+    <string name="settings_store_searching">Searching for stores…</string>
+    <string name="settings_store_no_results">No stores found. Enter the store manually.</string>
+    <string name="settings_store_search_failed">Could not search stores. Enter the store manually.</string>
+    <string name="settings_store_blocked">The store locator blocked this request. Enter your store manually.</string>
+    <string name="settings_store_location_unavailable">Location unavailable. Enter a ZIP or add a store manually.</string>
+    <string name="settings_store_location_denied">Location permission denied. Enter a ZIP or add a store manually.</string>
+    <string name="settings_store_open_settings">Open settings</string>
+    <string name="settings_store_permission_rationale">FastShoppr uses your approximate location once to suggest the nearest stores. Coordinates are never stored or logged.</string>
+    <string name="settings_store_zip_required">Enter and save a ZIP first.</string>
+    <string name="settings_store_saved_message">Store saved.</string>
+    <string name="settings_store_removed_message">Store removed.</string>
+    <string name="settings_store_manual_title">Enter store details</string>
+    <string name="settings_store_manual_name_hint">Store name or number</string>
+    <string name="settings_store_manual_address_hint">Address or city (optional)</string>
+    <string name="settings_store_manual_invalid">Enter a store name or number.</string>
+    <string name="settings_store_pick_one">Pick a store first.</string>
+    <string name="settings_store_privacy_note">Finding stores sends the ZIP or an approximate location to the retailer\'s public store locator. FastShoppr does not store or log coordinates.</string>
+    <string name="brand_walmart">Walmart</string>
+    <string name="brand_home_depot">Home Depot</string>
+    <string name="brand_lowes">Lowe\'s</string>
+    <string name="brand_target">Target</string>
+    <string name="brand_smiths">Smiths</string>
+
+    <string-array name="store_brands">
+        <item>@string/brand_walmart</item>
+        <item>@string/brand_home_depot</item>
+        <item>@string/brand_lowes</item>
+        <item>@string/brand_target</item>
+        <item>@string/brand_smiths</item>
+    </string-array>
 </resources>

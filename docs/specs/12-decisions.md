@@ -303,3 +303,35 @@ Format:
 - Rationale: Reducing button taps makes the organize flow faster and less error-prone. Store verification is a one-time step (cookies persist), so most organize attempts proceed directly to lookup.
 - Consequences: `LookupFragment` no longer shows a store button; it either auto-starts or auto-navigates to verification. `WalmartStoreFragment` sets/clears the verified flag. `SettingsRepository` gains `isWalmartStoreVerified`/`setWalmartStoreVerified`. `03-store-integration.md` documents the auto-organize flow.
 
+## D-037 — Phase 9 list-detail indexes require Room schema v4
+
+- Date: 2026-11-17
+- Status: accepted
+- Decision: Phase 9 adds two composite indexes to `list_items`: (`listId`, `deletedAt`, `sortPosition`) and (`listId`, `deletedAt`, `storeId`, `sortPosition`). Room is bumped from schema v3 to v4 with `MIGRATION_3_4`, exported schema `4.json`, and a migration test. This is the release-blocker exception allowed by the Phase 9 data-changes section.
+- Rationale: the 100-item performance criterion reads and sorts items by both list and store on every render. Without these indexes the queries scan all rows for the list, which regresses large-list scroll and sort responsiveness.
+- Consequences: upgrades from v3 run the index-only migration; no data is rewritten. Future list-detail query shapes should reuse these indexes or require a new migration and decision entry.
+
+## D-038 — Privacy notice is in-app plus repo-root `PRIVACY.md`
+
+- Date: 2026-11-17
+- Status: accepted
+- Decision: the MVP privacy notice is delivered as Settings text plus a standalone `PRIVACY.md` in the repository root. No hosted privacy policy URL or account-specific privacy page is introduced in Phases 0–11.
+- Rationale: the app has no backend, account, analytics, or sharing, so a local, reviewable notice is sufficient for the MVP and keeps release documentation in source control.
+- Consequences: `README.md` links to `PRIVACY.md`; the Settings notice must stay consistent with it. A hosted URL, if ever required for a store listing, needs a new decision entry.
+
+## D-039 — Explicit nearest-store selection is display context in Phase 9
+
+- Date: 2026-11-18
+- Status: accepted (amends D-017 and the store-context section of `03-store-integration.md`)
+- Decision: Phase 9 adds a Settings flow that saves one ZIP code and one physical branch per brand (Walmart, Home Depot, Lowe's, Target, Smiths). Candidates come from each retailer's public store-locator page using the saved ZIP or an approximate location fix; the user picks and saves a branch. The saved branch is shown on the Organize screen for brands present on the list. It is verification context only: it never rewrites `rawText`, replaces an aisle, or claims provenance for an automated lookup. Manual name/address entry is always available.
+- Rationale: Unexpected aisles are hard to diagnose without knowing which physical store the user means. An explicit, user-controlled branch removes ambiguity while avoiding a silent change to lookup behavior during MVP release hardening. The existing Walmart WebView verification and Home Depot lookup context remain authoritative for automated results.
+- Consequences: Settings uses `ACCESS_COARSE_LOCATION` only when **Use my location** is tapped; denial, blocks, no results, and network failures fall back to ZIP or manual entry. Coordinates are never stored or logged, but the retailer receives the ZIP or coarse coordinate in the public locator URL. Locator responses are cached for 60 days in SharedPreferences, rate limited to one request per second per brand, and cleared by **Delete all data**. This decision adds no Room migration; D-040 supersedes that point for the removed brand.
+
+## D-040 — Macey's removed from Phase 9 supported brands
+
+- Date: 2026-11-20
+- Status: accepted (amends D-039 and `03-store-integration.md`)
+- Decision: Macey's is no longer a seeded brand, Settings locator option, or documented public locator target. Phase 9 supports five built-in brands: Walmart, Home Depot, Lowe's, Target, and Smiths. User-created custom stores and manual aisle entry remain available.
+- Rationale: Macey's public website does not expose aisle locations, so offering branch selection would imply lookup capability the app cannot provide.
+- Consequences: Room schema v4→v5 converts any legacy seeded Macey's store to an archived custom store named "Removed store" and clears its aisle cache; no item rows are deleted. Stale locator/cache keys are ignored and cleared by **Delete all data**. No automated aisle lookup is added.
+

@@ -13,6 +13,7 @@ import com.fastshoppr.app.data.local.dao.ListItemDao;
 import com.fastshoppr.app.data.local.dao.ShoppingListDao;
 import com.fastshoppr.app.data.local.dao.ShoppingScheduleDao;
 import com.fastshoppr.app.data.local.dao.StoreDao;
+import com.fastshoppr.app.data.local.dao.UserDataDao;
 import com.fastshoppr.app.data.local.entity.AisleCacheEntity;
 import com.fastshoppr.app.data.local.entity.CaptureSessionEntity;
 import com.fastshoppr.app.data.local.entity.ListItemEntity;
@@ -29,7 +30,7 @@ import com.fastshoppr.app.data.local.entity.StoreEntity;
       ShoppingScheduleEntity.class,
       AisleCacheEntity.class
     },
-    version = 3,
+    version = 5,
     exportSchema = true)
 public abstract class FastShopprDatabase extends RoomDatabase {
 
@@ -46,4 +47,6 @@ public abstract class FastShopprDatabase extends RoomDatabase {
   public abstract ShoppingScheduleDao shoppingScheduleDao();
 
   public abstract AisleCacheDao aisleCacheDao();
+
+  public abstract UserDataDao userDataDao();
 }

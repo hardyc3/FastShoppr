@@ -22,8 +22,8 @@
 
         <ImageButton
             android:id="@+id/btnPrevMonth"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/calendar_prev_month"
             android:src="@android:drawable/ic_media_previous" />
@@ -38,8 +38,8 @@
 
         <ImageButton
             android:id="@+id/btnNextMonth"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/calendar_next_month"
             android:src="@android:drawable/ic_media_next" />
@@ -91,5 +91,6 @@
         android:layout_height="wrap_content"
         android:padding="@dimen/screen_padding"
         android:text="@string/calendar_no_upcoming"
+        android:accessibilityLiveRegion="polite"
         android:visibility="gone" />
 </LinearLayout>
