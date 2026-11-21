@@ -111,6 +111,6 @@ public final class DeleteAllDataTest {
     assertNull(selectedStoreRepository.getPostalCode());
     assertNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
     assertFalse(image.exists());
-    assertEquals(6, storeDao.getActive().size());
+    assertEquals(5, storeDao.getActive().size());
   }
 }

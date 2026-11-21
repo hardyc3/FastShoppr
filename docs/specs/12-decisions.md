@@ -323,7 +323,15 @@ Format:
 
 - Date: 2026-11-18
 - Status: accepted (amends D-017 and the store-context section of `03-store-integration.md`)
-- Decision: Phase 9 adds a Settings flow that saves one ZIP code and one physical branch per brand (Walmart, Home Depot, Lowe's, Target, Smiths, Macy's). Candidates come from each retailer's public store-locator page using the saved ZIP or an approximate location fix; the user picks and saves a branch. The saved branch is shown on the Organize screen for brands present on the list. It is verification context only: it never rewrites `rawText`, replaces an aisle, or claims provenance for an automated lookup. Manual name/address entry is always available. Macy's may have a saved branch but has no automated aisle lookup.
+- Decision: Phase 9 adds a Settings flow that saves one ZIP code and one physical branch per brand (Walmart, Home Depot, Lowe's, Target, Smiths). Candidates come from each retailer's public store-locator page using the saved ZIP or an approximate location fix; the user picks and saves a branch. The saved branch is shown on the Organize screen for brands present on the list. It is verification context only: it never rewrites `rawText`, replaces an aisle, or claims provenance for an automated lookup. Manual name/address entry is always available.
 - Rationale: Unexpected aisles are hard to diagnose without knowing which physical store the user means. An explicit, user-controlled branch removes ambiguity while avoiding a silent change to lookup behavior during MVP release hardening. The existing Walmart WebView verification and Home Depot lookup context remain authoritative for automated results.
-- Consequences: Settings uses `ACCESS_COARSE_LOCATION` only when **Use my location** is tapped; denial, blocks, no results, and network failures fall back to ZIP or manual entry. Coordinates are never stored or logged, but the retailer receives the ZIP or coarse coordinate in the public locator URL. Locator responses are cached for 60 days in SharedPreferences, rate limited to one request per second per brand, and cleared by **Delete all data**. No Room migration is added.
+- Consequences: Settings uses `ACCESS_COARSE_LOCATION` only when **Use my location** is tapped; denial, blocks, no results, and network failures fall back to ZIP or manual entry. Coordinates are never stored or logged, but the retailer receives the ZIP or coarse coordinate in the public locator URL. Locator responses are cached for 60 days in SharedPreferences, rate limited to one request per second per brand, and cleared by **Delete all data**. This decision adds no Room migration; D-040 supersedes that point for the removed brand.
+
+## D-040 — Macey's removed from Phase 9 supported brands
+
+- Date: 2026-11-20
+- Status: accepted (amends D-039 and `03-store-integration.md`)
+- Decision: Macey's is no longer a seeded brand, Settings locator option, or documented public locator target. Phase 9 supports five built-in brands: Walmart, Home Depot, Lowe's, Target, and Smiths. User-created custom stores and manual aisle entry remain available.
+- Rationale: Macey's public website does not expose aisle locations, so offering branch selection would imply lookup capability the app cannot provide.
+- Consequences: Room schema v4→v5 converts any legacy seeded Macey's store to an archived custom store named "Removed store" and clears its aisle cache; no item rows are deleted. Stale locator/cache keys are ignored and cleared by **Delete all data**. No automated aisle lookup is added.
 

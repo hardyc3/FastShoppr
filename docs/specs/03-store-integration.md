@@ -11,7 +11,6 @@ MVP automated lookup supports:
 | Lowe's | Manual aisle only | — | Later |
 | Target | Manual aisle only | — | Later |
 | Smiths | Manual aisle only | — | Later |
-| Macy's | Manual aisle only | Saved branch (locator) | Phase 9 |
 | Custom stores | Manual aisle only | — | Post-MVP |
 
 Manual aisle entry is always available and must never depend on a successful lookup.
@@ -34,8 +33,7 @@ Settings can save one ZIP code and one physical branch per brand. The branch is
 displayed on the Organize screen for brands present on the list so the user can
 verify that aisle results belong to the intended store. It is **display
 context only**: it never rewrites `rawText`, never replaces an aisle, and does not
-claim that an automated result was proven against that branch. Macy's branch
-selection is available, but Macy's aisle lookup remains manual only.
+claim that an automated result was proven against that branch.
 
 Supported locator URL shapes (documented assumptions, not guaranteed APIs):
 
@@ -46,7 +44,6 @@ Supported locator URL shapes (documented assumptions, not guaranteed APIs):
 | Lowe's | `https://www.lowes.com/store?query=<query>` |
 | Target | `https://www.target.com/store-locator/find-stores?search=<query>` |
 | Smiths | `https://www.smithsfoodanddrug.com/stores?query=<query>` |
-| Macy's | `https://www.macys.com/stores?q=<query>` |
 
 The query is either the saved ZIP or an approximate latitude/longitude pair. On
 a location request the app asks for a fresh coarse fix and falls back to the last

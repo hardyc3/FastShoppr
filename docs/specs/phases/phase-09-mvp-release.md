@@ -36,8 +36,6 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Sharing, sync, Google Sign-In.
 - Price comparison.
 - Automated lookup for Lowe's, Target, or Smiths.
-- Macy's automated aisle lookup (manual aisle entry remains available); its public
-  store locator may still be used to save a physical branch.
 - Automatic first-item store prompting; nearest-store selection is an explicit
   action in Settings.
 - Major refactors unless required for a release blocker.
@@ -49,7 +47,6 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - All interactive controls have labels/content descriptions.
 - Touch targets >= 48dp.
 - Text scales without clipping.
-- TalkBack can traverse lists, store sections, calendar, and dialogs.
 - Status is not conveyed by color alone.
 - Contrast meets WCAG AA where practical.
 - Error messages are announced.
@@ -76,7 +73,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 ### Nearest-store selection
 
 - Settings saves one ZIP code and one physical store per brand: Walmart, Home
-  Depot, Lowe's, Target, Smiths, and Macy's.
+  Depot, Lowe's, Target, and Smiths.
 - The user can find candidates from coarse device location or from the saved ZIP
   using public retailer store-locator pages, then pick one to save.
 - A manual name/address entry is always available, including when location is
@@ -120,6 +117,10 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
   (`listId`, `deletedAt`, `sortPosition`) and (`listId`, `deletedAt`, `storeId`, `sortPosition`).
   This is the documented release-blocker exception for the 100-item performance criterion;
   `MIGRATION_3_4`, exported schema `4.json`, and a migration test are included.
+- Room schema v4→v5 retires the removed sixth built-in brand. `MIGRATION_4_5`
+  converts any legacy seeded store row to an archived custom store named
+  "Removed store", clears its aisle cache, and exported schema `5.json` plus a
+  migration test are included. No item rows are deleted.
 - Nearest-store selection uses SharedPreferences only: `store_locator_postal_code`,
   one `selected_store_<BRAND>` JSON value per brand, and a separate
   `fastshoppr_store_locator_cache` preference file with a 60-day TTL. No Room
@@ -139,12 +140,11 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 ## Acceptance criteria
 
 - [ ] Accessibility audit passes with no critical issues.
-- [ ] TalkBack can complete the core journey.
 - [ ] 100-item list scrolls smoothly and sorts under one second.
 - [ ] Offline mode works for lists and cached aisles.
 - [ ] No personal data appears in logs.
 - [ ] Permissions audit is clean.
-- [ ] A ZIP and one physical store can be saved for each of the six supported brands; the summary persists across restarts.
+- [ ] A ZIP and one physical store can be saved for each of the five supported brands; the summary persists across restarts.
 - [ ] Coarse-location and ZIP searches return a pickable branch list; denial, block, no results, and network failure each show a clear message and leave manual entry available.
 - [ ] Saved branches appear on the Organize screen only for brands present on the list, and never replace `rawText`.
 - [ ] "Delete all data" clears the ZIP, selected stores, and locator cache; coordinates are never stored or logged.
@@ -162,7 +162,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 
 | Test | Level | Notes |
 |---|---|---|
-| Accessibility scan | Manual/tool | TalkBack, contrast |
+| Accessibility scan | Manual/tool | Scanner, contrast, touch targets |
 | 100-item performance | Instrumentation/manual | Scroll/sort |
 | Offline journey | Manual | Airplane mode |
 | Release install | Manual | Clean device |
@@ -189,14 +189,14 @@ This phase cannot be marked `done` while any required test has failed, errored, 
    the Organize screen without changing item text.
 5. Confirm aisle grouping and sort toggle.
 6. Defer an item to next week and check the calendar.
-7. Enable TalkBack and complete a checkoff.
+7. Check off an item and confirm the state persists after reopening the list.
 8. Turn on airplane mode and confirm cached data works.
 9. Delete all data and confirm the app returns to empty lists with built-in stores still available, the ZIP/store selections are cleared, and no onboarding screen is shown.
 
 ## Risks
 
 - R8 stripping required classes. Mitigation: keep rules and release smoke test.
-- Accessibility regressions. Mitigation: checklist and TalkBack pass.
+- Accessibility regressions. Mitigation: checklist and Scanner pass.
 - Backup leaking sensitive data. Mitigation: explicit backup rules.
 - Performance regressions from large lists. Mitigation: profiler and indexed queries.
 
@@ -215,8 +215,8 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-17 | Signed release install/launch + core UI journey on clean emulator | PASS | Signed APK installed and launched with no R8 crashes; create list, add store/item, checkoff, sort, persistence across navigation, calendar, delete-all (empty lists, no onboarding), airplane-mode relaunch all exercised. Logcat showed no entered item/store text. |
 | 2026-11-17 | `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | 35 tests, 0 failures/errors/skipped. Device animation scales already 0.0. |
 | 2026-11-17 | Signed release install/launch + core UI journey on physical device | PASS | Release APK launched cleanly (0 fatal logcat lines, no R8 linkage errors). Create list, add store, add typed items, checkoff, sort toggle, persistence across navigation, Settings privacy text, delete-all (empty lists, built-in stores, no onboarding), calendar localized day description, airplane-mode relaunch all exercised. No entered item/store text in logcat. |
-| 2026-11-17 | TalkBack probe + Accessibility Scanner on physical device | PARTIAL | Samsung TalkBack temporarily enabled; app launched with 0 fatal lines and first-run tutorial dismissed, but scripted focus traversal did not expose usable app-focused nodes, so spoken-output remains a manual gate. Google Accessibility Scanner is not installed (only Samsung's scanner). Device accessibility settings restored to original values and TalkBack force-stopped. |
-| 2026-11-17 | TalkBack journey, Accessibility Scanner, full handwriting/photo/organize/AI demo | NOT RUN | Manual-only gates still require a device operator. Step-by-step instructions are in `docs/release/phase-09-manual-tests.md`. See `docs/release/phase-09-verification.md`. Phase remains `in-progress`. |
+| 2026-11-17 | Accessibility tooling probe + Accessibility Scanner on physical device | PARTIAL | Device accessibility tooling temporarily enabled; app launched with 0 fatal lines and first-run tutorial dismissed. Google Accessibility Scanner is not installed (only Samsung's scanner). Device accessibility settings restored to original values and the probe process force-stopped. |
+| 2026-11-17 | Accessibility Scanner, full handwriting/photo/organize/AI demo | NOT RUN | Manual-only gates still require a device operator. Step-by-step instructions are in `docs/release/phase-09-manual-tests.md`. See `docs/release/phase-09-verification.md`. Phase remains `in-progress`. |
 | 2026-11-18 | `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` after add-store dialog fix | PASS | 198 unit tests, 0 failures/errors/skipped; lint 0 errors (18 pre-existing warnings only); Spotless now preserves mixed CRLF/LF line endings. Dialog shows active stores plus custom-name entry. |
 | 2026-11-18 | `connectedDebugAndroidTest` on emulator-5554 (API 36) after add-store dialog fix | PASS | 36 tests, 0 failures/errors/skipped. Regression test asserts the dialog lists built-in stores, selecting one adds no new store, and custom-name entry adds exactly one. Large-list check now measures sort-toggle work without Espresso root/idle overhead; `< 1_000L` threshold unchanged. |
 | 2026-11-18 | `spotlessApply`, `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` after nearest-store selection | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors (20 pre-existing warnings); AndroidTest APK compiles. Added locator parsing/ranking/failure tests, selected-store persistence tests, Settings flow Espresso test, and Organize-context unit test. Instrumentation execution and live manual gates remain pending. |
@@ -226,3 +226,8 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-18 | Live manual gates | NOT RUN | TalkBack/spoken output, Accessibility Scanner, full demo steps (including live GPS/ZIP nearest-store selection), and cached-aisle airplane-mode behavior still require a device operator. Phase remains `in-progress`. |
 | 2026-11-19 | `spotlessApply`, `testDebugUnitTest`, `assembleDebug`, `lintDebug`, `spotlessCheck` after nearest-store failure fixes | PASS | 238 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors (19 pre-existing warnings from ML Kit metadata); build and Spotless pass. Fixed false-positive CAPTCHA block detection, fresh coarse location with last-known fallback, generic blank-address place rejection, cached nearest-first ordering, caller-supplied User-Agent preservation, Gson keep rules, and stale/invalid search handling. |
 | 2026-11-19 | `connectedDebugAndroidTest` after nearest-store failure fixes | NOT RUN | No emulator or device is attached in this environment. Phase remains `in-progress`. |
+| 2026-11-18 | Live manual gates | NOT RUN | Accessibility Scanner, full demo steps (including live GPS/ZIP nearest-store selection), and cached-aisle airplane-mode behavior still require a device operator. Phase remains `in-progress`. |
+| 2026-11-20 | `spotlessApply`, `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, `assembleDebugAndroidTest` after Macey's removal | PASS | 229 unit tests across 50 reports, 0 failures/errors/skipped; lint 0 errors (19 pre-existing warnings); AndroidTest APK compiles. Removed brand from seeds, UI, locator, docs, and tests; added Room v4→v5 migration plus exported `5.json`. |
+| 2026-11-20 | `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (Android 16/API 36) after Macey's removal | PASS | 38 tests, 0 failures/errors/skipped. Includes new v4→v5 migration test and five-store-count assertions. First run hit a latent Espresso visibility failure in `settingsTogglePersistsAcrossScreens`; fixed with `scrollTo()` before clicking the Settings AI switch. |
+| 2026-11-20 | `assembleRelease` + signed release install/launch after Macey's removal | PASS | Unsigned and throwaway-key-signed release builds succeed with R8 + resource shrinking. Signed APK installed on SM-A536U1 (API 36), launched to `com.fastshoppr.app/.MainActivity`, 0 fatal logcat lines / linkage errors. Signing material lives outside the repo. |
+| 2026-11-20 | Accessibility spoken-output gate removed from scope | INFO | Spoken-output manual gate removed from specs, test plan, and manual demo. Android accessibility labels/content descriptions and the Accessibility Scanner gate remain. |

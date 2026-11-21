@@ -35,7 +35,11 @@ public final class DatabaseModule {
   @Singleton
   static FastShopprDatabase provideDatabase(@ApplicationContext Context context, Clock clock) {
     return Room.databaseBuilder(context, FastShopprDatabase.class, FastShopprDatabase.NAME)
-        .addMigrations(Migrations.MIGRATION_1_2, Migrations.MIGRATION_2_3, Migrations.MIGRATION_3_4)
+        .addMigrations(
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5)
         .addCallback(new DatabaseSeedCallback(clock))
         .build();
   }

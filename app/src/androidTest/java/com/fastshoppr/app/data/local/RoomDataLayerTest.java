@@ -98,12 +98,12 @@ public final class RoomDataLayerTest {
   }
 
   @Test
-  public void seedsSixChainStoresExactlyOnce() {
+  public void seedsFiveChainStoresExactlyOnce() {
     List<Store> firstRead = storeRepository.getActive();
     List<Store> secondRead = storeRepository.getActive();
 
-    assertEquals(6, firstRead.size());
-    assertEquals(6, secondRead.size());
+    assertEquals(5, firstRead.size());
+    assertEquals(5, secondRead.size());
     Set<StoreBrand> brands = firstRead.stream().map(Store::getBrand).collect(Collectors.toSet());
     assertEquals(
         Set.of(
@@ -111,8 +111,7 @@ public final class RoomDataLayerTest {
             StoreBrand.HOME_DEPOT,
             StoreBrand.LOWES,
             StoreBrand.TARGET,
-            StoreBrand.SMITHS,
-            StoreBrand.MACYS),
+            StoreBrand.SMITHS),
         brands);
     assertTrue(firstRead.stream().allMatch(store -> !store.isCustom()));
   }

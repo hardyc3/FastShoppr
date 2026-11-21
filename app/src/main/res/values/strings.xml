@@ -391,7 +391,6 @@
     <string name="brand_lowes">Lowe\'s</string>
     <string name="brand_target">Target</string>
     <string name="brand_smiths">Smiths</string>
-    <string name="brand_macys">Macy\'s</string>
 
     <string-array name="store_brands">
         <item>@string/brand_walmart</item>
@@ -399,6 +398,5 @@
         <item>@string/brand_lowes</item>
         <item>@string/brand_target</item>
         <item>@string/brand_smiths</item>
-        <item>@string/brand_macys</item>
     </string-array>
 </resources>

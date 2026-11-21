@@ -15,7 +15,6 @@ public final class SeedStores {
   public static final String LOWES_ID = "a3a4e1b2-3c4d-4e5f-8a9b-0c1d2e3f4a5b";
   public static final String TARGET_ID = "b4b5e2c3-4d5e-4f6a-9b0c-1d2e3f4a5b6c";
   public static final String SMITHS_ID = "c5c6e3d4-5e6f-4a7b-8c1d-2e3f4a5b6c7d";
-  public static final String MACYS_ID = "d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f";
 
   private static final List<StoreBrand> BRANDS =
       List.of(
@@ -23,8 +22,7 @@ public final class SeedStores {
           StoreBrand.HOME_DEPOT,
           StoreBrand.LOWES,
           StoreBrand.TARGET,
-          StoreBrand.SMITHS,
-          StoreBrand.MACYS);
+          StoreBrand.SMITHS);
 
   private SeedStores() {}
 
@@ -39,7 +37,6 @@ public final class SeedStores {
       case LOWES -> LOWES_ID;
       case TARGET -> TARGET_ID;
       case SMITHS -> SMITHS_ID;
-      case MACYS -> MACYS_ID;
       case CUSTOM -> throw new IllegalArgumentException("Custom stores are not seeded");
     };
   }
@@ -51,7 +48,6 @@ public final class SeedStores {
       case LOWES -> "Lowe's";
       case TARGET -> "Target";
       case SMITHS -> "Smiths";
-      case MACYS -> "Macy's";
       case CUSTOM -> throw new IllegalArgumentException("Custom stores are not seeded");
     };
   }

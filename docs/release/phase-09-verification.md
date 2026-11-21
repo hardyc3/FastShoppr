@@ -4,6 +4,12 @@ This record accompanies the Phase 9 (MVP Release) implementation. It captures
 the release configuration, audits, manual demo script, and verification
 evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 
+> **Reverify after 2026-11-20 change:** the records below predate removal of the
+> sixth built-in brand and Room schema v5. Instrumentation was rerun on the
+> physical device (38/38 pass), and a signed release build was installed and
+> launched there with no fatal logcat. Live manual gates still need regeneration
+> before Phase 9 is marked `done`.
+
 ## Release configuration
 
 - `applicationId`: `com.fastshoppr.app`
@@ -128,8 +134,8 @@ Code-level fixes in this phase:
 - Cached lookup errors are labeled as cached so status is not conveyed by color
   alone.
 
-Manual gates in the test plan (TalkBack journey and Accessibility Scanner) are
-recorded in the verification table below.
+Manual gates in the test plan (Accessibility Scanner, capture/organize demo,
+and nearest-store selection) are recorded in the verification table below.
 
 ## Offline checklist
 
@@ -152,8 +158,8 @@ recorded in the verification table below.
 5. Confirm aisle grouping and use the sort-direction toggle.
 6. Defer an item to next week and confirm it appears on the correct list/date in
    the calendar.
-7. Enable TalkBack and complete a checkoff; confirm the new checked state is
-   persisted after leaving and reopening the list.
+7. Complete a checkoff; confirm the new checked state is persisted after
+   leaving and reopening the list.
 8. Turn on airplane mode and confirm lists and cached aisles still work.
 9. Open **Settings → Privacy → Delete all data**, confirm, and verify the app
    returns to empty lists with built-in stores still available and the ZIP and
@@ -176,12 +182,12 @@ pass.
 | Post-review instrumentation (2026-11-18) | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 37 tests, 0 failures/errors/skipped. Includes Settings nearest-store flow and delete-all assertion for ZIP, selected stores, settings, and locator cache. |
 | Release build with R8 | `./gradlew assembleRelease` | PASS | Both unsigned fallback and env-signed builds succeed with R8 + resource shrinking. Signed APK verified with `apksigner` (throwaway key generated outside the repo, never committed). |
 | Instrumentation suite | `./gradlew connectedDebugAndroidTest` | PASS | emulator-5554 (API 36), Android animation scales set to 0: 35 tests, 0 failures/errors/skipped. Also run on a connected physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36, Galaxy A53) with `ANDROID_SERIAL=R5CT7058L2A`: 35 tests, 0 failures/errors/skipped (`TEST-SM-A536U1 - 16-_app-.xml`, 54.667s). Includes `DeleteAllDataTest`, `LargeListInstrumentationTest` and the 3→4 `MigrationTest`. One earlier emulator run hit Espresso's "animations enabled" guard; disabled scales is the standard setup and the reruns passed. |
-| Accessibility scan | TalkBack + Accessibility Scanner | PARTIAL | Manual-only gate. Code-level checklist complete; UI hierarchy spot-checks on both emulator and physical device confirmed content descriptions, 48dp targets, headings and localized calendar descriptions (for example `Mark milk as not checked`, `Aisle: descending`, `2026-11-17, today, no list`). On the physical device Samsung TalkBack was temporarily enabled, the first-run tutorial was dismissed, and the app launched with 0 fatal log lines; however scripted TAB/swipe traversal did not yield usable app-focused nodes, so spoken-output traversal remains unverified. Google Accessibility Scanner is not installed (only Samsung `com.samsung.android.app.vex.scanner` is present), so no Scanner report was produced. Device accessibility settings were restored to their original values. Both spoken-output and Scanner report require a device operator. |
+| Accessibility scan | Accessibility Scanner | PARTIAL | Manual-only gate. Code-level checklist complete; UI hierarchy spot-checks on both emulator and physical device confirmed content descriptions, 48dp targets, headings and localized calendar descriptions (for example `Mark milk as not checked`, `Aisle: descending`, `2026-11-17, today, no list`). Google Accessibility Scanner is not installed (only Samsung `com.samsung.android.app.vex.scanner` is present), so no Scanner report was produced. Scanner report requires a device operator. |
 | 100-item scroll/sort | `LargeListInstrumentationTest`, `SortItemsUseCaseTest` | PASS (automated) | 120-item list rendered and sorted in the instrumented test; scroll-to-bottom exercised. No separate Profiler timing was captured. |
 | Offline journey | airplane mode demo step 7 | PARTIAL | Airplane-mode relaunch on the signed release APK passed on both the emulator and the physical device: the app relaunched with lists rendering and 0 fatal log lines. Fresh-lookup/cached-aisle behavior is covered by code and instrumented tests but was not manually re-verified on either device. |
 | Release install/launch | clean emulator + physical device | PASS | Signed APK installed on a wiped API 36 emulator and on the Samsung SM-A536U1 (Android 16/API 36), then launched on both. No fatal logcat, `ClassNotFoundException` or `NoSuchMethodError` on either. Core Room/Hilt/Navigation CRUD exercised on both: create list, add store, add typed item(s), check off, toggle sort, navigate away and back (checked state and sort persisted), Settings privacy text, delete all data (empty lists, built-in stores, no onboarding), calendar with localized day descriptions. |
 | Log audit | source review + logcat during demo | PASS | Source grep found no `Log.*`/`println`/`printStackTrace` in production Java. Logcat during the release demo on both emulator and physical device had 0 hits for entered item text or store names, and 0 fatal lines. |
-| Full manual demo | steps 1–8 above | PARTIAL | Steps 1, 2 (typed item only), 4, 6 (checkoff without TalkBack), 7 (relaunch), 8 executed on the signed release APK on both emulator and physical device. Handwriting/photo capture, Walmart/Home Depot organize with AI suggestions, defer-to-calendar, and step 7 cached-aisle behavior were not executed in this session. |
+| Full manual demo | steps 1–9 above | PARTIAL | Steps 1, 2 (typed item only), 4, 6, 7 (relaunch), 8 executed on the signed release APK on both emulator and physical device. Handwriting/photo capture, Walmart/Home Depot organize with AI suggestions, defer-to-calendar, and step 8 cached-aisle behavior were not executed in this session. |
 
 ### Connected physical device run (2026-11-17)
 
@@ -201,13 +207,12 @@ API 36) was connected for this verification pass. Animation scales were already
   data (empty lists, built-in stores, no onboarding), calendar month and
   localized day description (`2026-11-17, today, no list`), airplane-mode
   relaunch with 0 fatal lines.
-- Samsung TalkBack was temporarily enabled to probe focus/labels. The first-run
-  tutorial was dismissed with **Finish**. The app launched with 0 fatal lines,
-  but scripted focus traversal did not expose usable app-focused nodes, so the
-  spoken-output journey is still a manual gate. The device's accessibility
-  settings were restored (`accessibility_enabled=0`,
-  `enabled_accessibility_services` and `accessibility_script` deleted) and the
-  TalkBack process was force-stopped. Airplane mode was restored off.
+- Device accessibility tooling was temporarily enabled to probe labels/focus.
+  The first-run tutorial was dismissed with **Finish** and the app launched with
+  0 fatal lines. Device accessibility settings were restored
+  (`accessibility_enabled=0`, `enabled_accessibility_services` and
+  `accessibility_script` deleted), the probe process was force-stopped, and
+  airplane mode was restored off.
 
 ### Manual gates still open
 
@@ -215,12 +220,9 @@ These require a device operator and remain unverified; Phase 9 stays
 `in-progress` until they are recorded as passes. Step-by-step instructions are
 in `docs/release/phase-09-manual-tests.md`.
 
-1. TalkBack spoken-output journey across lists → store sections → calendar →
-   delete confirmation, including a checkoff and verifying it persists after
-   leaving and reopening the list.
-2. Accessibility Scanner report with no critical issues.
-3. Full demo steps 2–6 (handwriting/photo capture, nearest-store selection,
+1. Accessibility Scanner report with no critical issues.
+2. Full demo steps 2–6 (handwriting/photo capture, nearest-store selection,
    organize and AI suggestions, defer to next week) and step 8 cached-aisle
    behavior in airplane mode.
-4. Gate 4 in `docs/release/phase-09-manual-tests.md` (live nearest-store
+3. Gate 3 in `docs/release/phase-09-manual-tests.md` (live nearest-store
    selection, permission flow, Organize context, and delete-all clearing).

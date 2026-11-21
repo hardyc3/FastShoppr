@@ -11,7 +11,6 @@ public enum StoreBrand {
   LOWES,
   TARGET,
   SMITHS,
-  MACYS,
   CUSTOM;
 
   public String getDisplayName() {
@@ -21,7 +20,6 @@ public enum StoreBrand {
       case LOWES -> "Lowe's";
       case TARGET -> "Target";
       case SMITHS -> "Smiths";
-      case MACYS -> "Macy's";
       case CUSTOM -> "Custom";
     };
   }

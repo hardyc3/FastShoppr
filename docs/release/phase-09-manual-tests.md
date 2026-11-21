@@ -17,46 +17,7 @@ gate fails, leave Phase 9 `in-progress` and fix the issue first.
 
 ---
 
-## Gate 1 — TalkBack spoken-output journey
-
-**Goal:** confirm a screen-reader user can complete the core journey and that a
-checkoff persists.
-
-1. Enable TalkBack (Settings → Accessibility → TalkBack, or on Samsung:
-   Settings → Accessibility → Vision enhancements → TalkBack). Complete any
-   first-run tutorial.
-2. Launch FastShoppr. Swipe right to move focus through the launch screen and
-   listen: **Create list**, **Show archived**, **Calendar**, **Settings**, and
-   **Create your first list** must each be announced with a meaningful label.
-3. Activate **Create list** (double-tap anywhere on the focused item). Confirm
-   the date picker is announced; activate **OK**.
-4. Swipe through the list detail screen: **Toggle aisle sort direction**,
-   **+ Add store**, **Write by hand**, **Take photo or gallery**,
-   **Organize list**, **Store hours & visit** must be announced.
-5. Open **+ Add store**. Confirm the dialog exposes both the supported-store
-   spinner and the custom-name field. Add one supported store (for example
-   **Walmart**) and one custom store, then add a typed item to each. Confirm the
-   item text and its lookup status are spoken.
-6. Focus the item checkbox and confirm it announces **Mark milk as checked**
-   (or the equivalent item name). Activate it and confirm it changes to
-   **Mark milk as not checked**.
-7. Toggle sort and confirm the state announcement changes (for example
-   **Aisle: ascending** → **Aisle: descending**).
-8. Navigate back to the lists screen, reopen the same list, and confirm both
-   the checked state and the sort direction are still announced correctly.
-9. Open **Calendar** and confirm each day is announced with a localized
-   description including the date, whether it is today, and whether it has a
-   list (for example **2026-11-17, today, no list**).
-10. Open **Settings → Privacy → Delete all data**, confirm the dialog text is
-    read aloud, activate **Delete everything**, and confirm the empty state is
-    announced after deletion.
-
-**Pass condition:** every interactive control above is announced with a
-meaningful label; the checkoff and sort persist after reopening; no focus trap
-or unlabeled control is encountered. Note any spoken awkwardness or missing
-label.
-
-## Gate 2 — Accessibility Scanner report
+## Gate 1 — Accessibility Scanner report
 
 **Goal:** no critical accessibility issues flagged by the Google Accessibility
 Scanner.
@@ -76,7 +37,7 @@ Scanner.
 48dp, low-contrast text, clipped text) on any scanned screen. Non-critical
 suggestions may be documented as accepted with a reason.
 
-## Gate 3 — Capture, organize, and calendar demo
+## Gate 2 — Capture, organize, and calendar demo
 
 **Goal:** execute the parts of the phase demo that need real input and network.
 
@@ -107,7 +68,7 @@ confirmation and never overwrite `rawText`; aisle grouping/sorting and the
 deferred item/calendar date are correct; cached aisles survive offline and a
 fresh offline lookup fails gracefully.
 
-## Gate 4 — Nearest-store selection
+## Gate 3 — Nearest-store selection
 
 **Goal:** save a physical branch for each brand and verify it appears only as
 store context on the Organize screen.

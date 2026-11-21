@@ -105,6 +105,45 @@ public final class MigrationTest {
     versionFour.close();
   }
 
+  @Test
+  public void migratesVersionFourToVersionFiveAndRetiresRemovedStore() throws IOException {
+    SupportSQLiteDatabase versionFour = helper.createDatabase(TEST_DATABASE, 4);
+    versionFour.execSQL(
+        "INSERT INTO stores (id, brand, name, isCustom, isDefault, isArchived, createdAt, updatedAt) "
+            + "VALUES ('d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f', 'MACYS', 'Legacy Store', 0, 0, 0, 1, 1)");
+    versionFour.execSQL(
+        "INSERT INTO aisle_cache (id, storeId, normalizedQuery, source, fetchedAt, expiresAt) "
+            + "VALUES ('cache-1', 'd6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f', 'milk', 'LOCAL', 1, 1)");
+    versionFour.close();
+
+    SupportSQLiteDatabase versionFive =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            5,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5);
+
+    Cursor cursor =
+        versionFive.query(
+            "SELECT brand, name, isCustom, isDefault, isArchived FROM stores WHERE id = ?",
+            new Object[] {"d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f"});
+    try {
+      assertTrue(cursor.moveToFirst());
+      assertEquals("CUSTOM", cursor.getString(0));
+      assertEquals("Removed store", cursor.getString(1));
+      assertEquals(1, cursor.getInt(2));
+      assertEquals(0, cursor.getInt(3));
+      assertEquals(1, cursor.getInt(4));
+    } finally {
+      cursor.close();
+    }
+    assertEquals(0, rowCount(versionFive, "aisle_cache"));
+    versionFive.close();
+  }
+
   private static boolean indexExists(SupportSQLiteDatabase database, String index) {
     Cursor cursor =
         database.query(

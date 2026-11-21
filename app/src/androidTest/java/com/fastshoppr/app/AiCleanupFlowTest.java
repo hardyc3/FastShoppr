@@ -8,6 +8,7 @@ package com.fastshoppr.app;
 import static androidx.test.espresso.Espresso.pressBackUnconditionally;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.action.ViewActions.scrollTo;
 import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
@@ -160,7 +161,7 @@ public final class AiCleanupFlowTest {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
       waitFor(() -> onFocusedView(withId(R.id.switchAiCleanup)).check(matches(isDisplayed())));
       onFocusedView(withId(R.id.switchAiCleanup)).check(matches(not(isChecked())));
-      onFocusedView(withId(R.id.switchAiCleanup)).perform(click());
+      onFocusedView(withId(R.id.switchAiCleanup)).perform(scrollTo(), click());
       onFocusedView(withId(R.id.switchAiCleanup)).check(matches(isChecked()));
       assertTrue(settingsRepository.isAiCleanupEnabled());
 

@@ -187,7 +187,6 @@ public final class RetailerStoreLocator implements StoreDirectoryRepository {
       case LOWES -> "https://www.lowes.com/store?query=" + encoded;
       case TARGET -> "https://www.target.com/store-locator/find-stores?search=" + encoded;
       case SMITHS -> "https://www.smithsfoodanddrug.com/stores?query=" + encoded;
-      case MACYS -> "https://www.macys.com/stores?q=" + encoded;
       case CUSTOM -> throw new IllegalArgumentException("Custom stores have no public locator");
     };
   }

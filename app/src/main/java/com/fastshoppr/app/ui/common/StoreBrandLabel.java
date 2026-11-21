@@ -20,7 +20,6 @@ public final class StoreBrandLabel {
       case LOWES -> R.string.brand_lowes;
       case TARGET -> R.string.brand_target;
       case SMITHS -> R.string.brand_smiths;
-      case MACYS -> R.string.brand_macys;
       case CUSTOM -> R.string.add_store_hint;
     };
   }
@@ -32,8 +31,7 @@ public final class StoreBrandLabel {
       StoreBrand.HOME_DEPOT,
       StoreBrand.LOWES,
       StoreBrand.TARGET,
-      StoreBrand.SMITHS,
-      StoreBrand.MACYS
+      StoreBrand.SMITHS
     };
   }
 }

@@ -187,5 +187,21 @@ public final class Migrations {
         }
       };
 
+  public static final Migration MIGRATION_4_5 =
+      new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          // The removed chain is converted instead of deleted so existing list items keep a
+          // readable store reference under the RESTRICT foreign key.
+          database.execSQL(
+              "UPDATE `stores` SET `brand` = 'CUSTOM', `name` = 'Removed store', "
+                  + "`isCustom` = 1, `isDefault` = 0, `isArchived` = 1 "
+                  + "WHERE `brand` = 'MACYS'");
+          database.execSQL(
+              "DELETE FROM `aisle_cache` WHERE `storeId` = "
+                  + "'d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f'");
+        }
+      };
+
   private Migrations() {}
 }

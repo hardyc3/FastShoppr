@@ -211,14 +211,14 @@ public final class SettingsViewModelTest {
 
   @Test
   public void manualStoreIsSavedForSelectedBrand() {
-    viewModel.saveManualStore(StoreBrand.MACYS, "  Macy's Union Square ", "123 Market St");
+    viewModel.saveManualStore(StoreBrand.SMITHS, "  Smiths Marketplace ", "123 Market St");
 
     org.mockito.ArgumentCaptor<NearbyStore> captor =
         org.mockito.ArgumentCaptor.forClass(NearbyStore.class);
     verify(saveSelectedStore).execute(captor.capture());
     NearbyStore saved = captor.getValue();
-    assertEquals(StoreBrand.MACYS, saved.getBrand());
-    assertEquals("Macy's Union Square", saved.getName());
+    assertEquals(StoreBrand.SMITHS, saved.getBrand());
+    assertEquals("Smiths Marketplace", saved.getName());
     assertEquals("123 Market St", saved.getAddressLine());
     assertEquals(NearbyStoreSource.MANUAL, saved.getSource());
   }
