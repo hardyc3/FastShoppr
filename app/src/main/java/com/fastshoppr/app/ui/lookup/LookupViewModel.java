@@ -14,6 +14,7 @@ import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.model.StoreLocatorPages;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
@@ -40,13 +41,15 @@ public final class LookupViewModel extends ViewModel {
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
   private final GetSelectedStoresUseCase getSelectedStores;
+  private final StoreContextFormatter storeContextFormatter;
   private final OrganizingScheduler scheduler;
   private final OrganizingProgressStore progressStore;
   private final ExecutorService executor;
 
   private final MutableLiveData<String> storeContext = new MutableLiveData<>("");
-  private final MutableLiveData<Boolean> hasWalmart = new MutableLiveData<>(false);
-  private final MutableLiveData<Boolean> walmartVerified = new MutableLiveData<>(false);
+  private final MutableLiveData<StoreBrand> missingBranch = new MutableLiveData<>(null);
+  private final MutableLiveData<Boolean> branchesReady = new MutableLiveData<>(true);
+  private final MutableLiveData<Boolean> branchCheckDone = new MutableLiveData<>(false);
   private final MediatorLiveData<OrganizingProgressStore.Progress> progress =
       new MediatorLiveData<>();
   private final MutableLiveData<OrganizingCounts> counts = new MutableLiveData<>();
@@ -58,6 +61,7 @@ public final class LookupViewModel extends ViewModel {
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
       GetSelectedStoresUseCase getSelectedStores,
+      StoreContextFormatter storeContextFormatter,
       OrganizingScheduler scheduler,
       OrganizingProgressStore progressStore,
       ExecutorService executor,
@@ -66,6 +70,7 @@ public final class LookupViewModel extends ViewModel {
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
     this.getSelectedStores = getSelectedStores;
+    this.storeContextFormatter = storeContextFormatter;
     this.scheduler = scheduler;
     this.progressStore = progressStore;
     this.executor = executor;
@@ -87,12 +92,16 @@ public final class LookupViewModel extends ViewModel {
     return storeContext;
   }
 
-  public LiveData<Boolean> getHasWalmart() {
-    return hasWalmart;
+  public LiveData<StoreBrand> getMissingBranch() {
+    return missingBranch;
   }
 
-  public LiveData<Boolean> getWalmartVerified() {
-    return walmartVerified;
+  public LiveData<Boolean> getBranchesReady() {
+    return branchesReady;
+  }
+
+  public LiveData<Boolean> getBranchCheckDone() {
+    return branchCheckDone;
   }
 
   public LiveData<OrganizingProgressStore.Progress> getProgress() {
@@ -113,7 +122,7 @@ public final class LookupViewModel extends ViewModel {
   }
 
   public void loadContext() {
-    walmartVerified.postValue(settingsRepository.isWalmartStoreVerified());
+    branchCheckDone.postValue(false);
     executor.execute(
         () -> {
           try {
@@ -121,7 +130,6 @@ public final class LookupViewModel extends ViewModel {
             counts.postValue(OrganizingCounts.from(items));
             String context = "";
             StoreBrand baseBrand = null;
-            boolean walmartPresent = false;
             Set<StoreBrand> presentBrands = new LinkedHashSet<>();
             StringBuilder details = new StringBuilder();
             java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
@@ -129,9 +137,6 @@ public final class LookupViewModel extends ViewModel {
             for (ListItem item : items) {
               Store store = resolveStoreForItem(item);
               if (store != null) {
-                if (store.getBrand() == StoreBrand.WALMART) {
-                  walmartPresent = true;
-                }
                 presentBrands.add(store.getBrand());
                 if (context.isEmpty()) {
                   baseBrand = store.getBrand();
@@ -166,9 +171,10 @@ public final class LookupViewModel extends ViewModel {
                   .append(c[4]);
             }
             perStoreDetails.postValue(details.toString());
-            hasWalmart.postValue(walmartPresent);
             storeContext.postValue(appendSelectedStores(context, baseBrand, presentBrands));
+            publishBranchRequirement(presentBrands);
           } catch (Exception ignored) {
+            branchCheckDone.postValue(true);
           }
         });
   }
@@ -189,6 +195,20 @@ public final class LookupViewModel extends ViewModel {
     return scheduler.canPostNotifications();
   }
 
+  private void publishBranchRequirement(Set<StoreBrand> presentBrands) {
+    Map<StoreBrand, NearbyStore> selected = getSelectedStores.execute();
+    for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+      if (presentBrands.contains(brand) && !selected.containsKey(brand)) {
+        missingBranch.postValue(brand);
+        branchesReady.postValue(false);
+        return;
+      }
+    }
+    missingBranch.postValue(null);
+    branchesReady.postValue(true);
+    branchCheckDone.postValue(true);
+  }
+
   private String appendSelectedStores(
       String base, StoreBrand baseBrand, Set<StoreBrand> presentBrands) {
     Map<StoreBrand, NearbyStore> selected = getSelectedStores.execute();
@@ -196,7 +216,7 @@ public final class LookupViewModel extends ViewModel {
     for (StoreBrand brand : presentBrands) {
       NearbyStore store = selected.get(brand);
       if (store != null) {
-        lines.add(brand.getDisplayName() + ": " + store.getLabel());
+        lines.add(storeContextFormatter.savedBranchLine(brand, store.getLabel()));
       }
     }
     if (lines.isEmpty()) {
@@ -206,7 +226,10 @@ public final class LookupViewModel extends ViewModel {
     if (!base.isEmpty() && (baseBrand == null || !selected.containsKey(baseBrand))) {
       result.append(base).append('\n');
     }
-    result.append("Saved branches:\n").append(String.join("\n", lines));
+    result
+        .append(storeContextFormatter.savedBranchesHeader())
+        .append('\n')
+        .append(String.join("\n", lines));
     return result.toString();
   }
 

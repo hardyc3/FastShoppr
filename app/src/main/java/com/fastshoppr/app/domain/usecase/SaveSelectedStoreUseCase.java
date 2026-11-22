@@ -22,8 +22,4 @@ public final class SaveSelectedStoreUseCase {
   public void execute(NearbyStore store) {
     repository.select(store);
   }
-
-  public void savePostalCode(String postalCode) {
-    repository.setPostalCode(postalCode);
-  }
 }

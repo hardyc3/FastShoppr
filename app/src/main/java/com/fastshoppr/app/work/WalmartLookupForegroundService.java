@@ -172,10 +172,17 @@ public class WalmartLookupForegroundService extends Service {
     }
   }
 
+  private boolean suppressCompletion(String listId) {
+    if (!progressStore.shouldSuppressCompletion()) {
+      return false;
+    }
+    notificationHelper.cancel(listId);
+    progressStore.clear(listId);
+    return true;
+  }
+
   private void handleCancelled(String listId) {
-    if (progressStore.shouldSuppressCompletion()) {
-      notificationHelper.cancel(listId);
-      progressStore.clear(listId);
+    if (suppressCompletion(listId)) {
       return;
     }
     try {
@@ -230,9 +237,7 @@ public class WalmartLookupForegroundService extends Service {
   }
 
   private void finish(String listId) {
-    if (progressStore.shouldSuppressCompletion()) {
-      notificationHelper.cancel(listId);
-      progressStore.clear(listId);
+    if (suppressCompletion(listId)) {
       return;
     }
     try {

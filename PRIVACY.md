@@ -7,11 +7,12 @@ an account and does not send your lists to a FastShoppr server.
 
 - Shopping lists, item text, check-off state, and store sections
 - Handwriting strokes while you are drawing, and photos used for text recognition
-- Recognized item text and any aisle results you accept or cache
-- Settings, schedules, ZIP codes, and saved store branches
+- Recognized item text, review drafts, and any aisle results you accept or cache
+- Settings, schedules, and saved store branches
 - Store-hours data and visit-time preferences
 
-FastShoppr does not store your device coordinates.
+FastShoppr does not store your device coordinates or a ZIP code you type into a
+retailer's page.
 
 Android backup and device-to-device transfer are disabled for this app, so this
 information is not copied to cloud backup or a replacement phone by the system.
@@ -27,19 +28,24 @@ find an aisle. This is the same public page lookup a browser would perform. The
 app identifies itself in the HTTP user agent, respects retailer access controls,
 and stops with a clear error on a block or bot challenge.
 
-If you use **Settings → Nearest store**, the app sends either the ZIP code you
-entered or an approximate location to the public store locator of the brand you
-selected, so it can suggest nearby branches. The app keeps the branch you pick
-on your device and shows it on the Organize screen for verification; it does not
-store your coordinates or use the saved branch to silently change an aisle. You
-can always enter a store manually instead. Store-locator results are cached on
-your device for 60 days.
+To set a branch, open **Settings → Store branches → Pick branch**. FastShoppr
+opens the selected brand's public store-locator page in an in-app WebView. You
+navigate the retailer's page and choose your branch; the app saves only that
+branch's name and street/city/state metadata on your device. A postal code that
+appears on the retailer's page is discarded before saving or display. The app
+does not fill in a ZIP, send your location, read your coordinates, or cache
+locator responses.
+First use of a store requires you to pick a branch. **Settings** can change or
+remove it.
 
-For Walmart, you can choose a physical store in a WebView hosted inside the app.
-That retailer session's cookies and local storage stay on your device between
-lookups so the chosen store context is retained. Use **Forget store** in the
-store picker, or **Delete all data** in Settings, to clear them. This is the
-documented exception to clearing WebView data after every lookup (D-032).
+The branch is verification context only: it is shown on the Organize screen and
+never silently changes an item's `rawText` or an aisle result. Custom stores have
+no automated locator.
+
+For Walmart lookups, retailer session cookies and local storage may stay on your
+device between lookups so the chosen store context is retained. Use **Delete all
+data** in Settings to clear them. This is the documented exception to clearing
+WebView data after every lookup (D-032).
 
 Optional on-device AI cleanup runs only while the app is open. It uses the
 on-device model when available; if it is unavailable, FastShoppr uses local
@@ -52,10 +58,8 @@ FastShoppr requests only these Android permissions, at the moment they are
 needed:
 
 - **Camera** — to photograph a handwritten list.
-- **Internet** — to look up aisles and nearby branches on public retailer pages
-  and, if needed, download an on-device model.
-- **Location (approximate)** — only when you tap **Use my location** in
-  **Settings → Nearest store**. FastShoppr does not request it at launch.
+- **Internet** — to look up aisles on public retailer pages and, if needed,
+  download an on-device model.
 - **Notifications** — to tell you when a scheduled list is created or an
   organized list is ready.
 - **Foreground service** — to keep a user-started Walmart WebView lookup alive
@@ -66,8 +70,10 @@ manual aisle entry remain available.
 
 ## How long data is kept
 
-- Recognized text and item data remain until you delete the item or list.
-- Deleted lists and items are kept for a 30-day restore window, then purged.
+- Recognized text, review drafts, and item data remain until you save or discard
+  the review, or delete the item or list.
+- Deleted lists, items, and capture sessions are kept for a 30-day restore
+  window, then purged.
 - Capture photos are stored in app-private cache and deleted after review is
   saved or discarded.
 - Aisle cache entries expire after 60 days by default.
@@ -75,8 +81,8 @@ manual aisle entry remain available.
 ## Delete your data
 
 Open **Settings → Privacy → Delete all data** and confirm. This removes every
-list, item, capture, cached aisle, setting, saved ZIP, saved store branch,
-store-locator cache, and queued task, clears WebView cookies and storage, and
-restores the built-in store list. The app returns to
-empty lists with built-in stores available. Uninstalling the app removes its
-app-private data; backup is disabled, so nothing is restored on reinstall.
+list, item, capture, review draft, cached aisle, setting, saved store branch,
+and queued task, clears WebView cookies and storage, and restores the built-in
+store list. The app returns to empty lists with built-in stores available.
+Uninstalling the app removes its app-private data; backup is disabled, so
+nothing is restored on reinstall.

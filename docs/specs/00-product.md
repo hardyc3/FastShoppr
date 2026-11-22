@@ -37,6 +37,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Bulk review and edit of recognized items.
 - Optional on-device AI cleanup with deterministic fallback.
 - Automatic aisle lookup for Walmart and Home Depot.
+- User-picked store branch from each retailer's public WebView locator, shown as verification context.
 - Manual aisle entry for every store, with caching so lookups aren't required every time.
 - Background organizing with notifications.
 - Aisle ascending/descending sorting within each store.

@@ -16,6 +16,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import java.util.Locale;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,12 +24,13 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public final class SettingsPreferencesTest {
 
+  private SharedPreferences preferences;
   private SettingsPreferences settings;
 
   @Before
   public void setUp() {
     Context context = ApplicationProvider.getApplicationContext();
-    SharedPreferences preferences =
+    preferences =
         context.getSharedPreferences("settings-test-" + System.nanoTime(), Context.MODE_PRIVATE);
     preferences.edit().clear().commit();
     settings = new SettingsPreferences(preferences);
@@ -44,8 +46,9 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.ASC, settings.getSortDirection());
     assertNull(settings.getLastCalendarMonth());
     assertFalse(settings.isOnboardingCompleted());
-    assertNull(settings.getStoreLocatorPostalCode());
+    assertNull(settings.getPreferredShoppingTime());
     assertNull(settings.getSelectedStoreJson(StoreBrand.WALMART));
+    assertNoZipKeys();
   }
 
   @Test
@@ -58,8 +61,9 @@ public final class SettingsPreferencesTest {
     settings.setSortDirection(SortDirection.DESC);
     settings.setLastCalendarMonth("2026-11");
     settings.setOnboardingCompleted(true);
-    settings.setStoreLocatorPostalCode("90210");
-    settings.setSelectedStoreJson(StoreBrand.WALMART, "{\"id\":\"123\"}");
+    settings.setPreferredShoppingTime("WEEKDAY_MORNING");
+    settings.setSelectedStoreJson(StoreBrand.WALMART, branchJson("Walmart #1"));
+    settings.setSelectedStoreJson(StoreBrand.HOME_DEPOT, branchJson("Home Depot #2"));
 
     assertEquals("default-store", settings.getDefaultStoreId());
     assertEquals("last-store", settings.getLastUsedStoreId());
@@ -69,7 +73,50 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.DESC, settings.getSortDirection());
     assertEquals("2026-11", settings.getLastCalendarMonth());
     assertTrue(settings.isOnboardingCompleted());
-    assertEquals("90210", settings.getStoreLocatorPostalCode());
-    assertEquals("{\"id\":\"123\"}", settings.getSelectedStoreJson(StoreBrand.WALMART));
+    assertEquals("WEEKDAY_MORNING", settings.getPreferredShoppingTime());
+    assertEquals(branchJson("Walmart #1"), settings.getSelectedStoreJson(StoreBrand.WALMART));
+    assertEquals(branchJson("Home Depot #2"), settings.getSelectedStoreJson(StoreBrand.HOME_DEPOT));
+    assertNoZipKeys();
+  }
+
+  @Test
+  public void storesOneBranchPerBrandUnderSeparateKeys() {
+    for (StoreBrand brand : StoreBrand.values()) {
+      settings.setSelectedStoreJson(brand, branchJson(brand.getDisplayName() + " branch"));
+    }
+
+    for (StoreBrand brand : StoreBrand.values()) {
+      assertEquals(
+          branchJson(brand.getDisplayName() + " branch"), settings.getSelectedStoreJson(brand));
+      assertTrue(preferences.contains("selected_store_" + brand.name()));
+    }
+    assertNoZipKeys();
+  }
+
+  @Test
+  public void clearAllRestoresDefaults() {
+    settings.setAiCleanupEnabled(true);
+    settings.setSelectedStoreJson(StoreBrand.TARGET, branchJson("Target #1"));
+    settings.setDefaultStoreId("default-store");
+
+    settings.clearAll();
+
+    assertNull(settings.getDefaultStoreId());
+    assertFalse(settings.isAiCleanupEnabled());
+    assertNull(settings.getSelectedStoreJson(StoreBrand.TARGET));
+    assertTrue(preferences.getAll().isEmpty());
+    assertNoZipKeys();
+  }
+
+  private void assertNoZipKeys() {
+    for (String key : preferences.getAll().keySet()) {
+      String lower = key.toLowerCase(Locale.US);
+      assertFalse(lower.contains("postal"));
+      assertFalse(lower.contains("zip"));
+    }
+  }
+
+  private static String branchJson(String name) {
+    return "{\"id\":\"1\",\"name\":\"" + name + "\",\"source\":\"LOCATOR\"}";
   }
 }

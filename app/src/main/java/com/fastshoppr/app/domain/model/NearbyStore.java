@@ -115,9 +115,6 @@ public final class NearbyStore {
     if (state != null && !state.isBlank()) {
       label.append(", ").append(state);
     }
-    if (postalCode != null && !postalCode.isBlank()) {
-      label.append(' ').append(postalCode);
-    }
     return label.toString();
   }
 }

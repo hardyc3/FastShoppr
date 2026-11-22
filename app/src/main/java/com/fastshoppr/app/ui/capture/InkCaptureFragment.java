@@ -51,7 +51,7 @@ public final class InkCaptureFragment extends Fragment {
 
     binding.btnUndo.setOnClickListener(v -> binding.inkCanvas.undoLastStroke());
     binding.btnClear.setOnClickListener(v -> binding.inkCanvas.resetStrokes());
-    binding.btnFinish.setOnClickListener(v -> viewModel.finish(binding.inkCanvas.getInkData()));
+    binding.btnSave.setOnClickListener(v -> viewModel.save(binding.inkCanvas.getInkData()));
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
@@ -63,7 +63,7 @@ public final class InkCaptureFragment extends Fragment {
     }
     boolean busy =
         state.recognizing() || state.modelState() == InkCaptureViewModel.ModelState.DOWNLOADING;
-    binding.btnFinish.setEnabled(!busy);
+    binding.btnSave.setEnabled(!busy);
     binding.btnUndo.setEnabled(!state.recognizing());
     binding.btnClear.setEnabled(!state.recognizing());
 
@@ -97,8 +97,14 @@ public final class InkCaptureFragment extends Fragment {
       return;
     }
     if (content instanceof InkCaptureViewModel.InkUiEvent.NavigateToReview navigate) {
-      Navigation.findNavController(requireView())
-          .navigate(R.id.review, NavArguments.forCapture(navigate.captureId()));
+      androidx.navigation.NavController controller = Navigation.findNavController(requireView());
+      String existingCaptureId = requireArguments().getString(NavArguments.CAPTURE_ID);
+      if (existingCaptureId != null
+          && !existingCaptureId.isBlank()
+          && controller.popBackStack(R.id.review, false)) {
+        return;
+      }
+      controller.navigate(R.id.review, NavArguments.forCapture(navigate.captureId()));
     } else if (content instanceof InkCaptureViewModel.InkUiEvent.ShowError error) {
       Snackbar.make(binding.getRoot(), UiErrorText.stringRes(error.error()), Snackbar.LENGTH_SHORT)
           .show();

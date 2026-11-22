@@ -33,7 +33,6 @@ import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
-import com.fastshoppr.app.ui.common.StoreOrdering;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
@@ -52,6 +51,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   private FragmentListDetailBinding binding;
   private ListDetailViewModel viewModel;
   private ListDetailAdapter adapter;
+  private List<Store> addableStores = List.of();
 
   @Inject StoreRepository storeRepository;
   @Inject SettingsRepository settingsRepository;
@@ -77,7 +77,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.listDetailRecycler.setAdapter(adapter);
 
     binding.sortToggleButton.setOnClickListener(v -> viewModel.toggleSortDirection());
-    binding.addStoreButton.setOnClickListener(v -> showAddStoreDialog());
+    binding.addStoreButton.setOnClickListener(v -> showAddStoreDialog(addableStores));
     binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
     binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
     binding.organizeButton.setOnClickListener(
@@ -90,6 +90,10 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
+    viewModel
+        .getAddableStores()
+        .observe(
+            getViewLifecycleOwner(), stores -> addableStores = stores == null ? List.of() : stores);
     viewModel.refresh();
   }
 
@@ -323,34 +327,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
         .show();
   }
 
-  private void showAddStoreDialog() {
-    executor.execute(
-        () -> {
-          List<Store> stores;
-          try {
-            stores = StoreOrdering.byBrandThenName(storeRepository.getActive());
-          } catch (Exception e) {
-            if (isAdded() && binding != null) {
-              requireActivity()
-                  .runOnUiThread(
-                      () -> {
-                        if (binding != null) {
-                          Snackbar.make(
-                                  binding.getRoot(),
-                                  R.string.add_store_load_failed,
-                                  Snackbar.LENGTH_SHORT)
-                              .show();
-                        }
-                      });
-            }
-            return;
-          }
-          if (isAdded()) {
-            requireActivity().runOnUiThread(() -> showAddStoreDialog(stores));
-          }
-        });
-  }
-
   private void showAddStoreDialog(List<Store> stores) {
     View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_store, null);
     Spinner spinner = dialogView.findViewById(R.id.store_spinner);
@@ -431,7 +407,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showStorePicker() {
-    // Store selection is now handled via the organize flow (WalmartStoreFragment).
+    // Branch selection is handled from Settings or the organize screen.
     // This method is kept for compatibility but does nothing.
   }
 

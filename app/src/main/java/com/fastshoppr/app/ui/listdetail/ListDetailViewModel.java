@@ -76,6 +76,7 @@ public final class ListDetailViewModel extends ViewModel {
   private final LiveData<ShoppingList> listLiveData;
   private final LiveData<List<ListItem>> itemsLiveData;
   private final LiveData<List<Store>> storesLiveData;
+  private final MutableLiveData<List<Store>> addableStores = new MutableLiveData<>(List.of());
   private final MutableLiveData<ListDetailUiState> state =
       new MutableLiveData<>(ListDetailUiState.loading());
   private final MutableLiveData<SingleEvent<ListDetailUiEvent>> events = new MutableLiveData<>();
@@ -149,6 +150,11 @@ public final class ListDetailViewModel extends ViewModel {
 
   public LiveData<SingleEvent<ListDetailUiEvent>> getEvents() {
     return events;
+  }
+
+  /** Active stores ordered for the add-store dialog; the Fragment never queries or sorts. */
+  public LiveData<List<Store>> getAddableStores() {
+    return addableStores;
   }
 
   public void refresh() {
@@ -401,6 +407,7 @@ public final class ListDetailViewModel extends ViewModel {
 
   private void onStoresChanged(List<Store> activeStores) {
     stores = activeStores == null ? List.of() : activeStores;
+    addableStores.setValue(StoreOrdering.byBrandThenName(stores));
     storesLoaded = true;
     rebuild();
   }

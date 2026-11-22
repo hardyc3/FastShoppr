@@ -22,19 +22,25 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentLookupBinding;
+import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingCounts;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.util.EnumSet;
 
 @AndroidEntryPoint
 public final class LookupFragment extends Fragment {
 
+  private static final String KEY_PROMPTED_BRANDS = "prompted_branch_brands";
+
   private FragmentLookupBinding binding;
   private LookupViewModel viewModel;
+  private final EnumSet<StoreBrand> promptedBrands = EnumSet.noneOf(StoreBrand.class);
   private boolean autoStarted;
-  private boolean waitingStoreVerification;
+  private boolean branchPickerVisible;
   private ActivityResultLauncher<String> notificationPermissionLauncher;
 
   @Nullable
@@ -50,6 +56,18 @@ public final class LookupFragment extends Fragment {
   @Override
   public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    if (savedInstanceState != null) {
+      String[] restored = savedInstanceState.getStringArray(KEY_PROMPTED_BRANDS);
+      if (restored != null) {
+        for (String name : restored) {
+          try {
+            promptedBrands.add(StoreBrand.valueOf(name));
+          } catch (IllegalArgumentException ignored) {
+            // Stale brand name; ignore it.
+          }
+        }
+      }
+    }
     notificationPermissionLauncher =
         registerForActivityResult(
             new ActivityResultContracts.RequestPermission(),
@@ -83,57 +101,51 @@ public final class LookupFragment extends Fragment {
     viewModel.getCounts().observe(getViewLifecycleOwner(), this::renderCounts);
     viewModel.getPerStoreDetails().observe(getViewLifecycleOwner(), this::renderDetails);
     viewModel
-        .getWalmartVerified()
+        .getMissingBranch()
         .observe(
             getViewLifecycleOwner(),
-            verified -> {
-              if (waitingStoreVerification && Boolean.TRUE.equals(verified)) {
-                waitingStoreVerification = false;
-                if (!autoStarted && !viewModel.isRunning()) {
-                  autoStarted = true;
-                  startOrganizingWithPermission();
-                }
+            brand -> {
+              if (brand != null && !autoStarted) {
+                openBranchPicker((StoreBrand) brand, false);
+              }
+            });
+    viewModel
+        .getBranchCheckDone()
+        .observe(
+            getViewLifecycleOwner(),
+            done -> {
+              if (!Boolean.TRUE.equals(done)
+                  || autoStarted
+                  || branchPickerVisible
+                  || !Boolean.TRUE.equals(viewModel.getBranchesReady().getValue())) {
+                return;
+              }
+              autoStarted = true;
+              if (!viewModel.isRunning()) {
+                startOrganizingWithPermission();
               }
             });
 
     viewModel.loadContext();
-    maybeAutoOrganize();
   }
 
   @Override
   public void onResume() {
     super.onResume();
+    branchPickerVisible = false;
     viewModel.loadContext();
-    if (waitingStoreVerification) {
-      // returning from store picker; observe will trigger if verified
-    }
-  }
-
-  private void maybeAutoOrganize() {
-    if (autoStarted) {
-      return;
-    }
-    viewModel
-        .getHasWalmart()
-        .observe(
-            getViewLifecycleOwner(),
-            hasWalmart -> {
-              if (autoStarted) return;
-              Boolean verified = viewModel.getWalmartVerified().getValue();
-              if (Boolean.TRUE.equals(hasWalmart) && !Boolean.TRUE.equals(verified)) {
-                waitingStoreVerification = true;
-                autoStarted = true; // prevent duplicate nav
-                Navigation.findNavController(requireView()).navigate(R.id.lookup_to_walmart_store);
-                return;
-              }
-              if (!viewModel.isRunning()) {
-                autoStarted = true;
-                startOrganizingWithPermission();
-              }
-            });
   }
 
   private void startOrganizingWithPermission() {
+    if (!Boolean.TRUE.equals(viewModel.getBranchCheckDone().getValue())) {
+      viewModel.loadContext();
+      return;
+    }
+    StoreBrand missing = (StoreBrand) viewModel.getMissingBranch().getValue();
+    if (missing != null) {
+      openBranchPicker(missing, true);
+      return;
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       if (ContextCompat.checkSelfPermission(
               requireContext(), Manifest.permission.POST_NOTIFICATIONS)
@@ -154,6 +166,16 @@ public final class LookupFragment extends Fragment {
       }
     }
     viewModel.organizeNow();
+  }
+
+  private void openBranchPicker(StoreBrand brand, boolean force) {
+    if (brand == null || branchPickerVisible || (!force && promptedBrands.contains(brand))) {
+      return;
+    }
+    promptedBrands.add(brand);
+    branchPickerVisible = true;
+    Navigation.findNavController(requireView())
+        .navigate(R.id.lookup_to_branch_picker, NavArguments.forBranch(brand));
   }
 
   private void renderStoreContext(String context) {
@@ -200,6 +222,17 @@ public final class LookupFragment extends Fragment {
       return;
     }
     binding.lookupLog.setText(details);
+  }
+
+  @Override
+  public void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    String[] brands = new String[promptedBrands.size()];
+    int index = 0;
+    for (StoreBrand brand : promptedBrands) {
+      brands[index++] = brand.name();
+    }
+    outState.putStringArray(KEY_PROMPTED_BRANDS, brands);
   }
 
   @Override

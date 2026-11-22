@@ -131,7 +131,6 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.okhttp)
     implementation(libs.jsoup)
-    implementation(libs.play.services.location)
     implementation(libs.camera.core)
     implementation(libs.camera.camera2)
     implementation(libs.camera.lifecycle)

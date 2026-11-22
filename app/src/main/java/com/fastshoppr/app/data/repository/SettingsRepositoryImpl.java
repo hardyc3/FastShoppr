@@ -102,16 +102,6 @@ public final class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @Override
-  public boolean isWalmartStoreVerified() {
-    return preferences.isWalmartStoreVerified();
-  }
-
-  @Override
-  public void setWalmartStoreVerified(boolean verified) {
-    preferences.setWalmartStoreVerified(verified);
-  }
-
-  @Override
   public String getPreferredShoppingTime() {
     return preferences.getPreferredShoppingTime();
   }

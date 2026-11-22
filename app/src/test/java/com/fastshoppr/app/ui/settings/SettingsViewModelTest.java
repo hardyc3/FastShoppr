@@ -10,29 +10,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.model.AiAvailability;
-import com.fastshoppr.app.domain.model.GeoPoint;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.StoreBrand;
-import com.fastshoppr.app.domain.model.StoreLocatorBlockedException;
-import com.fastshoppr.app.domain.repository.LocationSource;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase;
-import com.fastshoppr.app.domain.usecase.FindNearbyStoresUseCase;
 import com.fastshoppr.app.domain.usecase.ForgetSelectedStoreUseCase;
 import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
-import com.fastshoppr.app.domain.usecase.SaveSelectedStoreUseCase;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
@@ -49,9 +43,6 @@ public final class SettingsViewModelTest {
   private final ItemNameCleanerCoordinator cleanerCoordinator =
       mock(ItemNameCleanerCoordinator.class);
   private final DeleteAllDataUseCase deleteAllDataUseCase = mock(DeleteAllDataUseCase.class);
-  private final LocationSource locationSource = mock(LocationSource.class);
-  private final FindNearbyStoresUseCase findNearbyStores = mock(FindNearbyStoresUseCase.class);
-  private final SaveSelectedStoreUseCase saveSelectedStore = mock(SaveSelectedStoreUseCase.class);
   private final ForgetSelectedStoreUseCase forgetSelectedStore =
       mock(ForgetSelectedStoreUseCase.class);
   private final GetSelectedStoresUseCase getSelectedStores = mock(GetSelectedStoresUseCase.class);
@@ -70,10 +61,6 @@ public final class SettingsViewModelTest {
         settingsRepository,
         cleanerCoordinator,
         deleteAllDataUseCase,
-        Runnable::run,
-        locationSource,
-        findNearbyStores,
-        saveSelectedStore,
         forgetSelectedStore,
         getSelectedStores);
   }
@@ -159,12 +146,66 @@ public final class SettingsViewModelTest {
   }
 
   @Test
-  public void deleteAllDataPublishesOneSuccessEvent() {
+  public void downloadIsIgnoredUnlessModelIsDownloadable() {
+    when(cleanerCoordinator.availability())
+        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Available()));
+    viewModel.load();
+
+    viewModel.downloadModel();
+
+    verify(cleanerCoordinator, never()).downloadModel(any());
+  }
+
+  @Test
+  public void savedBranchesAppearInStatePerBrand() {
+    Map<StoreBrand, NearbyStore> saved = Map.of(StoreBrand.WALMART, store(StoreBrand.WALMART));
+    when(getSelectedStores.execute()).thenReturn(saved);
+
+    viewModel = newViewModel();
+
+    assertEquals(saved, viewModel.getState().getValue().getSelectedStores());
+    assertEquals(1, viewModel.getState().getValue().getSelectedStores().size());
+  }
+
+  @Test
+  public void refreshReloadsBranchesAfterReturningFromBranchPicker() {
+    when(getSelectedStores.execute())
+        .thenReturn(Collections.emptyMap(), Map.of(StoreBrand.TARGET, store(StoreBrand.TARGET)));
+    viewModel = newViewModel();
+    assertTrue(viewModel.getState().getValue().getSelectedStores().isEmpty());
+
+    viewModel.refresh();
+
+    assertTrue(viewModel.getState().getValue().getSelectedStores().containsKey(StoreBrand.TARGET));
+  }
+
+  @Test
+  public void forgetStoreClearsItsBranchAndEmitsMessage() {
+    NearbyStore walmart = store(StoreBrand.WALMART);
+    when(getSelectedStores.execute())
+        .thenReturn(Map.of(StoreBrand.WALMART, walmart), Collections.emptyMap());
+    viewModel = newViewModel();
+    assertEquals(
+        walmart, viewModel.getState().getValue().getSelectedStores().get(StoreBrand.WALMART));
+
+    viewModel.forgetStore(StoreBrand.WALMART);
+
+    verify(forgetSelectedStore).execute(StoreBrand.WALMART);
+    assertTrue(viewModel.getState().getValue().getSelectedStores().isEmpty());
+    assertEquals(
+        SettingsViewModel.StoreMessage.STORE_REMOVED,
+        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+    assertNull(viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+  }
+
+  @Test
+  public void deleteAllDataPublishesOneSuccessEventAndRefreshesBranches() {
     viewModel.deleteAllData();
 
     verify(deleteAllDataUseCase).execute();
     assertTrue(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
     assertNull(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+    verify(getSelectedStores, times(2)).execute();
   }
 
   @Test
@@ -177,210 +218,6 @@ public final class SettingsViewModelTest {
     assertFalse(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
   }
 
-  @Test
-  public void downloadIsIgnoredUnlessModelIsDownloadable() {
-    when(cleanerCoordinator.availability())
-        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Available()));
-    viewModel.load();
-
-    viewModel.downloadModel();
-
-    verify(cleanerCoordinator, never()).downloadModel(any());
-  }
-
-  @Test
-  public void savePostalCodePersistsAndPublishes() {
-    viewModel.savePostalCode("  90210  ");
-
-    verify(saveSelectedStore).savePostalCode("90210");
-    assertEquals("90210", viewModel.getState().getValue().getPostalCode());
-    assertEquals(
-        SettingsViewModel.StoreMessage.ZIP_SAVED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void blankPostalCodeReportsErrorWithoutSaving() {
-    viewModel.savePostalCode("   ");
-
-    verify(saveSelectedStore, never()).savePostalCode(any());
-    assertEquals(
-        SettingsViewModel.StoreMessage.ZIP_REQUIRED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void manualStoreIsSavedForSelectedBrand() {
-    viewModel.saveManualStore(StoreBrand.SMITHS, "  Smiths Marketplace ", "123 Market St");
-
-    org.mockito.ArgumentCaptor<NearbyStore> captor =
-        org.mockito.ArgumentCaptor.forClass(NearbyStore.class);
-    verify(saveSelectedStore).execute(captor.capture());
-    NearbyStore saved = captor.getValue();
-    assertEquals(StoreBrand.SMITHS, saved.getBrand());
-    assertEquals("Smiths Marketplace", saved.getName());
-    assertEquals("123 Market St", saved.getAddressLine());
-    assertEquals(NearbyStoreSource.MANUAL, saved.getSource());
-  }
-
-  @Test
-  public void savedStoreAppearsInStateAfterSelection() {
-    NearbyStore store =
-        new NearbyStore(
-            "store-1",
-            StoreBrand.WALMART,
-            "Walmart Supercenter",
-            "1 Main St",
-            null,
-            null,
-            "90210",
-            null,
-            null,
-            NearbyStoreSource.MANUAL);
-    when(getSelectedStores.execute()).thenReturn(Map.of(StoreBrand.WALMART, store));
-
-    viewModel.saveStore(store);
-
-    assertEquals(
-        store, viewModel.getState().getValue().getSelectedStores().get(StoreBrand.WALMART));
-    assertEquals(
-        SettingsViewModel.StoreMessage.STORE_SAVED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void postalCodeSearchRequiresSavedZip() {
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-
-    verify(findNearbyStores, never()).execute(any(), any(), any());
-    assertEquals(
-        SettingsViewModel.StoreMessage.ZIP_REQUIRED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void postalCodeSearchPublishesCandidatesWithSearchedBrand() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    NearbyStore store = nearbyStore();
-    when(findNearbyStores.execute(StoreBrand.TARGET, null, "90210"))
-        .thenReturn(CompletableFuture.completedFuture(List.of(store)));
-
-    viewModel.findNearbyUsingPostalCode(StoreBrand.TARGET);
-
-    SettingsViewModel.StoreSearchResults results =
-        viewModel.getNearbyStoresEvent().getValue().getContentIfNotHandled();
-    assertEquals(StoreBrand.TARGET, results.getBrand());
-    assertEquals(List.of(store), results.getStores());
-    assertFalse(viewModel.getState().getValue().isStoreSearching());
-  }
-
-  @Test
-  public void postalCodeSearchReportsNoResultsMessage() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    when(findNearbyStores.execute(StoreBrand.WALMART, null, "90210"))
-        .thenReturn(CompletableFuture.completedFuture(List.of()));
-
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-
-    assertEquals(
-        SettingsViewModel.StoreMessage.NO_RESULTS,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void blockedSearchReportsBlockedMessage() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    when(findNearbyStores.execute(StoreBrand.WALMART, null, "90210"))
-        .thenReturn(
-            failedFuture(
-                new StoreLocatorBlockedException("The store locator blocked this request")));
-
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-
-    assertEquals(
-        SettingsViewModel.StoreMessage.BLOCKED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void failedSearchReportsGenericMessage() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    when(findNearbyStores.execute(StoreBrand.WALMART, null, "90210"))
-        .thenReturn(failedFuture(new IllegalStateException("network down")));
-
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-
-    assertEquals(
-        SettingsViewModel.StoreMessage.SEARCH_FAILED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-  }
-
-  @Test
-  public void locationSearchPublishesCandidatesWithSearchedBrand() {
-    GeoPoint origin = new GeoPoint(39.78, -89.64);
-    NearbyStore store = nearbyStore();
-    when(locationSource.lastKnownLocation()).thenReturn(CompletableFuture.completedFuture(origin));
-    when(findNearbyStores.execute(StoreBrand.TARGET, origin, null))
-        .thenReturn(CompletableFuture.completedFuture(List.of(store)));
-
-    viewModel.findNearbyUsingLocation(StoreBrand.TARGET);
-
-    SettingsViewModel.StoreSearchResults results =
-        viewModel.getNearbyStoresEvent().getValue().getContentIfNotHandled();
-    assertEquals(StoreBrand.TARGET, results.getBrand());
-    assertEquals(List.of(store), results.getStores());
-    assertFalse(viewModel.getState().getValue().isStoreSearching());
-  }
-
-  @Test
-  public void staleLocationResultDoesNotStartAnotherSearch() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    CompletableFuture<GeoPoint> pendingLocation = new CompletableFuture<>();
-    when(locationSource.lastKnownLocation()).thenReturn(pendingLocation);
-    when(findNearbyStores.execute(any(), any(), any()))
-        .thenReturn(CompletableFuture.completedFuture(List.of()));
-
-    viewModel.findNearbyUsingLocation(StoreBrand.HOME_DEPOT);
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-    pendingLocation.complete(new GeoPoint(39.78, -89.64));
-
-    verify(findNearbyStores).execute(StoreBrand.WALMART, null, "90210");
-    verify(findNearbyStores, never()).execute(eq(StoreBrand.HOME_DEPOT), any(), any());
-  }
-
-  @Test
-  public void invalidSearchRequestReportsFailureWithoutCrashing() {
-    when(getSelectedStores.getPostalCode()).thenReturn("90210");
-    viewModel = newViewModel();
-    when(findNearbyStores.execute(StoreBrand.WALMART, null, "90210"))
-        .thenThrow(new IllegalArgumentException("unsupported brand"));
-
-    viewModel.findNearbyUsingPostalCode(StoreBrand.WALMART);
-
-    verify(findNearbyStores).execute(StoreBrand.WALMART, null, "90210");
-    assertEquals(
-        SettingsViewModel.StoreMessage.SEARCH_FAILED,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-    assertFalse(viewModel.getState().getValue().isStoreSearching());
-  }
-
-  @Test
-  public void locationSearchReportsUnavailableWhenNoFixExists() {
-    when(locationSource.lastKnownLocation()).thenReturn(CompletableFuture.completedFuture(null));
-
-    viewModel.findNearbyUsingLocation(StoreBrand.HOME_DEPOT);
-
-    assertEquals(
-        SettingsViewModel.StoreMessage.LOCATION_UNAVAILABLE,
-        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
-    verify(findNearbyStores, never()).execute(any(), any(), any());
-  }
-
   private void assertMapped(AiAvailability availability, SettingsViewModel.AiStatus expected) {
     when(cleanerCoordinator.availability())
         .thenReturn(CompletableFuture.completedFuture(availability));
@@ -390,15 +227,15 @@ public final class SettingsViewModelTest {
     assertEquals(expected, viewModel.getState().getValue().getAiStatus());
   }
 
-  private static NearbyStore nearbyStore() {
+  private static NearbyStore store(StoreBrand brand) {
     return new NearbyStore(
-        "store-1",
-        StoreBrand.TARGET,
-        "Target #1",
+        brand.name(),
+        brand,
+        brand.getDisplayName() + " #123",
         "1 Main St",
-        "Springfield",
-        "IL",
-        "62701",
+        null,
+        null,
+        null,
         null,
         null,
         NearbyStoreSource.LOCATOR);

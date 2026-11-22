@@ -7,16 +7,15 @@ package com.fastshoppr.app;
 
 import static androidx.test.espresso.Espresso.onView;
 import static androidx.test.espresso.action.ViewActions.click;
-import static androidx.test.espresso.action.ViewActions.replaceText;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
-import static androidx.test.espresso.matcher.ViewMatchers.withHint;
+import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import android.os.SystemClock;
 import android.view.View;
@@ -59,40 +58,76 @@ public final class SettingsStoreSelectionTest {
   }
 
   @Test
-  public void savesZipAndManualStoreAndShowsSummary() {
+  public void savedBranchesAppearInSummaryWithoutZip() {
+    selectedStoreRepository.select(branch(StoreBrand.WALMART, "Walmart #123", "1 Main St"));
+    selectedStoreRepository.select(branch(StoreBrand.HOME_DEPOT, "Home Depot #456", "2 Oak Ave"));
+
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
-      waitFor(() -> onFocusedView(withId(R.id.storeZipInput)).check(matches(isDisplayed())));
-
-      onFocusedView(withId(R.id.storeZipInput)).perform(replaceText("90210"));
-      onFocusedView(withId(R.id.btnSaveZip)).perform(click());
       waitFor(
           () ->
               onFocusedView(withId(R.id.storeSummary))
-                  .check(matches(withText(containsString("ZIP: 90210")))));
+                  .check(matches(withText(containsString("Walmart #123 — 1 Main St")))));
 
-      onFocusedView(withId(R.id.btnEnterStoreManually)).perform(click());
-      waitFor(
-          () ->
-              onFocusedView(withHint(R.string.settings_store_manual_name_hint))
-                  .check(matches(isDisplayed())));
-      onFocusedView(withHint(R.string.settings_store_manual_name_hint))
-          .perform(replaceText("Walmart #123"));
-      onFocusedView(withHint(R.string.settings_store_manual_address_hint))
-          .perform(replaceText("1 Main St"));
-      onFocusedView(withId(android.R.id.button1)).perform(click());
-
-      waitFor(
-          () ->
-              onFocusedView(withId(R.id.storeSummary))
-                  .check(matches(withText(containsString("Walmart: Walmart #123 — 1 Main St")))));
+      onFocusedView(withId(R.id.storeSummary))
+          .check(matches(withText(containsString("Home Depot #456 — 2 Oak Ave"))));
+      onFocusedView(withId(R.id.storeSummary))
+          .check(matches(withText(org.hamcrest.Matchers.not(containsString("ZIP")))));
+      onFocusedView(withText(containsString("No ZIP code"))).check(matches(isDisplayed()));
 
       NearbyStore saved = selectedStoreRepository.getSelected(StoreBrand.WALMART);
       assertNotNull(saved);
-      assertEquals("Walmart #123", saved.getName());
-      assertEquals("1 Main St", saved.getAddressLine());
-      assertEquals(NearbyStoreSource.MANUAL, saved.getSource());
-      assertEquals("90210", selectedStoreRepository.getPostalCode());
+      assertNull(saved.getPostalCode());
+    }
+  }
+
+  @Test
+  public void brandPickerControlsUseCurrentBrandsAndExplainPrivacy() {
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      onFocusedView(withId(R.id.open_settings_button)).perform(click());
+      waitFor(
+          () ->
+              onFocusedView(
+                      allOf(
+                          withId(R.id.storeBrandSpinner),
+                          withContentDescription(R.string.settings_store_brand_label)))
+                  .check(matches(isDisplayed())));
+
+      onFocusedView(withId(R.id.storeBrandSpinner)).perform(click());
+      onFocusedView(withText(R.string.brand_home_depot)).perform(click());
+
+      onFocusedView(allOf(withId(R.id.btnPickBranch), withText(R.string.settings_store_find)))
+          .check(matches(isDisplayed()));
+      onFocusedView(withText(containsString("No ZIP code"))).check(matches(isDisplayed()));
+    }
+  }
+
+  @Test
+  public void forgetDialogRemovesOnlySelectedBranch() {
+    selectedStoreRepository.select(branch(StoreBrand.WALMART, "Walmart #123", "1 Main St"));
+    selectedStoreRepository.select(branch(StoreBrand.HOME_DEPOT, "Home Depot #456", "2 Oak Ave"));
+
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      onFocusedView(withId(R.id.open_settings_button)).perform(click());
+      waitFor(() -> onFocusedView(withId(R.id.btnForgetSavedStore)).check(matches(isDisplayed())));
+
+      onFocusedView(withId(R.id.btnForgetSavedStore)).perform(click());
+      waitFor(
+          () ->
+              onFocusedView(withText(R.string.settings_store_forget_title))
+                  .check(matches(isDisplayed())));
+      onFocusedView(withText(containsString("Walmart #123"))).perform(click());
+      onFocusedView(withText(R.string.settings_store_remove)).perform(click());
+
+      waitFor(
+          () -> {
+            assertNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
+            onFocusedView(withId(R.id.storeSummary))
+                .check(matches(withText(containsString("Home Depot #456"))));
+          });
+      assertNotNull(selectedStoreRepository.getSelected(StoreBrand.HOME_DEPOT));
+      onFocusedView(withId(R.id.storeSummary))
+          .check(matches(withText(org.hamcrest.Matchers.not(containsString("Walmart #123")))));
     }
   }
 
@@ -102,7 +137,20 @@ public final class SettingsStoreSelectionTest {
         selectedStoreRepository.clear(brand);
       }
     }
-    selectedStoreRepository.setPostalCode(null);
+  }
+
+  private static NearbyStore branch(StoreBrand brand, String name, String address) {
+    return new NearbyStore(
+        "branch-" + brand.name(),
+        brand,
+        name,
+        address,
+        "Denver",
+        "CO",
+        null,
+        null,
+        null,
+        NearbyStoreSource.LOCATOR);
   }
 
   private static ViewInteraction onFocusedView(Matcher<View> matcher) {

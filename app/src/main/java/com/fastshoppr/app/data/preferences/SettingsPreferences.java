@@ -21,9 +21,7 @@ public final class SettingsPreferences {
   private static final String KEY_SORT_DIRECTION = "sort_direction";
   private static final String KEY_LAST_CALENDAR_MONTH = "last_calendar_month";
   private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
-  private static final String KEY_WALMART_STORE_VERIFIED = "walmart_store_verified";
   private static final String KEY_PREFERRED_SHOPPING_TIME = "preferred_shopping_time";
-  private static final String KEY_STORE_LOCATOR_POSTAL_CODE = "store_locator_postal_code";
   private static final String KEY_SELECTED_STORE_PREFIX = "selected_store_";
 
   private final SharedPreferences preferences;
@@ -101,28 +99,12 @@ public final class SettingsPreferences {
     preferences.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply();
   }
 
-  public boolean isWalmartStoreVerified() {
-    return preferences.getBoolean(KEY_WALMART_STORE_VERIFIED, false);
-  }
-
-  public void setWalmartStoreVerified(boolean verified) {
-    preferences.edit().putBoolean(KEY_WALMART_STORE_VERIFIED, verified).apply();
-  }
-
   public String getPreferredShoppingTime() {
     return preferences.getString(KEY_PREFERRED_SHOPPING_TIME, null);
   }
 
   public void setPreferredShoppingTime(String time) {
     preferences.edit().putString(KEY_PREFERRED_SHOPPING_TIME, time).apply();
-  }
-
-  public String getStoreLocatorPostalCode() {
-    return preferences.getString(KEY_STORE_LOCATOR_POSTAL_CODE, null);
-  }
-
-  public void setStoreLocatorPostalCode(String postalCode) {
-    preferences.edit().putString(KEY_STORE_LOCATOR_POSTAL_CODE, postalCode).apply();
   }
 
   public String getSelectedStoreJson(StoreBrand brand) {

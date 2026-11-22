@@ -38,8 +38,9 @@ Rules:
 - The five chain brands are seeded or created on demand.
 - `isCustom` is true only for user-defined local stores (post-MVP UI).
 - `isArchived` hides a store from active selection while keeping its referenced history.
-- A store is selected per item; the nearest store is the default suggestion.
-- Location coordinates are stored locally and never logged or transmitted.
+- A store is selected per item; the default is the first active store by brand order.
+- One physical branch per supported brand may be saved as verification context. It is chosen by the user in a WebView locator and is never inferred from device location.
+- Device location coordinates and user-entered ZIP codes are neither collected nor stored.
 
 ### ShoppingList
 

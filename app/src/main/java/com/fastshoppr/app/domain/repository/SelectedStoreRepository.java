@@ -19,8 +19,4 @@ public interface SelectedStoreRepository {
   void select(NearbyStore store);
 
   void clear(StoreBrand brand);
-
-  String getPostalCode();
-
-  void setPostalCode(String postalCode);
 }

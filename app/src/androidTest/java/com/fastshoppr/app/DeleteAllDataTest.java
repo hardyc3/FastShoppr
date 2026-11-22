@@ -9,7 +9,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -30,6 +29,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
 import java.io.File;
+import java.util.Locale;
 import javax.inject.Inject;
 import org.junit.After;
 import org.junit.Before;
@@ -74,43 +74,61 @@ public final class DeleteAllDataTest {
   }
 
   @Test
-  public void deleteAllDataClearsListsPrefsAndImagesButKeepsSeedStores() throws Exception {
+  public void deleteAllDataClearsListsPrefsBranchesAndImagesButKeepsSeedStores() throws Exception {
     shoppingListDao.insert(
         new ShoppingListEntity(
             "list-to-delete", "Weekly", "2026-11-20", null, false, false, null, 1_000L, 1_000L));
     settingsPreferences.setAiCleanupEnabled(true);
     settingsPreferences.setLastCalendarMonth("2026-11");
-    selectedStoreRepository.setPostalCode("90210");
-    selectedStoreRepository.select(
-        new NearbyStore(
-            "123",
-            StoreBrand.WALMART,
-            "Walmart #123",
-            null,
-            null,
-            null,
-            "90210",
-            null,
-            null,
-            NearbyStoreSource.MANUAL));
+    selectedStoreRepository.select(branch(StoreBrand.WALMART, "Walmart #123"));
+    selectedStoreRepository.select(branch(StoreBrand.HOME_DEPOT, "Home Depot #456"));
     File image = captureImageStore.newImageFile();
-    SharedPreferences locatorCache =
-        appContext.getSharedPreferences("fastshoppr_store_locator_cache", Context.MODE_PRIVATE);
-    locatorCache.edit().putString("stale-entry", "cached").commit();
+
+    SharedPreferences settings =
+        appContext.getSharedPreferences(SettingsPreferences.PREFS_NAME, Context.MODE_PRIVATE);
+    String savedWalmartJson = settingsPreferences.getSelectedStoreJson(StoreBrand.WALMART);
+    assertNotNull(savedWalmartJson);
+    assertFalse(savedWalmartJson.contains("postalCode"));
+    assertFalse(savedWalmartJson.contains("\"postal\""));
+    assertNoZipKeys(settings);
 
     assertEquals(1, shoppingListDao.getActive().size());
-    assertTrue(locatorCache.contains("stale-entry"));
     assertNotNull(settingsPreferences.getLastCalendarMonth());
     assertNotNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
+    assertNotNull(selectedStoreRepository.getSelected(StoreBrand.HOME_DEPOT));
 
     userDataRepository.deleteAllData().get();
 
     assertEquals(0, shoppingListDao.getActive().size());
     assertNull(settingsPreferences.getLastCalendarMonth());
     assertFalse(settingsPreferences.isAiCleanupEnabled());
-    assertNull(selectedStoreRepository.getPostalCode());
     assertNull(selectedStoreRepository.getSelected(StoreBrand.WALMART));
+    assertNull(selectedStoreRepository.getSelected(StoreBrand.HOME_DEPOT));
+    assertNull(settingsPreferences.getSelectedStoreJson(StoreBrand.WALMART));
     assertFalse(image.exists());
     assertEquals(5, storeDao.getActive().size());
+    assertNoZipKeys(settings);
+  }
+
+  private static NearbyStore branch(StoreBrand brand, String name) {
+    return new NearbyStore(
+        "branch-" + brand.name(),
+        brand,
+        name,
+        "1 Main St",
+        "Denver",
+        "CO",
+        null,
+        null,
+        null,
+        NearbyStoreSource.LOCATOR);
+  }
+
+  private static void assertNoZipKeys(SharedPreferences preferences) {
+    for (String key : preferences.getAll().keySet()) {
+      String lower = key.toLowerCase(Locale.US);
+      assertFalse(lower.contains("postal"));
+      assertFalse(lower.contains("zip"));
+    }
   }
 }

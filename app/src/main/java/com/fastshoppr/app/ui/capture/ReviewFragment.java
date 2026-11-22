@@ -26,6 +26,7 @@ import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StorePickerDialog;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.common.UiMessageText;
+import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
@@ -72,7 +73,7 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
         });
     binding.btnDeleteSelected.setOnClickListener(v -> viewModel.deleteSelected());
     binding.btnMergeSelected.setOnClickListener(v -> viewModel.mergeSelected());
-    binding.btnAddLine.setOnClickListener(v -> viewModel.addLine(""));
+    binding.btnAddLine.setOnClickListener(v -> viewModel.addLine());
     binding.btnSplit.setOnClickListener(v -> onSplitClicked());
     binding.btnSave.setOnClickListener(v -> viewModel.saveSelected());
     binding.btnDiscard.setOnClickListener(v -> viewModel.discard());
@@ -141,6 +142,11 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
     } else if (content instanceof ReviewViewModel.ReviewUiEvent.SelectionChanged) {
       refreshLines();
       syncSelectAll();
+    } else if (content instanceof ReviewViewModel.ReviewUiEvent.NavigateToInk navigate) {
+      Navigation.findNavController(requireView())
+          .navigate(
+              R.id.review_to_ink,
+              NavArguments.forCaptureInList(navigate.listId(), navigate.captureId()));
     } else if (content instanceof ReviewViewModel.ReviewUiEvent.SaveCompleted
         || content instanceof ReviewViewModel.ReviewUiEvent.Discarded) {
       navigateBackAfterReview();
@@ -163,6 +169,7 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
     ItemSource source = viewModel.getSource();
     boolean photoSource = source == ItemSource.CAMERA_OCR || source == ItemSource.GALLERY_OCR;
     binding.reviewNote.setVisibility(photoSource ? View.VISIBLE : View.GONE);
+    binding.btnAddLine.setVisibility(source == ItemSource.DIGITAL_INK ? View.VISIBLE : View.GONE);
   }
 
   private void syncSelectAll() {
@@ -188,7 +195,10 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
   }
 
   private void navigateBackAfterReview() {
-    Navigation.findNavController(requireView()).popBackStack();
+    androidx.navigation.NavController controller = Navigation.findNavController(requireView());
+    if (!controller.popBackStack(R.id.list_detail, false)) {
+      controller.popBackStack();
+    }
   }
 
   private void refreshLines() {
@@ -254,6 +264,15 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
   private LocalDate parseDate(@Nullable String value) {
     LocalDate parsed = DateText.parseIsoOrNull(value);
     return parsed == null ? LocalDate.now() : parsed;
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    if (viewModel != null
+        && !NavArguments.PLACEHOLDER_CAPTURE_ID.equals(viewModel.getCaptureId())) {
+      viewModel.reloadCapture();
+    }
   }
 
   @Override

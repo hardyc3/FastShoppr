@@ -7,6 +7,7 @@ package com.fastshoppr.app.data.repository;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
+import com.fastshoppr.app.data.capture.CapturedLinesCodec;
 import com.fastshoppr.app.data.capture.RecognizedLinesCodec;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
@@ -16,6 +17,7 @@ import com.fastshoppr.app.data.repository.mappers.CaptureSessionMapper;
 import com.fastshoppr.app.data.repository.mappers.ListItemMapper;
 import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
@@ -34,6 +36,7 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
   private final ListItemDao listItemDao;
   private final Clock clock;
   private final RecognizedLinesCodec codec;
+  private final CapturedLinesCodec draftCodec;
 
   @Inject
   public CaptureRepositoryImpl(
@@ -41,12 +44,14 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
       CaptureSessionDao captureDao,
       ListItemDao listItemDao,
       Clock clock,
-      RecognizedLinesCodec codec) {
+      RecognizedLinesCodec codec,
+      CapturedLinesCodec draftCodec) {
     this.database = database;
     this.captureDao = captureDao;
     this.listItemDao = listItemDao;
     this.clock = clock;
     this.codec = codec;
+    this.draftCodec = draftCodec;
   }
 
   @Override
@@ -135,5 +140,22 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
   @Override
   public List<RecognizedLine> decodeRecognizedLines(String json) {
     return codec.decode(json);
+  }
+
+  @Override
+  public String encodeDraft(List<CapturedLine> lines) {
+    return draftCodec.encode(lines);
+  }
+
+  @Override
+  public List<CapturedLine> decodeDraft(String json) {
+    return draftCodec.decode(json);
+  }
+
+  @Override
+  public void updateDraft(String captureId, String draftJson, Long completedAt) {
+    if (captureDao.updateDraft(captureId, draftJson, completedAt) == 0) {
+      throw new NotFoundException("Capture session not found: " + captureId);
+    }
   }
 }

@@ -36,8 +36,9 @@ public final class SelectedStoreRepositoryImpl implements SelectedStoreRepositor
       return null;
     }
     try {
-      return gson.fromJson(json, NearbyStore.class);
-    } catch (JsonParseException malformed) {
+      NearbyStore stored = gson.fromJson(json, NearbyStore.class);
+      return stored == null ? null : withoutPostalCode(stored);
+    } catch (JsonParseException | IllegalArgumentException malformed) {
       return null;
     }
   }
@@ -59,7 +60,8 @@ public final class SelectedStoreRepositoryImpl implements SelectedStoreRepositor
 
   @Override
   public void select(NearbyStore store) {
-    preferences.setSelectedStoreJson(store.getBrand(), gson.toJson(store));
+    NearbyStore sanitized = withoutPostalCode(store);
+    preferences.setSelectedStoreJson(sanitized.getBrand(), gson.toJson(sanitized));
   }
 
   @Override
@@ -67,14 +69,18 @@ public final class SelectedStoreRepositoryImpl implements SelectedStoreRepositor
     preferences.setSelectedStoreJson(brand, null);
   }
 
-  @Override
-  public String getPostalCode() {
-    return preferences.getStoreLocatorPostalCode();
-  }
-
-  @Override
-  public void setPostalCode(String postalCode) {
-    preferences.setStoreLocatorPostalCode(
-        postalCode == null || postalCode.isBlank() ? null : postalCode.trim());
+  /** Drops ZIP/coordinate values so only branch identity and street/city/state are persisted. */
+  private static NearbyStore withoutPostalCode(NearbyStore store) {
+    return new NearbyStore(
+        store.getId(),
+        store.getBrand(),
+        store.getName(),
+        store.getAddressLine(),
+        store.getCity(),
+        store.getState(),
+        null,
+        null,
+        null,
+        store.getSource());
   }
 }

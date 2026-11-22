@@ -67,6 +67,11 @@
             android:name="listId"
             android:defaultValue="placeholder-list"
             app:argType="string" />
+        <argument
+            android:name="captureId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
     </fragment>
 
     <fragment
@@ -91,6 +96,9 @@
             android:name="captureId"
             android:defaultValue="placeholder-capture"
             app:argType="string" />
+        <action
+            android:id="@+id/review_to_ink"
+            app:destination="@id/capture_ink" />
     </fragment>
 
     <fragment
@@ -102,19 +110,27 @@
             android:defaultValue="placeholder-list"
             app:argType="string" />
         <action
-            android:id="@+id/lookup_to_walmart_store"
-            app:destination="@id/walmart_store" />
+            android:id="@+id/lookup_to_branch_picker"
+            app:destination="@id/branch_picker" />
     </fragment>
 
     <fragment
-        android:id="@+id/walmart_store"
-        android:name="com.fastshoppr.app.ui.lookup.WalmartStoreFragment"
-        android:label="@string/walmart_store_title" />
+        android:id="@+id/branch_picker"
+        android:name="com.fastshoppr.app.ui.lookup.BranchPickerFragment"
+        android:label="@string/branch_picker_title">
+        <argument
+            android:name="brand"
+            android:defaultValue="WALMART"
+            app:argType="string" />
+    </fragment>
 
     <fragment
         android:id="@+id/settings"
         android:name="com.fastshoppr.app.ui.settings.SettingsFragment"
         android:label="@string/settings_title">
+        <action
+            android:id="@+id/action_settings_to_branch_picker"
+            app:destination="@id/branch_picker" />
         <action
             android:id="@+id/action_settings_to_schedule"
             app:destination="@id/schedule" />

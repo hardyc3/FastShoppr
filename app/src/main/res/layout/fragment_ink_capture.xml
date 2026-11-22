@@ -73,12 +73,12 @@
                 android:text="@string/clear" />
 
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnFinish"
+                android:id="@+id/btnSave"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/finish"
-                android:text="@string/finish" />
+                android:contentDescription="@string/save"
+                android:text="@string/save" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

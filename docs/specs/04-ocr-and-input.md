@@ -32,7 +32,7 @@ All four modes feed the same review pipeline.
 - Use a custom `InkCanvasView extends View` that captures strokes with `Ink.Stroke.Builder`.
 - Capture `x`, `y`, and timestamp for each point.
 - Support finger and stylus input.
-- Provide undo, clear, and finish buttons in the surrounding Fragment.
+- Provide undo, clear, and **Save** buttons in the surrounding Fragment. **Save** opens the review/verification screen; there is no "finish" action.
 - Show the recognized text before saving.
 - Download the English digital-ink model on first use.
 - If the model is unavailable, show a clear error and keep typed entry available.
@@ -53,6 +53,17 @@ All four modes feed the same review pipeline.
 - Use natural stroke ordering; do not reorder strokes.
 - Provide a pre-context hint of common shopping words only if it improves accuracy and is documented.
 - Keep the raw recognized string before any cleanup.
+
+### Writing → review flow (Phase 9)
+
+Resolution of 2026-11-22 feedback: the writing screen action is **Save**, not
+"finish". **Save** opens the review/verification screen. On review:
+
+- **Add line** returns to the writing screen with all pending changes preserved.
+- **Discard** returns to the list screen with none of the changes.
+- **Save** returns to the list screen with all changes.
+
+No `ListItem` rows are created until review **Save** is tapped.
 
 ## Camera capture
 
@@ -78,8 +89,8 @@ All four modes feed the same review pipeline.
 
 - ML Kit Text Recognition v2 is optimized for printed text.
 - Handwritten camera photos are best-effort; accuracy may be poor.
-- **Digital Ink confidence > 80%: auto-save `rawText = recognized text`, skip review screen.**
-- **Camera/OCR confidence > 70%: auto-save with "auto-saved from [mode]" banner; user can edit anytime.**
+- All captures go through review; there is no confidence-based auto-save (D-027).
+- Confidence may flag a line as low-confidence but does not skip review.
 - Digital Ink is the recommended path for handwriting.
 - The UI must not imply perfect recognition.
 - Show a short note in camera/gallery review: "Handwriting recognition is best-effort. Review anytime from list detail."
@@ -93,11 +104,11 @@ Every capture creates a `CaptureSession` and opens a review screen.
 
 - Editable list of recognized lines using a `RecyclerView` with an editable row layout.
 - Each row has a checkbox for bulk actions.
-- Actions: select all, clear selection, delete selected, add line, merge selected lines, split line, save selected.
+- Actions: select all, clear selection, delete selected, add line, merge selected lines, split line, save selected. **Add line** returns to the writing screen with all pending changes preserved.
 - Each line can be assigned to a store section.
 - Each line can receive a target date/deferral.
 - Low-confidence lines are visually flagged.
-- **High-confidence lines (Ink > 80% or OCR > 70%) are marked "auto-saved" and skippable.**
+- No line is auto-saved or skippable; every line is reviewed before save (D-027).
 - The user can edit any line before saving.
 - The user can discard the entire capture.
 - Saving creates `ListItem` rows with `rawText` equal to the reviewed line text.
@@ -129,7 +140,7 @@ Store three values:
 5. Do not remove brand names.
 6. Do not apply stemming beyond the documented alternate-query rules.
 
-**High-confidence auto-save note:** When auto-saved, `rawText` equals the recognized text. `displayName` initially equals `rawText`. User can edit `displayName` anytime.
+**Review note:** `rawText` equals the reviewed line. `displayName` initially equals `rawText` and may be edited after confirmation. There is no auto-save path (D-027).
 
 ## AI interaction
 
@@ -146,7 +157,6 @@ Store three values:
 |---|---|---|
 | Camera | User taps camera capture | Keep gallery and typed entry available |
 | Notifications | User enables background organizing | Queue Walmart lookups until foreground |
-| Location | User taps "use my location" | Ask for ZIP/store selection |
 
 Never request permissions at app launch. Use `registerForActivityResult` in Fragments.
 
@@ -171,6 +181,8 @@ Never request permissions at app launch. Use `registerForActivityResult` in Frag
 
 - A user can add items by all four modes.
 - Every mode goes through review.
+- The writing screen uses **Save**; review **Add line** preserves pending
+  changes, **Discard** saves none, and **Save** saves all.
 - Bulk edit actions work.
 - Recognition failures are recoverable.
 - No image or text leaves the device.

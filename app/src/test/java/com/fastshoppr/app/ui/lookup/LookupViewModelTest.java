@@ -7,6 +7,7 @@ package com.fastshoppr.app.ui.lookup;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,6 +48,18 @@ public final class LookupViewModelTest {
   private final GetSelectedStoresUseCase getSelectedStores = mock(GetSelectedStoresUseCase.class);
   private final OrganizingScheduler scheduler = mock(OrganizingScheduler.class);
   private final OrganizingProgressStore progressStore = new OrganizingProgressStore();
+  private final StoreContextFormatter formatter =
+      new StoreContextFormatter() {
+        @Override
+        public String savedBranchesHeader() {
+          return "Saved branches:";
+        }
+
+        @Override
+        public String savedBranchLine(StoreBrand brand, String storeLabel) {
+          return brand.getDisplayName() + ": " + storeLabel;
+        }
+      };
 
   private LookupViewModel viewModel;
 
@@ -63,6 +76,7 @@ public final class LookupViewModelTest {
             storeRepository,
             settingsRepository,
             getSelectedStores,
+            formatter,
             scheduler,
             progressStore,
             DIRECT_EXECUTOR,
@@ -82,7 +96,7 @@ public final class LookupViewModelTest {
             null,
             null,
             null,
-            NearbyStoreSource.MANUAL);
+            NearbyStoreSource.LOCATOR);
     NearbyStore target =
         new NearbyStore(
             "456",
@@ -94,7 +108,7 @@ public final class LookupViewModelTest {
             null,
             null,
             null,
-            NearbyStoreSource.MANUAL);
+            NearbyStoreSource.LOCATOR);
     NearbyStore lowes =
         new NearbyStore(
             "789",
@@ -106,7 +120,7 @@ public final class LookupViewModelTest {
             null,
             null,
             null,
-            NearbyStoreSource.MANUAL);
+            NearbyStoreSource.LOCATOR);
     when(getSelectedStores.execute())
         .thenReturn(
             Map.of(
@@ -128,6 +142,108 @@ public final class LookupViewModelTest {
     viewModel.loadContext();
 
     assertEquals("Walmart — 1 Main St", viewModel.getStoreContext().getValue());
+  }
+
+  @Test
+  public void presentBrandWithoutSavedBranchBlocksFirstUse() {
+    viewModel.loadContext();
+
+    assertEquals(StoreBrand.WALMART, viewModel.getMissingBranch().getValue());
+    assertEquals(Boolean.FALSE, viewModel.getBranchesReady().getValue());
+    assertEquals(Boolean.FALSE, viewModel.getBranchCheckDone().getValue());
+  }
+
+  @Test
+  public void savedBranchesForPresentBrandsAllowFirstUse() {
+    when(getSelectedStores.execute())
+        .thenReturn(
+            Map.of(
+                StoreBrand.WALMART,
+                branch(StoreBrand.WALMART),
+                StoreBrand.TARGET,
+                branch(StoreBrand.TARGET)));
+
+    viewModel.loadContext();
+
+    assertNull(viewModel.getMissingBranch().getValue());
+    assertEquals(Boolean.TRUE, viewModel.getBranchesReady().getValue());
+    assertEquals(Boolean.TRUE, viewModel.getBranchCheckDone().getValue());
+  }
+
+  @Test
+  public void missingBranchFollowsLocatorBrandOrder() {
+    when(itemRepository.getByList("list-1"))
+        .thenReturn(List.of(item("item-1", "store-2"), item("item-2", "store-3")));
+    when(storeRepository.getById("store-3")).thenReturn(homeDepotStore());
+
+    viewModel.loadContext();
+
+    assertEquals(StoreBrand.HOME_DEPOT, viewModel.getMissingBranch().getValue());
+    assertEquals(Boolean.FALSE, viewModel.getBranchesReady().getValue());
+  }
+
+  @Test
+  public void customStoreDoesNotRequireLocatorBranch() {
+    when(itemRepository.getByList("list-1")).thenReturn(List.of(item("item-1", "store-custom")));
+    when(storeRepository.getById("store-custom")).thenReturn(customStore());
+
+    viewModel.loadContext();
+
+    assertNull(viewModel.getMissingBranch().getValue());
+    assertEquals(Boolean.TRUE, viewModel.getBranchesReady().getValue());
+    assertEquals(Boolean.TRUE, viewModel.getBranchCheckDone().getValue());
+  }
+
+  private static NearbyStore branch(StoreBrand brand) {
+    return new NearbyStore(
+        brand.name(),
+        brand,
+        brand.getDisplayName() + " #123",
+        "1 Main St",
+        null,
+        null,
+        null,
+        null,
+        null,
+        NearbyStoreSource.LOCATOR);
+  }
+
+  private static Store homeDepotStore() {
+    return new Store(
+        "store-3",
+        StoreBrand.HOME_DEPOT,
+        "Home Depot",
+        "3 Market St",
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        1L,
+        1L);
+  }
+
+  private static Store customStore() {
+    return new Store(
+        "store-custom",
+        StoreBrand.CUSTOM,
+        "My shop",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false,
+        false,
+        false,
+        null,
+        1L,
+        1L);
   }
 
   private static ListItem item(String id, String storeId) {

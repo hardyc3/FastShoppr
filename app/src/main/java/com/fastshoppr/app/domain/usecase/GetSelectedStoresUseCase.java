@@ -28,8 +28,4 @@ public final class GetSelectedStoresUseCase {
   public Map<StoreBrand, NearbyStore> execute() {
     return repository.getSelected();
   }
-
-  public String getPostalCode() {
-    return repository.getPostalCode();
-  }
 }

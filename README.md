@@ -12,8 +12,8 @@ The MVP includes:
 - Optional on-device AI name cleanup with explicit user confirmation.
 - Walmart WebView lookup and Home Depot HTTP lookup, with manual aisle entry
   always available.
-- Nearest-store selection in Settings by ZIP or approximate location, with the
-  saved branch shown on the Organize screen for verification.
+- Branch picking in Settings by opening each retailer's public store locator in
+  a WebView, with the saved branch shown on the Organize screen for verification.
 - Aisle grouping, deterministic aisle sorting, and a sort-direction toggle.
 - Recurring schedules, auto-created lists, deferral, overdue prompts, calendar
   view, and store-hours display.
@@ -28,9 +28,10 @@ for the MVP.
 
 FastShoppr has no backend, analytics, advertising SDK, or cloud sync. Lists,
 captures, aisle caches, and settings stay on the device; Android backup and
-device-to-device transfer are disabled. Coarse location is used only when you
-ask to find nearby stores and is not stored or logged. See [PRIVACY.md](PRIVACY.md) for the
-plain-language notice and the in-app text in Settings.
+device-to-device transfer are disabled. FastShoppr requests no location
+permission and stores no ZIP or coordinates; you pick a branch in the
+retailer's WebView locator. See [PRIVACY.md](PRIVACY.md) for the plain-language
+notice and the in-app text in Settings.
 
 ## Requirements
 

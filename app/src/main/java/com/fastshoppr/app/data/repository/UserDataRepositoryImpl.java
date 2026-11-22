@@ -18,7 +18,6 @@ import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.data.local.SeedStores;
 import com.fastshoppr.app.data.local.dao.UserDataDao;
 import com.fastshoppr.app.data.local.entity.StoreEntity;
-import com.fastshoppr.app.data.remote.storelocator.StoreLocatorCache;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.UserDataRepository;
@@ -50,7 +49,6 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
   private final OrganizingProgressStore progressStore;
   private final Clock clock;
   private final ExecutorService executor;
-  private final StoreLocatorCache storeLocatorCache;
 
   @Inject
   public UserDataRepositoryImpl(
@@ -61,8 +59,7 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
       NotificationHelper notificationHelper,
       OrganizingProgressStore progressStore,
       Clock clock,
-      ExecutorService executor,
-      StoreLocatorCache storeLocatorCache) {
+      ExecutorService executor) {
     this.context = context;
     this.userDataDao = userDataDao;
     this.settingsRepository = settingsRepository;
@@ -71,7 +68,6 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
     this.progressStore = progressStore;
     this.clock = clock;
     this.executor = executor;
-    this.storeLocatorCache = storeLocatorCache;
   }
 
   @Override
@@ -100,7 +96,6 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
             stopOrganizing();
             userDataDao.clearUserDataAndReseedStores(seedStores(clock.nowMillis()));
             settingsRepository.clearAll();
-            storeLocatorCache.clear();
             captureImageStore.deleteAll();
             await(clearWebViewData());
             deleted.complete(null);

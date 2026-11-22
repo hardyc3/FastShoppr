@@ -35,39 +35,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_small"
-                android:text="@string/settings_store_zip_unset"
+                android:text="@string/settings_store_no_saved"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="13sp" />
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:hint="@string/settings_store_zip_hint">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/storeZipInput"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:imeOptions="actionDone"
-                    android:inputType="number"
-                    android:maxLength="10"
-                    android:singleLine="true" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnSaveZip"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:minHeight="48dp"
-                android:text="@string/settings_store_save_zip" />
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_small"
+                android:labelFor="@id/storeBrandSpinner"
                 android:text="@string/settings_store_brand_label"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="13sp" />
@@ -76,35 +52,18 @@
                 android:id="@+id/storeBrandSpinner"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:contentDescription="@string/settings_store_brand_label"
                 android:entries="@array/store_brands"
                 android:minHeight="48dp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnFindNearbyStores"
+                android:id="@+id/btnPickBranch"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_small"
                 android:minHeight="48dp"
                 android:text="@string/settings_store_find" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnUseLocation"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:minHeight="48dp"
-                android:text="@string/settings_store_use_location" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnEnterStoreManually"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:minHeight="48dp"
-                android:text="@string/settings_store_manual" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnForgetSavedStore"
@@ -114,15 +73,6 @@
                 android:layout_marginTop="@dimen/spacing_small"
                 android:minHeight="48dp"
                 android:text="@string/settings_store_forget" />
-
-            <androidx.appcompat.widget.AppCompatTextView
-                android:id="@+id/storeStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_small"
-                android:accessibilityLiveRegion="polite"
-                android:textColor="?attr/colorOnSurfaceVariant"
-                android:textSize="13sp" />
 
             <androidx.appcompat.widget.AppCompatTextView
                 android:layout_width="match_parent"

@@ -4,11 +4,11 @@ This record accompanies the Phase 9 (MVP Release) implementation. It captures
 the release configuration, audits, manual demo script, and verification
 evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 
-> **Reverify after 2026-11-20 change:** the records below predate removal of the
-> sixth built-in brand and Room schema v5. Instrumentation was rerun on the
-> physical device (38/38 pass), and a signed release build was installed and
-> launched there with no fatal logcat. Live manual gates still need regeneration
-> before Phase 9 is marked `done`.
+> **Rework status (2026-11-22):** the D-043/D-044 rework (generic WebView branch
+> picker, handwriting **Save**/review flow, and removal of the dropped
+> accessibility-tool gate) is code-complete. Static/unit and instrumentation
+> gates pass. Live manual gates remain open. No live device gate is claimed for
+> the rework; Phase 9 stays `in-progress`.
 
 ## Release configuration
 
@@ -39,9 +39,8 @@ evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 | `POST_NOTIFICATIONS` | Yes | Scheduled list and organizing progress notifications. | No; when notification is first needed. |
 | `FOREGROUND_SERVICE` | Yes | User-started Walmart WebView lookup service. | Not a runtime permission. |
 | `FOREGROUND_SERVICE_DATA_SYNC` | Yes | Foreground service type for the WebView lookup task. | Not a runtime permission. |
-| `ACCESS_COARSE_LOCATION` | Yes | Suggest nearby branches in Settings → Nearest store. | No; only when **Use my location** is tapped. |
 
-No fine location, contacts, storage, microphone, SMS, or phone permission is
+No location, contacts, storage, microphone, SMS, or phone permission is
 requested. `android.hardware.camera.any` is declared with
 `android:required="false"`, so devices without a camera can still install and
 use the rest of the app. Permission denial is handled without blocking manual
@@ -49,11 +48,11 @@ entry.
 
 ## Dependency audit
 
-Phase 9 adds `com.google.android.gms:play-services-location:21.4.0` for a
-last-known coarse location fix used by Settings → Nearest store. Android, Hilt,
-Room, WorkManager, OkHttp, Jsoup, Gson, CameraX, and ML Kit versions remain pinned in
-`gradle/libs.versions.toml`. There is no analytics, advertising, crash-reporting,
-cloud-database, maps, or paid-LLM SDK in the app or test configurations.
+The location dependency is removed; no location permission or provider remains.
+Android, Hilt, Room, WorkManager, OkHttp, Jsoup, Gson, CameraX, and ML Kit
+versions remain pinned in `gradle/libs.versions.toml`. There is no analytics,
+advertising, crash-reporting, cloud-database, maps, location, or paid-LLM SDK in
+the app or test configurations.
 
 ## Backup and data-extraction audit
 
@@ -71,8 +70,8 @@ so app-private data is not backed up or transferred. This matches
 - StrictMode is installed only when the `ApplicationInfo.FLAG_DEBUGGABLE` flag
   is set; it uses `penaltyLog()` for debug diagnostics only.
 - WorkManager logging is `INFO` for debuggable builds and `WARN` otherwise.
-- No raw image, full list, address, location coordinate, or retailer page body
-  is logged.
+- No raw image, full list, saved branch address, or retailer page body is
+  logged. No ZIP or coordinates are collected.
 - ML Kit text recognition, handwriting recognition, and Prompt API processing
   run on device; no cloud LLM is called.
 
@@ -89,20 +88,24 @@ so app-private data is not backed up or transferred. This matches
 - Retailer cookies/DOM storage are intentionally retained between lookups so a
   user-picked Walmart store survives (D-032). This exception is disclosed in
   `PRIVACY.md`; **Forget store** and **Delete all data** both clear it.
+- Branch picker WebViews load only the selected brand's public locator domain
+  over HTTPS, expose no `JavascriptInterface`, and are destroyed on confirm or
+  screen close. No locator response is parsed or cached.
 
-## Store locator audit
+## Branch picker audit
 
-- Settings saves one ZIP and one branch per brand in SharedPreferences; the
-  selected branch is displayed on the Organize screen for brands on the list.
-- Public retailer locator pages are queried with a descriptive user agent, at
-  most one request per second per brand. HTTP 403/429, CAPTCHA, and bot-challenge
-  responses stop the search with a clear message and manual fallback.
-- JSON-LD/application-JSON place objects are parsed without retailer-specific
-  CSS selectors; unknown shapes produce no candidates and no guessed store.
-- Locator results are cached for 60 days in a dedicated SharedPreferences file.
-  **Delete all data** clears the ZIP, selected branches, and locator cache.
-- Coordinates are used only for the locator URL and are never persisted or
-  logged; no full request URL appears in production logs.
+- Settings has a brand selector and a **Pick branch** button for Walmart, Home
+  Depot, Lowe's, Target, and Smiths. Custom stores have no automated locator.
+- Tapping **Pick branch** opens that brand's public store-locator page in a
+  WebView; the user navigates, selects, and confirms a branch. First use of a
+  store requires a branch pick; Settings can change it.
+- Only the selected branch name and street/city/state are saved in
+  SharedPreferences, one value per brand. Postal codes parsed from retailer
+  pages are discarded before saving or display. No ZIP, coordinates, location
+  permission, HTTP locator parsing, or locator cache.
+- Saved branches are displayed on the Organize screen for brands on the list
+  and are never used as proof of an aisle.
+- **Delete all data** clears all saved branches.
 
 ## Secrets and debug shortcuts audit
 
@@ -133,9 +136,11 @@ Code-level fixes in this phase:
   color.
 - Cached lookup errors are labeled as cached so status is not conveyed by color
   alone.
+- Brand selector and **Pick branch** control have visible labels and
+  accessibility labels (`labelFor`/content description).
 
-Manual gates in the test plan (Accessibility Scanner, capture/organize demo,
-and nearest-store selection) are recorded in the verification table below.
+Manual gates in the test plan (TalkBack, capture/organize demo, and branch
+picker) are recorded in the verification table below.
 
 ## Offline checklist
 
@@ -148,13 +153,15 @@ and nearest-store selection) are recorded in the verification table below.
 ## Manual demo script
 
 1. Install the release build on a clean device or emulator.
-2. Create a list, add typed and handwritten items, review, and save.
-3. In **Settings → Nearest store**, save a ZIP, find and save a nearby branch
-   for Walmart and one other brand, and verify the summary. Enter a manual store
-   for a third brand and confirm it appears too.
+2. Create a list, add typed and handwritten items; tap **Save** on the writing
+   screen, then exercise review **Add line**, **Discard**, and **Save**.
+3. In **Settings → Pick branch**, pick a branch for Walmart and one other brand
+   from each brand's public locator WebView and verify the summary. Change one
+   branch from Settings.
 4. Organize with Walmart and Home Depot. Accept or reject suggestions without
    changing `rawText`, and confirm the saved branches appear on the Organize
-   screen for the brands on the list.
+   screen for the brands on the list. On first use of a store, confirm the
+   branch picker opens before the lookup.
 5. Confirm aisle grouping and use the sort-direction toggle.
 6. Defer an item to next week and confirm it appears on the correct list/date in
    the calendar.
@@ -162,14 +169,15 @@ and nearest-store selection) are recorded in the verification table below.
    leaving and reopening the list.
 8. Turn on airplane mode and confirm lists and cached aisles still work.
 9. Open **Settings → Privacy → Delete all data**, confirm, and verify the app
-   returns to empty lists with built-in stores still available and the ZIP and
-   saved branches cleared.
+   returns to empty lists with built-in stores still available and all saved
+   branches cleared.
 
 ## Verification results
 
-Recorded 2026-11-17 and updated 2026-11-18 on branch `phase9`. A command that
-does not run or a test that fails, errors, or is skipped is not counted as a
-pass.
+Recorded 2026-11-17 and updated through 2026-11-22 on branch `phase9`. A command
+that does not run or a test that fails, errors, or is skipped is not counted as a
+pass. Rows before the final 2026-11-22 rework row are historical and do not
+verify the current design.
 
 | Check | Command / method | Result | Evidence / notes |
 |---|---|---|---|
@@ -177,15 +185,16 @@ pass.
 | Unit tests | `./gradlew testDebugUnitTest` | PASS | 198 tests, 0 failures/errors/skipped (43 XML reports). |
 | Lint | `./gradlew lintDebug` | PASS | BUILD SUCCESSFUL; 0 errors, 20 warnings (all pre-existing in untouched code; the `InkCanvasView` `performClick` warning raised earlier in this phase was resolved). ML Kit GenAI dependency metadata emits `e:` lines but does not fail the task. |
 | Formatting | `./gradlew spotlessCheck` | PASS | BUILD SUCCESSFUL after `spotlessApply`. |
-| Nearest-store code gates (2026-11-18) | `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings; instrumentation APK compiles. Instrumentation execution and live manual gates are still pending. |
+| Branch-selection code gates (2026-11-18, superseded by D-043) | `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings; instrumentation APK compiles. Instrumentation execution and live manual gates are still pending. |
 | Post-review code gates (2026-11-18) | `spotlessApply`, `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL; 229 unit tests across 50 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings. Added typed blocker/no-cache assertions, no-duplicate Organize context assertion, and corrected selected-store preference-key fake. |
-| Post-review instrumentation (2026-11-18) | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 37 tests, 0 failures/errors/skipped. Includes Settings nearest-store flow and delete-all assertion for ZIP, selected stores, settings, and locator cache. |
+| Two-axis review fixes (2026-11-22, superseded by D-043/D-044) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | All 14 Standards/Spec findings fixed. BUILD SUCCESSFUL; 241 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 23 pre-existing warnings (none in changed files); both APKs assemble. Historical pre-rework result. Instrumentation not run: `connectedDebugAndroidTest` fails with `No connected devices!`. |
+| D-043/D-044 rework final (2026-11-22) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings (ML Kit dependency metadata / untouched code); both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped each; animation scales `0.0`. Review reload is generation-guarded and mutates on the main thread; stale-load regression test added. Intermediate duplicate-row ambiguity was addressed by that hardening, and DeskClock focus interference was cleared by returning the device to Home. Live manual gates still open. |
+| Post-review instrumentation (2026-11-18) | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 37 tests, 0 failures/errors/skipped. Includes Settings branch-selection flow and delete-all assertion for saved branches and settings. Historical pre-rework result. |
 | Release build with R8 | `./gradlew assembleRelease` | PASS | Both unsigned fallback and env-signed builds succeed with R8 + resource shrinking. Signed APK verified with `apksigner` (throwaway key generated outside the repo, never committed). |
-| Instrumentation suite | `./gradlew connectedDebugAndroidTest` | PASS | emulator-5554 (API 36), Android animation scales set to 0: 35 tests, 0 failures/errors/skipped. Also run on a connected physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36, Galaxy A53) with `ANDROID_SERIAL=R5CT7058L2A`: 35 tests, 0 failures/errors/skipped (`TEST-SM-A536U1 - 16-_app-.xml`, 54.667s). Includes `DeleteAllDataTest`, `LargeListInstrumentationTest` and the 3→4 `MigrationTest`. One earlier emulator run hit Espresso's "animations enabled" guard; disabled scales is the standard setup and the reruns passed. |
-| Accessibility scan | Accessibility Scanner | PARTIAL | Manual-only gate. Code-level checklist complete; UI hierarchy spot-checks on both emulator and physical device confirmed content descriptions, 48dp targets, headings and localized calendar descriptions (for example `Mark milk as not checked`, `Aisle: descending`, `2026-11-17, today, no list`). Google Accessibility Scanner is not installed (only Samsung `com.samsung.android.app.vex.scanner` is present), so no Scanner report was produced. Scanner report requires a device operator. |
+| Instrumentation suite (2026-11-17, historical) | `./gradlew connectedDebugAndroidTest` | PASS | emulator-5554 (API 36), Android animation scales set to 0: 35 tests, 0 failures/errors/skipped. Also run on a connected physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36, Galaxy A53) with `ANDROID_SERIAL=R5CT7058L2A`: 35 tests, 0 failures/errors/skipped (`TEST-SM-A536U1 - 16-_app-.xml`, 54.667s). Includes `DeleteAllDataTest`, `LargeListInstrumentationTest` and the 3→4 `MigrationTest`. One earlier emulator run hit Espresso's "animations enabled" guard; disabled scales is the standard setup and the reruns passed. |
 | 100-item scroll/sort | `LargeListInstrumentationTest`, `SortItemsUseCaseTest` | PASS (automated) | 120-item list rendered and sorted in the instrumented test; scroll-to-bottom exercised. No separate Profiler timing was captured. |
 | Offline journey | airplane mode demo step 7 | PARTIAL | Airplane-mode relaunch on the signed release APK passed on both the emulator and the physical device: the app relaunched with lists rendering and 0 fatal log lines. Fresh-lookup/cached-aisle behavior is covered by code and instrumented tests but was not manually re-verified on either device. |
-| Release install/launch | clean emulator + physical device | PASS | Signed APK installed on a wiped API 36 emulator and on the Samsung SM-A536U1 (Android 16/API 36), then launched on both. No fatal logcat, `ClassNotFoundException` or `NoSuchMethodError` on either. Core Room/Hilt/Navigation CRUD exercised on both: create list, add store, add typed item(s), check off, toggle sort, navigate away and back (checked state and sort persisted), Settings privacy text, delete all data (empty lists, built-in stores, no onboarding), calendar with localized day descriptions. |
+| Release install/launch (2026-11-17, historical) | clean emulator + physical device | PASS | Signed APK installed on a wiped API 36 emulator and on the Samsung SM-A536U1 (Android 16/API 36), then launched on both. No fatal logcat, `ClassNotFoundException` or `NoSuchMethodError` on either. Core Room/Hilt/Navigation CRUD exercised on both: create list, add store, add typed item(s), check off, toggle sort, navigate away and back (checked state and sort persisted), Settings privacy text, delete all data (empty lists, built-in stores, no onboarding), calendar with localized day descriptions. |
 | Log audit | source review + logcat during demo | PASS | Source grep found no `Log.*`/`println`/`printStackTrace` in production Java. Logcat during the release demo on both emulator and physical device had 0 hits for entered item text or store names, and 0 fatal lines. |
 | Full manual demo | steps 1–9 above | PARTIAL | Steps 1, 2 (typed item only), 4, 6, 7 (relaunch), 8 executed on the signed release APK on both emulator and physical device. Handwriting/photo capture, Walmart/Home Depot organize with AI suggestions, defer-to-calendar, and step 8 cached-aisle behavior were not executed in this session. |
 
@@ -208,8 +217,8 @@ API 36) was connected for this verification pass. Animation scales were already
   localized day description (`2026-11-17, today, no list`), airplane-mode
   relaunch with 0 fatal lines.
 - Device accessibility tooling was temporarily enabled to probe labels/focus.
-  The first-run tutorial was dismissed with **Finish** and the app launched with
-  0 fatal lines. Device accessibility settings were restored
+  The first-run tutorial was dismissed and the app launched with 0 fatal lines.
+  Device accessibility settings were restored
   (`accessibility_enabled=0`, `enabled_accessibility_services` and
   `accessibility_script` deleted), the probe process was force-stopped, and
   airplane mode was restored off.
@@ -220,9 +229,36 @@ These require a device operator and remain unverified; Phase 9 stays
 `in-progress` until they are recorded as passes. Step-by-step instructions are
 in `docs/release/phase-09-manual-tests.md`.
 
-1. Accessibility Scanner report with no critical issues.
-2. Full demo steps 2–6 (handwriting/photo capture, nearest-store selection,
-   organize and AI suggestions, defer to next week) and step 8 cached-aisle
-   behavior in airplane mode.
-3. Gate 3 in `docs/release/phase-09-manual-tests.md` (live nearest-store
-   selection, permission flow, Organize context, and delete-all clearing).
+1. Full demo in `docs/release/phase-09-manual-tests.md` Gate 1 (handwriting
+   **Save**/review flow, photo capture, branch picker on first use, organize and
+   AI suggestions, defer to next week, cached-aisle behavior).
+2. `docs/release/phase-09-manual-tests.md` Gate 2 (WebView branch picker,
+   first-use prompt, Settings change, Organize context, delete-all clearing).
+3. `docs/release/phase-09-manual-tests.md` Gate 3 (TalkBack traversal).
+
+
+## User feedback (verbatim, 2026-11-22)
+
+Ignored, we don't care about accessibility scanner
+
+**Resolution (D-044):** The tool-based gate is dropped from tests, verification, phase criteria, and specs. TalkBack and other accessibility checks remain.
+
+### Handwriting feedback
+
+The UI for hadnwritting isn't intuitive.
+I want to write
+replace finish with save, save takes you to the verification screen
+verification screen
+  add line should go back to the writing screen
+  discard should go back to the list screen with none of the changes
+  save should go back to the list screen with all of the changes
+
+everything else looks good and works as expected
+
+**Resolution:** Writing screen action is **Save** and opens review. Review **Add line** returns to writing with pending changes, **Discard** saves none, and **Save** saves all. Updated in `04-ocr-and-input.md`, `09-testing-quality.md`, Phase 9, and manual tests.
+
+### Branch-picker feedback
+I'm not sure how this code is supposed to work but it doesn't work at all. It's not finding any stores.
+I think what we need to do is open the store locator page for any given store in a web view and have the user select it, this should be something they have to do when they use a particular store the first time. In settings they should be able to change it, so we don't need to store a zip code, rather have a selector for the store branch and the find nearby stores button opens that brand's store locator where they can pick the store. get rid of the enter store manually button and the use my location button. change the text on the find nearby stores button to pick branch.
+
+**Resolution (D-043):** Settings has a brand selector and **Pick branch**. Tapping it opens that brand's public store-locator page in a WebView for selection/confirmation. One branch per brand is saved (name/address only); first use of a store requires a pick, Settings can change it. No ZIP, manual entry, location button/permission, or HTTP locator parsing/cache. Custom stores have no automated locator. Automated verification passed; live manual gates remain.
