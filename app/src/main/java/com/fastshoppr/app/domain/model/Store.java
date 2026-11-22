@@ -22,7 +22,6 @@ public final class Store {
   private final boolean isCustom;
   private final boolean isDefault;
   private final boolean isArchived;
-  private final String hoursJson;
   private final long createdAt;
   private final long updatedAt;
 
@@ -39,7 +38,6 @@ public final class Store {
       boolean isCustom,
       boolean isDefault,
       boolean isArchived,
-      String hoursJson,
       long createdAt,
       long updatedAt) {
     this.id = requireId(id, "store id");
@@ -54,7 +52,6 @@ public final class Store {
     this.isCustom = isCustom;
     this.isDefault = isDefault;
     this.isArchived = isArchived;
-    this.hoursJson = TextNormalizer.trimToNull(hoursJson);
     this.createdAt = requireTimestamp(createdAt, "createdAt");
     this.updatedAt = requireTimestamp(updatedAt, "updatedAt");
   }
@@ -140,10 +137,6 @@ public final class Store {
 
   public boolean isArchived() {
     return isArchived;
-  }
-
-  public String getHoursJson() {
-    return hoursJson;
   }
 
   public long getCreatedAt() {

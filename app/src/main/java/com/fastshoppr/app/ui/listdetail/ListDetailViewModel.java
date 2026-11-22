@@ -531,7 +531,6 @@ public final class ListDetailViewModel extends ViewModel {
             true,
             false,
             false,
-            null,
             System.currentTimeMillis(),
             System.currentTimeMillis());
     new Thread(

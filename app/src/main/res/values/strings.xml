@@ -300,9 +300,6 @@
     <string name="schedule_saved">Schedule saved.</string>
     <string name="schedule_save_failed">Could not save schedule.</string>
     <string name="schedule_disabled_message">Schedule disabled.</string>
-    <string name="schedule_preferred_time_hint">e.g. 10:00 AM (optional)</string>
-    <string name="schedule_preferred_time_pick">Pick preferred time</string>
-    <string name="schedule_preferred_time_clear">Clear preferred time</string>
     <string name="schedule_conflict_title">Schedule already exists</string>
     <string name="schedule_conflict_message">You already have a recurring schedule. Replace it or move its next date?</string>
     <string name="schedule_conflict_replace">Replace schedule</string>
@@ -352,18 +349,6 @@
     <string name="overdue_keep">Keep on past list</string>
     <string name="overdue_missed">Mark as missed</string>
     <string name="overdue_create_next">Create next list</string>
-
-    <!-- Store hours / visit planning -->
-    <string name="store_hours_title">Store hours &amp; visit</string>
-    <string name="store_hours_unknown">Hours unknown for this store.</string>
-    <string name="store_hours_for_date">Hours on %1$s: %2$s</string>
-    <string name="store_hours_open_closed_unavailable">Open/closed: unavailable (hours not parseable). No busyness data used.</string>
-    <string name="store_hours_open_closed_unknown">Open/closed: unknown (hours not provided).</string>
-    <string name="visit_suggestion">Suggested visit: %1$s</string>
-    <string name="visit_suggestion_unknown">Visit time suggestion unavailable (hours or preferred time missing).</string>
-    <string name="visit_suggestion_verify_hours">verify store hours; no busyness data</string>
-    <string name="edit_store_hours">Edit store hours</string>
-    <string name="store_hours_saved">Store hours saved.</string>
 
     <!-- Branch selection -->
     <string name="settings_store_section">Store branches</string>

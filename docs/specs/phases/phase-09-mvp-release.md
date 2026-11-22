@@ -28,6 +28,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Dependency and permission audit.
 - README, privacy text, and demo script.
 - Generic WebView branch picker in Settings, with the saved branch shown on the Organize screen.
+- Remove store hours, visit windows, preferred shopping time, and `Store.hoursJson` (D-045).
 - Final bug fixes.
 
 ## Out of scope
@@ -159,6 +160,8 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
   changes, **Discard** saves none, and **Save** saves all.
 - [ ] "Delete all data" clears all saved branches; no ZIP, coordinates, or
   locator cache exist.
+- [x] Store-hours/visit UI, `hoursJson`, and preferred shopping time are removed;
+  schema v6 migration drops `stores.hoursJson` (D-045).
 - [x] Backup rules exclude sensitive data as documented.
 - [x] "Delete all data" works and is tested.
 - [x] Release build succeeds with R8 and resource shrinking.
@@ -166,7 +169,8 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - [x] No secrets, keystores, or debug shortcuts are committed.
 - [x] README and privacy text are complete.
 - [ ] Full manual demo succeeds.
-- [x] All required commands pass.
+- [ ] All required commands pass. D-045 static gates pass;
+  `connectedDebugAndroidTest` is NOT RUN because no device/emulator is attached.
 - [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
@@ -182,6 +186,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 | Branch picker | Unit + Espresso | Brand selector, **Pick branch** WebView delegate, per-brand save, first-use prompt, Settings change, delete-all |
 | Handwriting **Save**/review | Espresso + manual | **Add line** preserves pending changes, **Discard** saves none, **Save** saves all |
 | Organize store context | Unit | Saved branches appended for brands on the list |
+| Store-hours removal (D-045) | Espresso migration | Schema v6 drops `hoursJson`; no hours/visit or preferred-time setting remains |
 | R8 keep rules | Release build | Launch and core flow |
 
 ## Completion gate
@@ -226,12 +231,14 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 - ZIP/location HTTP locator replaced by generic WebView branch picker (D-043).
 - Handwriting: writing **Save** opens review; review **Add line** returns to
   writing with pending changes, **Discard** saves none, **Save** saves all.
+- D-045: store hours, visit windows, `Store.hoursJson`, and preferred shopping
+  time removed; Room v6 drops the hours column via `MIGRATION_5_6`.
 
 ## Completion log
 
-Rows before the final 2026-11-22 row record pre-rework code and are not evidence
-for the current branch-picker or handwriting design. Automated verification for
-the rework is recorded in the final row; live manual gates remain pending.
+Rows through the D-043/D-044 row record earlier rework. The D-045 rows below
+record the current static PASS and the blocked instrumentation run. Live manual
+gates remain pending.
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
@@ -257,4 +264,6 @@ the rework is recorded in the final row; live manual gates remain pending.
 | 2026-11-20 | `assembleRelease` + signed release install/launch after Macey's removal | PASS | Unsigned and throwaway-key-signed release builds succeed with R8 + resource shrinking. Signed APK installed on SM-A536U1 (API 36), launched to `com.fastshoppr.app/.MainActivity`, 0 fatal logcat lines / linkage errors. Signing material lives outside the repo. |
 | 2026-11-22 | Accessibility requirements restored after review | INFO | TalkBack traversal/spoken output is a manual gate again; labels and content descriptions are covered by instrumentation. See `docs/release/phase-09-manual-tests.md` Gate 3. |
 | 2026-11-22 | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` after two-axis review fixes (superseded by D-043/D-044) | PASS | All 14 review findings fixed at that date. BUILD SUCCESSFUL; 241 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 23 pre-existing warnings in untouched code/dependency metadata, none in changed files; both APKs assemble and Spotless passes. `connectedDebugAndroidTest` NOT RUN — no emulator/device attached. TalkBack, full demo, and live branch-picker gates remain manual. Historical pre-rework result; required verification pending. Phase stays `in-progress`. |
-| 2026-11-22 | D-043/D-044 rework final: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | Generic WebView branch picker, handwriting **Save**/review flow, and D-044 gate removal verified. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings; both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped; animation scales `0.0`. Review reload is generation-guarded and main-thread serialized; stale-load regression test added. Intermediate duplicate-row ambiguity addressed; DeskClock focus interference cleared by returning device to Home. Live manual gates remain NOT RUN. Phase stays `in-progress`. |
+| 2026-11-22 | D-043/D-044 rework final: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | Generic WebView branch picker, handwriting **Save**/review flow, and D-044 gate removal verified. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings; both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped; animation scales `0.0`. Review reload is generation-guarded and main-thread serialized; stale-load regression test added. Intermediate duplicate-row ambiguity addressed; DeskClock focus interference cleared by returning device to Home. Live manual gates remain NOT RUN. Historical for D-045. |
+| 2026-11-22 | D-045 static final: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | Store hours/visit, `Store.hoursJson`, and preferred shopping time removed; Room v6 + `MIGRATION_5_6` + v5→v6 migration test added. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes. Lint 0 errors, 59 warnings = 21 prior + 38 from untracked icon assets; no errors in changed code. Invalid `-` resource filenames were renamed to `_` and kept. Phase stays `in-progress`. |
+| 2026-11-22 | D-045 `connectedDebugAndroidTest` | NOT RUN | No device or emulator attached; `adb devices -l` empty after server restart and emulator binary missing. New v5→v6 migration test compiled but unexecuted. Earlier D-043/D-044 instrumentation does not verify D-045. Live manual gates remain NOT RUN. Phase stays `in-progress`. |

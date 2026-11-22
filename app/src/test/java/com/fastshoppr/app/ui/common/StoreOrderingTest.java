@@ -29,6 +29,6 @@ public final class StoreOrderingTest {
 
   private static Store store(String id, StoreBrand brand, String name) {
     return new Store(
-        id, brand, name, null, null, null, null, null, null, false, false, false, null, 1, 1);
+        id, brand, name, null, null, null, null, null, null, false, false, false, 1, 1);
   }
 }

@@ -27,12 +27,9 @@ import com.fastshoppr.app.domain.model.IntervalUnit;
 import com.fastshoppr.app.domain.usecase.CreateScheduleUseCase;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.timepicker.MaterialTimePicker;
-import com.google.android.material.timepicker.TimeFormat;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.Locale;
 
 @AndroidEntryPoint
 public final class ScheduleFragment extends Fragment {
@@ -74,8 +71,6 @@ public final class ScheduleFragment extends Fragment {
                   nextDate = date;
                   renderDate();
                 }));
-    binding.btnPickPreferredTime.setOnClickListener(v -> showTimePicker());
-    binding.btnClearPreferredTime.setOnClickListener(v -> binding.inputPreferredTime.setText(""));
     binding.btnSave.setOnClickListener(v -> save(CreateScheduleUseCase.ConflictAction.ASK));
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::onEvent);
@@ -91,8 +86,6 @@ public final class ScheduleFragment extends Fragment {
     nextDate = s.nextShoppingDate;
     renderDate();
     binding.switchNotify.setChecked(s.notifyOnCreate);
-    binding.inputPreferredTime.setText(
-        s.preferredShoppingTime == null ? "" : s.preferredShoppingTime);
     binding.textStatus.setText(s.message == null ? "" : s.message);
   }
 
@@ -150,34 +143,7 @@ public final class ScheduleFragment extends Fragment {
         notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
       }
     }
-    viewModel.save(
-        enabled,
-        value,
-        unit,
-        date,
-        notify,
-        String.valueOf(binding.inputPreferredTime.getText()),
-        action);
-  }
-
-  private void showTimePicker() {
-    MaterialTimePicker picker =
-        new MaterialTimePicker.Builder()
-            .setTimeFormat(TimeFormat.CLOCK_12H)
-            .setHour(10)
-            .setMinute(0)
-            .setTitleText(R.string.schedule_preferred_time_pick)
-            .build();
-    picker.addOnPositiveButtonClickListener(
-        v -> {
-          int h = picker.getHour();
-          int m = picker.getMinute();
-          String ampm = h >= 12 ? "PM" : "AM";
-          int h12 = h % 12;
-          if (h12 == 0) h12 = 12;
-          binding.inputPreferredTime.setText(String.format(Locale.US, "%d:%02d %s", h12, m, ampm));
-        });
-    picker.show(getParentFragmentManager(), "preferred_time");
+    viewModel.save(enabled, value, unit, date, notify, action);
   }
 
   @Override

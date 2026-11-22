@@ -21,7 +21,6 @@ public final class SettingsPreferences {
   private static final String KEY_SORT_DIRECTION = "sort_direction";
   private static final String KEY_LAST_CALENDAR_MONTH = "last_calendar_month";
   private static final String KEY_ONBOARDING_COMPLETED = "onboarding_completed";
-  private static final String KEY_PREFERRED_SHOPPING_TIME = "preferred_shopping_time";
   private static final String KEY_SELECTED_STORE_PREFIX = "selected_store_";
 
   private final SharedPreferences preferences;
@@ -97,14 +96,6 @@ public final class SettingsPreferences {
 
   public void setOnboardingCompleted(boolean completed) {
     preferences.edit().putBoolean(KEY_ONBOARDING_COMPLETED, completed).apply();
-  }
-
-  public String getPreferredShoppingTime() {
-    return preferences.getString(KEY_PREFERRED_SHOPPING_TIME, null);
-  }
-
-  public void setPreferredShoppingTime(String time) {
-    preferences.edit().putString(KEY_PREFERRED_SHOPPING_TIME, time).apply();
   }
 
   public String getSelectedStoreJson(StoreBrand brand) {

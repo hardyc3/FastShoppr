@@ -144,6 +144,44 @@ public final class MigrationTest {
     versionFive.close();
   }
 
+  @Test
+  public void migratesVersionFiveToVersionSixAndDropsStoreHours() throws IOException {
+    SupportSQLiteDatabase versionFive = helper.createDatabase(TEST_DATABASE, 5);
+    versionFive.execSQL(
+        "INSERT INTO stores (id, brand, name, hoursJson, createdAt, updatedAt) "
+            + "VALUES ('store-1', 'WALMART', 'Walmart', 'Mon-Fri 8-10', 1, 1)");
+    versionFive.close();
+
+    SupportSQLiteDatabase versionSix =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            6,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5,
+            Migrations.MIGRATION_5_6);
+
+    assertFalse(columnExists(versionSix, "stores", "hoursJson"));
+    assertEquals(1, rowCount(versionSix, "stores"));
+    versionSix.close();
+  }
+
+  private static boolean columnExists(SupportSQLiteDatabase database, String table, String column) {
+    Cursor cursor = database.query("PRAGMA table_info(`" + table + "`)");
+    try {
+      while (cursor.moveToNext()) {
+        if (column.equals(cursor.getString(1))) {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      cursor.close();
+    }
+  }
+
   private static boolean indexExists(SupportSQLiteDatabase database, String index) {
     Cursor cursor =
         database.query(

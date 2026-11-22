@@ -122,10 +122,10 @@ Format:
 ## D-014 — No Google Maps Popular Times
 
 - Date: 2026-10-31
-- Status: accepted
-- Decision: Do not integrate Google Maps Popular Times or scrape Maps busyness data. Use store hours and the user's schedule for visit planning.
+- Status: accepted (amended by D-045)
+- Decision: Do not integrate Google Maps Popular Times or scrape Maps busyness data. Store-hours-based visit planning is removed by D-045; the app never claims to know current busyness.
 - Rationale: There is no official Popular Times API, and scraping Maps is unreliable and against terms.
-- Consequences: The app shows open/closed and hours-based suggestions only. It never claims to know current busyness.
+- Consequences: The app makes no busyness claims and shows no visit-time or open/closed estimate.
 
 ## D-015 — Public, rate-limited, cached store access
 
@@ -369,4 +369,12 @@ Format:
 - Decision: Remove the Google Accessibility Scanner gate from tests, verification records, phase criteria, and specs. User feedback verbatim: "Ignored, we don't care about accessibility scanner". TalkBack, labels, touch targets, contrast, and other accessibility checks remain.
 - Rationale: Scanner reports are not available in this environment and the product owner does not require them. Keeping the gate blocks release verification without adding accepted signal.
 - Consequences: Manual tests start at the capture/organize demo; TalkBack traversal remains a required manual gate. No Scanner pass or partial result is recorded as a phase requirement.
+
+## D-045 — Remove store hours and visit planning
+
+- Date: 2026-11-22
+- Status: accepted (amends D-014; supersedes the store-hours portions of Phase 8 and `06-scheduling-dates-calendar.md`)
+- Decision: Remove the **Store hours & visit** action, manual hours entry, open/closed display, visit-window suggestions, `Store.hoursJson`, and the `preferred_shopping_time` setting from the MVP. The recurring schedule, calendar, deferral, and overdue features stay.
+- Rationale: Product feedback (2026-11-22): "We also want to remove the store hours and visit features." The data was manually entered and unparseable, so it could not produce a trustworthy suggestion.
+- Consequences: Room schema v6 drops `stores.hoursJson` with migration `MIGRATION_5_6`. `Store`/`StoreEntity`/`StoreMapper` no longer carry hours. Settings no longer stores or displays a preferred shopping time. Privacy text no longer lists store-hours or visit-time data. No Maps busyness data is used.
 

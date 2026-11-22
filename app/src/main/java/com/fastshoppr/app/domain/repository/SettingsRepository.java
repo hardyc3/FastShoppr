@@ -41,9 +41,5 @@ public interface SettingsRepository {
 
   void setOnboardingCompleted(boolean completed);
 
-  String getPreferredShoppingTime();
-
-  void setPreferredShoppingTime(String time);
-
   void clearAll();
 }

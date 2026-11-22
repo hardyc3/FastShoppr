@@ -222,7 +222,6 @@ public final class LookupViewModelTest {
         false,
         false,
         false,
-        null,
         1L,
         1L);
   }
@@ -241,7 +240,6 @@ public final class LookupViewModelTest {
         false,
         false,
         false,
-        null,
         1L,
         1L);
   }
@@ -277,7 +275,6 @@ public final class LookupViewModelTest {
         false,
         false,
         false,
-        null,
         1L,
         1L);
   }
@@ -296,7 +293,6 @@ public final class LookupViewModelTest {
         false,
         false,
         false,
-        null,
         1L,
         1L);
   }

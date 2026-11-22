@@ -124,7 +124,6 @@ public final class ReviewViewModelTest {
             false,
             false,
             false,
-            null,
             1,
             1);
     Store homeDepot =
@@ -141,7 +140,6 @@ public final class ReviewViewModelTest {
             false,
             false,
             false,
-            null,
             1,
             1);
 

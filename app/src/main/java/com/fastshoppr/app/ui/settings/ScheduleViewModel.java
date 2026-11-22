@@ -12,7 +12,6 @@ import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.IntervalUnit;
 import com.fastshoppr.app.domain.model.ShoppingSchedule;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
-import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.CreateScheduleResult;
 import com.fastshoppr.app.domain.usecase.CreateScheduleUseCase;
@@ -41,7 +40,6 @@ public final class ScheduleViewModel extends ViewModel {
   }
 
   private final ScheduleRepository scheduleRepository;
-  private final SettingsRepository settingsRepository;
   private final CreateScheduleUseCase createScheduleUseCase;
   private final ScheduleWorkerScheduler scheduleWorkerScheduler;
   private final Clock clock;
@@ -53,13 +51,11 @@ public final class ScheduleViewModel extends ViewModel {
   @Inject
   public ScheduleViewModel(
       ScheduleRepository scheduleRepository,
-      SettingsRepository settingsRepository,
       CreateScheduleUseCase createScheduleUseCase,
       ScheduleWorkerScheduler scheduleWorkerScheduler,
       Clock clock,
       ExecutorService executor) {
     this.scheduleRepository = scheduleRepository;
-    this.settingsRepository = settingsRepository;
     this.createScheduleUseCase = createScheduleUseCase;
     this.scheduleWorkerScheduler = scheduleWorkerScheduler;
     this.clock = clock;
@@ -81,14 +77,7 @@ public final class ScheduleViewModel extends ViewModel {
           LocalDate today = LocalDateTimes.today(clock);
           if (active == null) {
             state.postValue(
-                new ScheduleUiState(
-                    false,
-                    1,
-                    IntervalUnit.WEEKS,
-                    today.plusWeeks(1),
-                    false,
-                    settingsRepository.getPreferredShoppingTime(),
-                    null));
+                new ScheduleUiState(false, 1, IntervalUnit.WEEKS, today.plusWeeks(1), false, null));
           } else {
             state.postValue(
                 new ScheduleUiState(
@@ -97,7 +86,6 @@ public final class ScheduleViewModel extends ViewModel {
                     active.getIntervalUnit(),
                     active.getNextShoppingDate(),
                     active.isNotifyOnCreate(),
-                    settingsRepository.getPreferredShoppingTime(),
                     null));
           }
         });
@@ -109,15 +97,10 @@ public final class ScheduleViewModel extends ViewModel {
       IntervalUnit unit,
       LocalDate nextDate,
       boolean notifyOnCreate,
-      String preferredTime,
       CreateScheduleUseCase.ConflictAction conflictAction) {
     executor.execute(
         () -> {
           try {
-            settingsRepository.setPreferredShoppingTime(
-                preferredTime == null || preferredTime.trim().isEmpty()
-                    ? null
-                    : preferredTime.trim());
             ShoppingSchedule active = scheduleRepository.getActive();
             if (!enabled) {
               if (active != null) {

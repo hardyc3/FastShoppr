@@ -15,8 +15,8 @@ The MVP includes:
 - Branch picking in Settings by opening each retailer's public store locator in
   a WebView, with the saved branch shown on the Organize screen for verification.
 - Aisle grouping, deterministic aisle sorting, and a sort-direction toggle.
-- Recurring schedules, auto-created lists, deferral, overdue prompts, calendar
-  view, and store-hours display.
+- Recurring schedules, auto-created lists, deferral, overdue prompts, and
+  calendar view.
 - Offline access to lists and cached aisle results.
 - Dark theme, large-font-friendly layouts, and accessibility labels.
 - Settings privacy notice and a confirmed "Delete all data" action.

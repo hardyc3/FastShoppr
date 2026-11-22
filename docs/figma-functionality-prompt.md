@@ -117,7 +117,6 @@ User sees:
 - Low-confidence, multiple-match, unverified-branch, and cached items are visually marked as needing review or stale.
 - Unresolved and needs-review items remain visible and sort last in both asc and desc.
 - Checked items stay in place and are marked checked.
-- Store hours and visit-window information described later.
 - Empty state: no items yet; user can type, write, photograph, or add a store.
 - Loading and error states.
 
@@ -617,27 +616,12 @@ Rules:
 
 ---
 
-## Screen 20 — Store hours and visit window
+## Screen 20 — Store hours and visit window (removed)
 
-Purpose: show when a chosen store may be useful to visit.
-
-User sees:
-- Store hours for the selected shopping date when known.
-- Open/closed only when hours are explicitly present and parseable.
-- "unknown" or "unavailable" when hours cannot be determined.
-- Suggested visit window derived from known hours plus preferred shopping time when both are available.
-- "suggestion unavailable" when hours or preferred time are missing.
-- Manual hours entry when hours are unknown.
-
-Actions:
-- Enter or edit hours manually.
-- Set preferred shopping time here or in Settings.
-- Continue to list.
-
-Rules:
-- Never guess open/closed state.
-- Never claim busyness or crowd level.
-- No Google Maps Popular Times or scraped busyness data.
+This screen is removed by D-045. Do not design or implement store hours,
+open/closed state, manual hours entry, visit windows, or preferred shopping time.
+Never claim busyness or crowd level, and do not use Google Maps Popular Times or
+scraped busyness data.
 
 ---
 
@@ -651,7 +635,6 @@ User sees:
 - Examples: "Every 7 days", "Every 2 weeks", "Every 14 days".
 - Next shopping date.
 - Notify on create toggle.
-- Preferred shopping time.
 - Current schedule summary.
 - Conflict state when a different schedule already exists.
 - Permission explanation when notifications are enabled.
@@ -662,7 +645,6 @@ Actions:
 - Edit next date.
 - Enable/disable.
 - Turn notifications on/off.
-- Set preferred shopping time.
 - Disable existing schedule or move it when conflict prompt appears.
 - Cancel.
 
@@ -684,7 +666,6 @@ Purpose: manage preferences, branch context, privacy, and data.
 User sees:
 - Toggle: "Improve item names with on-device AI", off by default.
 - Availability status text for on-device AI.
-- Preferred shopping time.
 - Schedule entry.
 - Sort direction preference.
 - Notification preference.
@@ -697,7 +678,6 @@ User sees:
 Actions:
 - Enable/disable AI cleanup.
 - Open schedule settings.
-- Change preferred shopping time.
 - Change sort direction.
 - Change notification preference.
 - Change background organizing preference.

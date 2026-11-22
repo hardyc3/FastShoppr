@@ -174,7 +174,6 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
               false,
               false,
               false,
-              null,
               now,
               now));
     }

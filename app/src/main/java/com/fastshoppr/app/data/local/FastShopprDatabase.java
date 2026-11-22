@@ -30,7 +30,7 @@ import com.fastshoppr.app.data.local.entity.StoreEntity;
       ShoppingScheduleEntity.class,
       AisleCacheEntity.class
     },
-    version = 5,
+    version = 6,
     exportSchema = true)
 public abstract class FastShopprDatabase extends RoomDatabase {
 

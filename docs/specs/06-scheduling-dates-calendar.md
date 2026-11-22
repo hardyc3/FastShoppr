@@ -7,7 +7,7 @@
 - Show upcoming trips in a calendar and a date list.
 - Auto-create recurring lists without requiring the app to be open.
 - Prompt rather than silently move overdue items.
-- Use store hours and the user's schedule for visit planning; do not use Google Maps busyness data.
+- Do not use Google Maps busyness data. Store-hours and visit planning are removed from the MVP by D-045.
 
 ## Date model
 
@@ -152,15 +152,11 @@ Rules:
 
 **Representation (Phase 8):** "Missed" is implemented by archiving the past list (soft archive). Unchecked items remain in that archived list and are not carried forward; checked items are unchanged. This avoids silent item loss and keeps history consistent with archive semantics.
 
-## Store hours and visit planning
+## Store hours and visit planning (removed)
 
-- Store hours may come from the retailer page or be entered manually (stored locally, e.g. `Store.hoursJson` text).
-- When a shopping date/list is selected, show the store's hours for that date when known.
-- Show open/closed state **only** when hours are explicitly present and parseable for the relevant day/time; otherwise state that open/closed is unknown/unavailable (do not guess).
-- Suggest a visit window based on known store hours and the user's preferred shopping time when available; if hours or preferred time are missing/unparseable, state that a suggestion is unavailable and do not guess.
-- Do not claim to know how busy a store is.
-- Do not integrate Google Popular Times, Google Maps busyness, or unofficial Maps scraping.
-- If hours are unknown, say so and do not guess.
+- D-045 removes store hours, open/closed display, visit-window suggestions, and the preferred shopping time preference from the MVP.
+- The app does not claim to know how busy a store is.
+- Google Popular Times, Google Maps busyness, and unofficial Maps scraping remain prohibited.
 
 ## Notifications
 
@@ -176,7 +172,6 @@ Rules:
 - Add `ShoppingSchedule` table and DAO.
 - Add `targetDate` index on `ListItem`.
 - Add `missed` handling via list archive or an item status; document the chosen representation in the phase.
-- Store the selected shopping time preference in `SharedPreferences`.
 - Store the last calendar month in `SharedPreferences`.
 
 ## Edge cases
@@ -205,4 +200,4 @@ Rules:
 - The calendar shows dates with lists and opens them.
 - "Wait a week" moves an item to the correct future list.
 - Overdue items prompt instead of moving silently.
-- Store hours are shown without any Maps busyness dependency.
+- No store-hours, visit-time, or Maps-busyness UI is present.

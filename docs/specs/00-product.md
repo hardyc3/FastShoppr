@@ -44,7 +44,6 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Custom-interval recurring shopping schedule with auto-created lists.
 - Natural-language item deferral such as "wait a week".
 - Overdue-item prompt.
-- Store hours and visit-time suggestions based on the user's schedule.
 - Local-only storage; no account required.
 
 ## Post-MVP scope (Phases 10–11)
@@ -88,7 +87,6 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | Calendar view | Yes | — | — |
 | Item deferral by phrase | Yes | — | — |
 | Overdue prompt | Yes | — | — |
-| Store hours planning | Yes | — | — |
 | Custom local stores | — | Yes | — |
 | Price comparison | — | Yes | — |
 | Shared live editing | — | — | Yes |

@@ -27,9 +27,6 @@ import com.fastshoppr.app.databinding.FragmentListDetailBinding;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
-import com.fastshoppr.app.domain.repository.SettingsRepository;
-import com.fastshoppr.app.domain.repository.StoreRepository;
-import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
@@ -42,8 +39,6 @@ import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import javax.inject.Inject;
 
 @AndroidEntryPoint
 public final class ListDetailFragment extends Fragment implements ListDetailAdapter.Listener {
@@ -52,11 +47,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   private ListDetailViewModel viewModel;
   private ListDetailAdapter adapter;
   private List<Store> addableStores = List.of();
-
-  @Inject StoreRepository storeRepository;
-  @Inject SettingsRepository settingsRepository;
-  @Inject Clock clock;
-  @Inject ExecutorService executor;
 
   @Nullable
   @Override
@@ -86,7 +76,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
                 .navigate(
                     R.id.lookup,
                     NavArguments.forList(requireArguments().getString(NavArguments.LIST_ID))));
-    binding.storeHoursButton.setOnClickListener(v -> showStoreHoursDialog());
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
@@ -220,110 +209,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             R.string.defer_open_schedule,
             (d, w) -> Navigation.findNavController(requireView()).navigate(R.id.schedule))
         .setNegativeButton(R.string.cancel, null)
-        .show();
-  }
-
-  private void showStoreHoursDialog() {
-    ListDetailUiState state = viewModel.getState().getValue();
-    if (state == null || state.getStores().isEmpty()) {
-      new MaterialAlertDialogBuilder(requireContext())
-          .setTitle(R.string.store_hours_title)
-          .setMessage(R.string.store_hours_unknown)
-          .setPositiveButton(R.string.ok, null)
-          .show();
-      return;
-    }
-    String[] names = new String[state.getStores().size()];
-    for (int i = 0; i < state.getStores().size(); i++)
-      names[i] = state.getStores().get(i).getName();
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.store_hours_title)
-        .setItems(
-            names,
-            (d, which) -> showStoreHoursFor(state.getStores().get(which), state.getShoppingDate()))
-        .setNegativeButton(R.string.cancel, null)
-        .show();
-  }
-
-  private void showStoreHoursFor(Store store, java.time.LocalDate date) {
-    String hours = store.getHoursJson();
-    boolean hasHours = hours != null && !hours.isBlank();
-    String base =
-        hasHours
-            ? getString(R.string.store_hours_for_date, date.toString(), hours.trim())
-            : getString(R.string.store_hours_unknown);
-    // Open/closed shown only when hours explicitly present and parseable; not parsed here ->
-    // unavailable.
-    String openClosed =
-        hasHours
-            ? getString(R.string.store_hours_open_closed_unavailable)
-            : getString(R.string.store_hours_open_closed_unknown);
-    String pref = settingsRepository == null ? null : settingsRepository.getPreferredShoppingTime();
-    String suggestion;
-    if (!hasHours || pref == null || pref.isBlank()) {
-      suggestion = getString(R.string.visit_suggestion_unknown);
-    } else {
-      suggestion =
-          getString(
-              R.string.visit_suggestion,
-              pref + " (" + getString(R.string.visit_suggestion_verify_hours) + ")");
-    }
-    String message = base + "\n" + openClosed + "\n\n" + suggestion;
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(store.getName())
-        .setMessage(message)
-        .setPositiveButton(R.string.ok, null)
-        .setNeutralButton(R.string.edit_store_hours, (d, w) -> showEditHours(store))
-        .show();
-  }
-
-  private void showEditHours(Store store) {
-    final android.widget.EditText input = new android.widget.EditText(requireContext());
-    input.setHint("e.g. Mon-Sun 8:00 AM - 10:00 PM");
-    if (store.getHoursJson() != null) input.setText(store.getHoursJson());
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.edit_store_hours)
-        .setView(input)
-        .setNegativeButton(R.string.cancel, null)
-        .setPositiveButton(
-            R.string.save,
-            (d, w) -> {
-              String text = input.getText() == null ? null : input.getText().toString().trim();
-              if (executor == null || storeRepository == null) return;
-              executor.execute(
-                  () -> {
-                    try {
-                      Store updated =
-                          new Store(
-                              store.getId(),
-                              store.getBrand(),
-                              store.getName(),
-                              store.getAddressLine(),
-                              store.getCity(),
-                              store.getState(),
-                              store.getPostalCode(),
-                              store.getLatitude(),
-                              store.getLongitude(),
-                              store.isCustom(),
-                              store.isDefault(),
-                              store.isArchived(),
-                              text == null || text.isEmpty() ? null : text,
-                              store.getCreatedAt(),
-                              clock.nowMillis());
-                      storeRepository.save(updated);
-                      if (isAdded())
-                        requireActivity()
-                            .runOnUiThread(
-                                () ->
-                                    Snackbar.make(
-                                            binding.getRoot(),
-                                            R.string.store_hours_saved,
-                                            Snackbar.LENGTH_SHORT)
-                                        .show());
-                    } catch (Exception ignored) {
-                    }
-                  });
-            })
         .show();
   }
 

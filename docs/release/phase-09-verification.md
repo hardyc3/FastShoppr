@@ -4,11 +4,13 @@ This record accompanies the Phase 9 (MVP Release) implementation. It captures
 the release configuration, audits, manual demo script, and verification
 evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 
-> **Rework status (2026-11-22):** the D-043/D-044 rework (generic WebView branch
-> picker, handwriting **Save**/review flow, and removal of the dropped
-> accessibility-tool gate) is code-complete. Static/unit and instrumentation
-> gates pass. Live manual gates remain open. No live device gate is claimed for
-> the rework; Phase 9 stays `in-progress`.
+> **Rework status (2026-11-22):** the D-043/D-044/D-045 rework (generic WebView
+> branch picker, handwriting **Save**/review flow, removal of the dropped
+> accessibility-tool gate, and removal of store hours/visit features) is
+> code-complete. D-043/D-044 instrumentation passed earlier. The D-045 static
+> gate passes; `connectedDebugAndroidTest` is blocked because no device or
+> emulator is attached. Live manual gates remain open. Phase 9 stays
+> `in-progress`.
 
 ## Release configuration
 
@@ -188,7 +190,9 @@ verify the current design.
 | Branch-selection code gates (2026-11-18, superseded by D-043) | `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | Full command set BUILD SUCCESSFUL; 220 unit tests across 49 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings; instrumentation APK compiles. Instrumentation execution and live manual gates are still pending. |
 | Post-review code gates (2026-11-18) | `spotlessApply`, `assembleDebug`, `assembleDebugAndroidTest`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL; 229 unit tests across 50 reports, 0 failures/errors/skipped; lint 0 errors, 20 pre-existing warnings. Added typed blocker/no-cache assertions, no-duplicate Organize context assertion, and corrected selected-store preference-key fake. |
 | Two-axis review fixes (2026-11-22, superseded by D-043/D-044) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | All 14 Standards/Spec findings fixed. BUILD SUCCESSFUL; 241 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 23 pre-existing warnings (none in changed files); both APKs assemble. Historical pre-rework result. Instrumentation not run: `connectedDebugAndroidTest` fails with `No connected devices!`. |
-| D-043/D-044 rework final (2026-11-22) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings (ML Kit dependency metadata / untouched code); both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped each; animation scales `0.0`. Review reload is generation-guarded and mutates on the main thread; stale-load regression test added. Intermediate duplicate-row ambiguity was addressed by that hardening, and DeskClock focus interference was cleared by returning the device to Home. Live manual gates still open. |
+| D-043/D-044 rework final (2026-11-22) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings (ML Kit dependency metadata / untouched code); both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped each; animation scales `0.0`. Review reload is generation-guarded and mutates on the main thread; stale-load regression test added. Intermediate duplicate-row ambiguity was addressed by that hardening, and DeskClock focus interference was cleared by returning the device to Home. Live manual gates still open. Historical for D-045. |
+| D-045 static final (2026-11-22) | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL. Store hours/visit, `Store.hoursJson`, and preferred shopping time removed; Room v6 + `MIGRATION_5_6` + v5→v6 migration test added. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes. Lint 0 errors, 59 warnings = 21 prior warnings + 38 from untracked icon assets (unused/duplicate/XML-vs-PNG); no errors in changed code. Untracked icon filenames were changed from invalid `-` to valid `_` to unblock Android resource merge and kept unchanged otherwise. |
+| D-045 instrumentation (2026-11-22) | `connectedDebugAndroidTest` | NOT RUN | No device or emulator is attached. `adb devices -l` was empty after `adb kill-server && adb start-server`; `$ANDROID_HOME/emulator/emulator` is missing. The new v5→v6 migration test is compiled but not executed. Earlier D-043/D-044 instrumentation does not verify D-045. Phase stays `in-progress`. |
 | Post-review instrumentation (2026-11-18) | `connectedDebugAndroidTest` on emulator-5554 (API 36) | PASS | 37 tests, 0 failures/errors/skipped. Includes Settings branch-selection flow and delete-all assertion for saved branches and settings. Historical pre-rework result. |
 | Release build with R8 | `./gradlew assembleRelease` | PASS | Both unsigned fallback and env-signed builds succeed with R8 + resource shrinking. Signed APK verified with `apksigner` (throwaway key generated outside the repo, never committed). |
 | Instrumentation suite (2026-11-17, historical) | `./gradlew connectedDebugAndroidTest` | PASS | emulator-5554 (API 36), Android animation scales set to 0: 35 tests, 0 failures/errors/skipped. Also run on a connected physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36, Galaxy A53) with `ANDROID_SERIAL=R5CT7058L2A`: 35 tests, 0 failures/errors/skipped (`TEST-SM-A536U1 - 16-_app-.xml`, 54.667s). Includes `DeleteAllDataTest`, `LargeListInstrumentationTest` and the 3→4 `MigrationTest`. One earlier emulator run hit Espresso's "animations enabled" guard; disabled scales is the standard setup and the reruns passed. |
@@ -235,6 +239,8 @@ in `docs/release/phase-09-manual-tests.md`.
 2. `docs/release/phase-09-manual-tests.md` Gate 2 (WebView branch picker,
    first-use prompt, Settings change, Organize context, delete-all clearing).
 3. `docs/release/phase-09-manual-tests.md` Gate 3 (TalkBack traversal).
+4. Confirm no **Store hours & visit** action, no visit-time preference in
+   Settings/Schedule, and no open/closed or hours text appears on a list.
 
 
 ## User feedback (verbatim, 2026-11-22)
@@ -262,3 +268,9 @@ I'm not sure how this code is supposed to work but it doesn't work at all. It's 
 I think what we need to do is open the store locator page for any given store in a web view and have the user select it, this should be something they have to do when they use a particular store the first time. In settings they should be able to change it, so we don't need to store a zip code, rather have a selector for the store branch and the find nearby stores button opens that brand's store locator where they can pick the store. get rid of the enter store manually button and the use my location button. change the text on the find nearby stores button to pick branch.
 
 **Resolution (D-043):** Settings has a brand selector and **Pick branch**. Tapping it opens that brand's public store-locator page in a WebView for selection/confirmation. One branch per brand is saved (name/address only); first use of a store requires a pick, Settings can change it. No ZIP, manual entry, location button/permission, or HTTP locator parsing/cache. Custom stores have no automated locator. Automated verification passed; live manual gates remain.
+
+### Store-hours removal
+
+We also want to remove the store hours and visit features,
+
+**Resolution (D-045):** Removed the **Store hours & visit** action, manual hours entry, open/closed display, visit-window suggestions, `Store.hoursJson`, and the `preferred_shopping_time` preference. Room schema v6 drops `stores.hoursJson` via `MIGRATION_5_6`. Specs, privacy text, and the design prompt are updated.

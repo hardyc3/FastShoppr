@@ -203,5 +203,13 @@ public final class Migrations {
         }
       };
 
+  public static final Migration MIGRATION_5_6 =
+      new Migration(5, 6) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          database.execSQL("ALTER TABLE `stores` DROP COLUMN `hoursJson`");
+        }
+      };
+
   private Migrations() {}
 }

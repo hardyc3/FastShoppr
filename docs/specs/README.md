@@ -24,7 +24,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | `03-store-integration.md` | Lookup architecture, Walmart WebView, Home Depot HTTP, cache, rate limits |
 | `04-ocr-and-input.md` | Typed, Digital Ink, camera, gallery, review, normalization |
 | `05-on-device-ai.md` | Gemini Nano usage, fallbacks, prompts, privacy, testing |
-| `06-scheduling-dates-calendar.md` | Shopping dates, custom interval, deferral parsing, calendar, overdue items, store hours |
+| `06-scheduling-dates-calendar.md` | Shopping dates, custom interval, deferral parsing, calendar, overdue items |
 | `07-background-work.md` | WorkManager, foreground service, notifications, retries |
 | `08-pricing-and-custom-stores.md` | Post-MVP price comparison and custom local stores |
 | `09-testing-quality.md` | Test strategy, fixtures, performance, accessibility, release checks |
@@ -64,7 +64,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 - The app is Java 21 with XML Views and ViewBinding. Do not add Kotlin app source, the Kotlin Android plugin, or Jetpack Compose. Gradle Kotlin DSL is allowed for build scripts.
 - The current release is local-first. There is no backend, cloud sync, sharing, or authentication.
 - Price comparison is post-MVP (Phases 10–11).
-- Google Maps Popular Times is not used. Visit planning uses store hours and the user's schedule.
+- Google Maps Popular Times and busyness scraping are not used. Store hours and visit planning were removed by D-045.
 - On-device AI is optional and always has a deterministic fallback.
 - Walmart WebView lookups require the foreground-service design.
 - `rawText` is never replaced by a store match or AI suggestion.

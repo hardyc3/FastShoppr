@@ -214,21 +214,7 @@ public final class HandwritingDraftRoundTripTest {
 
   private static Store store(String id, StoreBrand brand) {
     return new Store(
-        id,
-        brand,
-        brand.name(),
-        null,
-        null,
-        null,
-        null,
-        null,
-        null,
-        false,
-        false,
-        false,
-        null,
-        1,
-        1);
+        id, brand, brand.name(), null, null, null, null, null, null, false, false, false, 1, 1);
   }
 
   private static InkData sampleInk() {

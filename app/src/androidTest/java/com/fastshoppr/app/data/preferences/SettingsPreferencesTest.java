@@ -46,7 +46,6 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.ASC, settings.getSortDirection());
     assertNull(settings.getLastCalendarMonth());
     assertFalse(settings.isOnboardingCompleted());
-    assertNull(settings.getPreferredShoppingTime());
     assertNull(settings.getSelectedStoreJson(StoreBrand.WALMART));
     assertNoZipKeys();
   }
@@ -61,7 +60,6 @@ public final class SettingsPreferencesTest {
     settings.setSortDirection(SortDirection.DESC);
     settings.setLastCalendarMonth("2026-11");
     settings.setOnboardingCompleted(true);
-    settings.setPreferredShoppingTime("WEEKDAY_MORNING");
     settings.setSelectedStoreJson(StoreBrand.WALMART, branchJson("Walmart #1"));
     settings.setSelectedStoreJson(StoreBrand.HOME_DEPOT, branchJson("Home Depot #2"));
 
@@ -73,7 +71,6 @@ public final class SettingsPreferencesTest {
     assertEquals(SortDirection.DESC, settings.getSortDirection());
     assertEquals("2026-11", settings.getLastCalendarMonth());
     assertTrue(settings.isOnboardingCompleted());
-    assertEquals("WEEKDAY_MORNING", settings.getPreferredShoppingTime());
     assertEquals(branchJson("Walmart #1"), settings.getSelectedStoreJson(StoreBrand.WALMART));
     assertEquals(branchJson("Home Depot #2"), settings.getSelectedStoreJson(StoreBrand.HOME_DEPOT));
     assertNoZipKeys();

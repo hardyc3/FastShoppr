@@ -9,7 +9,6 @@ an account and does not send your lists to a FastShoppr server.
 - Handwriting strokes while you are drawing, and photos used for text recognition
 - Recognized item text, review drafts, and any aisle results you accept or cache
 - Settings, schedules, and saved store branches
-- Store-hours data and visit-time preferences
 
 FastShoppr does not store your device coordinates or a ZIP code you type into a
 retailer's page.

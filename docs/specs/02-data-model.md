@@ -28,7 +28,6 @@ Store
   isCustom: Boolean
   isDefault: Boolean
   isArchived: Boolean
-  hoursJson: String?           // serialized weekly hours, nullable
   createdAt: Long
   updatedAt: Long
 ```
@@ -41,6 +40,7 @@ Rules:
 - A store is selected per item; the default is the first active store by brand order.
 - One physical branch per supported brand may be saved as verification context. It is chosen by the user in a WebView locator and is never inferred from device location.
 - Device location coordinates and user-entered ZIP codes are neither collected nor stored.
+- Store hours, visit windows, and preferred shopping time are not stored (D-045).
 
 ### ShoppingList
 

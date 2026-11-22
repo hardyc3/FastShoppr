@@ -102,16 +102,6 @@ public final class SettingsRepositoryImpl implements SettingsRepository {
   }
 
   @Override
-  public String getPreferredShoppingTime() {
-    return preferences.getPreferredShoppingTime();
-  }
-
-  @Override
-  public void setPreferredShoppingTime(String time) {
-    preferences.setPreferredShoppingTime(time);
-  }
-
-  @Override
   public void clearAll() {
     preferences.clearAll();
   }
