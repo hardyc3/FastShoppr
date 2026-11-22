@@ -31,6 +31,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | `10-security-privacy.md` | Local-first data, permissions, secrets, logging, release safety |
 | `11-future-sharing-sync.md` | Deferred real-time sharing and account sync design |
 | `12-decisions.md` | Accepted architectural and product decisions |
+| `13-app-store-listing.md` | Store description copy and required icon attribution |
 | `templates/phase-template.md` | Required structure for every phase file |
 
 ## Phase status

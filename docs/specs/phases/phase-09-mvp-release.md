@@ -26,8 +26,9 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Release build with R8.
 - Signing configuration via environment, not committed.
 - Dependency and permission audit.
-- README, privacy text, and demo script.
+- README, privacy text, demo script, and app-store listing/attribution notes.
 - Generic WebView branch picker in Settings, with the saved branch shown on the Organize screen.
+- Replace text actions with supplied icons and put the Shopping List actions on one row.
 - Remove store hours, visit windows, preferred shopping time, and `Store.hoursJson` (D-045).
 - Final bug fixes.
 
@@ -168,9 +169,11 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - [ ] Release build installs and launches on a clean device/emulator.
 - [x] No secrets, keystores, or debug shortcuts are committed.
 - [x] README and privacy text are complete.
+- [x] Supplied icons replace text actions; Shopping List actions share one icon
+  row, and app-store copy records the required Flaticon attribution.
 - [ ] Full manual demo succeeds.
-- [ ] All required commands pass. D-045 static gates pass;
-  `connectedDebugAndroidTest` is NOT RUN because no device/emulator is attached.
+- [x] All required commands pass. Static gates and `connectedDebugAndroidTest`
+  pass on physical Samsung SM-A536U1; live manual gates remain open.
 - [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
@@ -237,8 +240,8 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 ## Completion log
 
 Rows through the D-043/D-044 row record earlier rework. The D-045 rows below
-record the current static PASS and the blocked instrumentation run. Live manual
-gates remain pending.
+record the final static and instrumentation PASS, including the icon adoption
+and app-store listing closeout. Live manual gates remain pending.
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
@@ -266,4 +269,6 @@ gates remain pending.
 | 2026-11-22 | `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` after two-axis review fixes (superseded by D-043/D-044) | PASS | All 14 review findings fixed at that date. BUILD SUCCESSFUL; 241 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 23 pre-existing warnings in untouched code/dependency metadata, none in changed files; both APKs assemble and Spotless passes. `connectedDebugAndroidTest` NOT RUN — no emulator/device attached. TalkBack, full demo, and live branch-picker gates remain manual. Historical pre-rework result; required verification pending. Phase stays `in-progress`. |
 | 2026-11-22 | D-043/D-044 rework final: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`; `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | Generic WebView branch picker, handwriting **Save**/review flow, and D-044 gate removal verified. 255 unit tests across 51 reports, 0 failures/errors/skipped; lint 0 errors, 21 warnings; both APKs assemble; Spotless passes. Full instrumentation suite passed twice after final hardening: 42 tests, 0 failures/errors/skipped; animation scales `0.0`. Review reload is generation-guarded and main-thread serialized; stale-load regression test added. Intermediate duplicate-row ambiguity addressed; DeskClock focus interference cleared by returning device to Home. Live manual gates remain NOT RUN. Historical for D-045. |
 | 2026-11-22 | D-045 static final: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | Store hours/visit, `Store.hoursJson`, and preferred shopping time removed; Room v6 + `MIGRATION_5_6` + v5→v6 migration test added. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes. Lint 0 errors, 59 warnings = 21 prior + 38 from untracked icon assets; no errors in changed code. Invalid `-` resource filenames were renamed to `_` and kept. Phase stays `in-progress`. |
-| 2026-11-22 | D-045 `connectedDebugAndroidTest` | NOT RUN | No device or emulator attached; `adb devices -l` empty after server restart and emulator binary missing. New v5→v6 migration test compiled but unexecuted. Earlier D-043/D-044 instrumentation does not verify D-045. Live manual gates remain NOT RUN. Phase stays `in-progress`. |
+| 2026-11-22 | D-045 `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | 43 tests, 0 failures/errors/skipped; animation scales `0.0`. Includes new v5→v6 migration test. Earlier signature conflict from the stale signed-release APK was cleared by device reboot; a v5 fixture missing NOT NULL `isCustom`/`isDefault`/`isArchived` was corrected with a pre-migration `hoursJson` assertion. Live manual gates remain NOT RUN. Phase stays `in-progress`. |
+| 2026-11-22 | Icon adoption + app-store listing static final: `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL. Supplied icons wired to launcher, photo, write, add-store, sort, and plain Add actions; list actions share one 48dp icon row with content descriptions. Obsolete `ic_sort.xml`, `add_item`, and `add_store` strings removed. App-store description and Flaticon attribution drafted in `docs/specs/13-app-store-listing.md` and linked from the spec index. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes. Lint 0 errors, 71 warnings, none in changed Java/layout/string files. Phase stays `in-progress`. |
+| 2026-11-22 | Final combined gate: `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`, `connectedDebugAndroidTest` | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports plus 43 connected tests, 0 failures/errors/skipped in both; lint 0 errors, 71 warnings; Spotless passes. D-045 migration fix and icon adoption verified together on physical SM-A536U1. Live manual gates remain NOT RUN; phase stays `in-progress`. |

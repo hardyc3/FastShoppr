@@ -33,45 +33,58 @@
 
             <ImageButton
                 android:id="@+id/sort_toggle_button"
-                android:layout_width="48dp"
+                android:layout_width="0dp"
                 android:layout_height="48dp"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="@string/sort_toggle_description"
-                android:src="@drawable/ic_sort" />
+                android:minWidth="0dp"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/sort_alt_24" />
 
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/add_store_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginStart="@dimen/spacing_small"
                 android:layout_weight="1"
-                android:text="@string/add_store" />
-        </LinearLayout>
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/add_store_title"
+                android:minWidth="0dp"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/shopping_cart_add_24" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/spacing_small"
-            android:orientation="horizontal">
-
-            <com.google.android.material.button.MaterialButton
+            <ImageButton
                 android:id="@+id/capture_write_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:minHeight="48dp"
-                android:text="@string/capture_write_by_hand" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/capture_photo_button"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="48dp"
                 android:layout_marginStart="@dimen/spacing_small"
                 android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/capture_write_by_hand"
+                android:minWidth="0dp"
                 android:minHeight="48dp"
-                android:text="@string/capture_take_photo" />
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/journal_alt_24" />
+
+            <ImageButton
+                android:id="@+id/capture_photo_button"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="@dimen/spacing_small"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/capture_take_photo"
+                android:minWidth="0dp"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/camera_24" />
         </LinearLayout>
 
         <com.google.android.material.button.MaterialButton

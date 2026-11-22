@@ -121,7 +121,8 @@ User sees:
 - Loading and error states.
 
 Actions:
-- Add a typed item under a store.
+- Add a typed item under a store with a square-plus icon button.
+- The sort, add-store, write-by-hand, and photo actions are icon buttons on one row with content descriptions.
 - Write by hand.
 - Take photo or gallery photo.
 - Organize list.
@@ -362,7 +363,7 @@ Actions:
 - "Select all".
 - "Clear selection".
 - "Delete selected".
-- "Add line".
+- "Add line" as a square-plus icon button with an "Add line" content description.
 - "Merge selected lines".
 - "Split line".
 - "Save selected".

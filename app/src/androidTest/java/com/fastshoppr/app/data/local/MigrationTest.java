@@ -148,8 +148,10 @@ public final class MigrationTest {
   public void migratesVersionFiveToVersionSixAndDropsStoreHours() throws IOException {
     SupportSQLiteDatabase versionFive = helper.createDatabase(TEST_DATABASE, 5);
     versionFive.execSQL(
-        "INSERT INTO stores (id, brand, name, hoursJson, createdAt, updatedAt) "
-            + "VALUES ('store-1', 'WALMART', 'Walmart', 'Mon-Fri 8-10', 1, 1)");
+        "INSERT INTO stores (id, brand, name, hoursJson, isCustom, isDefault, isArchived, "
+            + "createdAt, updatedAt) VALUES ('store-1', 'WALMART', 'Walmart', "
+            + "'Mon-Fri 8-10', 0, 0, 0, 1, 1)");
+    assertTrue(columnExists(versionFive, "stores", "hoursJson"));
     versionFive.close();
 
     SupportSQLiteDatabase versionSix =

@@ -14,6 +14,9 @@ gate fails, leave Phase 9 `in-progress` and fix the issue first.
   Window/Transition/Animator duration scale = `0x`), or use the physical device
   already configured that way.
 - Keep the app's data cleared between gates unless a step says otherwise.
+- On the list screen, **Write by hand**, **Take photo or gallery**, **Add store**,
+  and **Sort** are icon buttons. Their names below are content descriptions.
+  Review **Add line** is also an icon button with an "Add line" content description.
 
 ---
 

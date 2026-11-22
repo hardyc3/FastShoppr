@@ -166,7 +166,6 @@
         <item quantity="other">%d items</item>
     </plurals>
     <string name="add_item_hint">Add item to %1$s</string>
-    <string name="add_item">Add</string>
     <string name="add_item_description">Add item</string>
     <string name="no_aisle">No aisle</string>
     <string name="bay_suffix"> · Bay %1$s</string>
@@ -218,7 +217,6 @@
     <string name="capture_take_photo">Take photo or gallery</string>
     <string name="capture_gallery">Gallery</string>
     <string name="capture_change_source_description">Change capture method</string>
-    <string name="add_store">+ Add store</string>
     <string name="add_store_title">Add store to list</string>
     <string name="add_store_hint">Store name</string>
     <string name="add_store_select">Select a store</string>
