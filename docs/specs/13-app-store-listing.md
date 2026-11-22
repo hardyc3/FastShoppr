@@ -58,3 +58,7 @@ Covered icon assets: `ic_launcher`, `camera_24`, `journal_alt_24`,
 `shopping_cart_add_24`, `sort_alt_24`, `square_plus_24`, `store_alt_24`, and
 their density variants. Keep the attribution in the published listing; do not
 remove it when editing copy later.
+
+Main application icon: `@mipmap/ic_launcher`, with `@mipmap/ic_launcher_round`
+for round launchers. `@drawable/ic_launcher` remains only as the notification
+small icon.
