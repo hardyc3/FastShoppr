@@ -24,6 +24,7 @@ import com.fastshoppr.app.domain.usecase.AddItemUseCase;
 import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
 import com.fastshoppr.app.domain.usecase.DeferItemUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
+import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.ResolveDatePhraseUseCase;
@@ -41,6 +42,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
@@ -60,6 +62,8 @@ public final class ListDetailStateRestorationTest {
   @Inject ListItemRepository itemRepository;
   @Inject StoreRepository storeRepository;
   @Inject SettingsRepository settingsRepository;
+  @Inject GetSelectedStoresUseCase getSelectedStoresUseCase;
+  @Inject ExecutorService executorService;
   @Inject AddItemUseCase addItemUseCase;
   @Inject ToggleItemCheckedUseCase toggleItemCheckedUseCase;
   @Inject DeleteItemUseCase deleteItemUseCase;
@@ -146,6 +150,8 @@ public final class ListDetailStateRestorationTest {
         itemRepository,
         storeRepository,
         settingsRepository,
+        getSelectedStoresUseCase,
+        executorService,
         addItemUseCase,
         toggleItemCheckedUseCase,
         deleteItemUseCase,

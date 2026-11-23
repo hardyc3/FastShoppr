@@ -210,7 +210,8 @@ applied as a lookup result or treated as proof of an aisle.
 Priority order for a user-visible store context:
 
 1. Branch explicitly saved for the brand in **Settings → Pick branch**.
-2. No branch saved: open the WebView branch picker on first use of that brand.
+2. No branch saved: open the WebView branch picker when the brand is first added
+   to a list or when Organize first uses that brand.
 
 **Explicit selection flow:**
 
@@ -222,7 +223,9 @@ Priority order for a user-visible store context:
 
 Rules:
 
-- First use of a store requires picking its branch; Settings can change it.
+- First use of a store requires picking its branch; adding a supported brand to
+  a list opens the brand-prefilled picker when no branch is saved. Settings can
+  change the saved branch.
 - Save only branch name and address metadata. No ZIP, coordinates, location
   permission, HTTP locator parsing, or locator cache.
 - Show the saved store name and address so the user can verify it.

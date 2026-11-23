@@ -28,6 +28,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 - Dependency and permission audit.
 - README, privacy text, demo script, and app-store listing/attribution notes.
 - Generic WebView branch picker in Settings, with the saved branch shown on the Organize screen.
+- Add-store selection opens that brand's branch picker when no branch is saved for a supported brand.
 - Replace text actions with supplied icons and put the Shopping List actions on one row.
 - Remove store hours, visit windows, preferred shopping time, and `Store.hoursJson` (D-045).
 - Final bug fixes.
@@ -155,6 +156,8 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
   brand's public locator WebView; the summary persists across restarts.
 - [ ] First use of a store opens the branch picker; Settings can change the
   saved branch.
+- [x] Selecting a supported brand from **Add store** with no saved branch opens
+  that brand's branch picker; saved-branch and custom-store selections do not.
 - [ ] Saved branches appear on the Organize screen only for brands present on
   the list, and never replace `rawText` or aisles.
 - [ ] Writing **Save** opens review; review **Add line** preserves pending
@@ -187,6 +190,7 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 | Log audit | Manual | No PII |
 | Delete all data | Espresso | Clears DB/cache/prefs and saved branches |
 | Branch picker | Unit + Espresso | Brand selector, **Pick branch** WebView delegate, per-brand save, first-use prompt, Settings change, delete-all |
+| Add-store branch prompt | Espresso | Missing branch opens brand-prefilled picker; saved branch and custom store stay on list detail |
 | Handwriting **Save**/review | Espresso + manual | **Add line** preserves pending changes, **Discard** saves none, **Save** saves all |
 | Organize store context | Unit | Saved branches appended for brands on the list |
 | Store-hours removal (D-045) | Espresso migration | Schema v6 drops `hoursJson`; no hours/visit or preferred-time setting remains |
@@ -205,9 +209,12 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 3. In Settings, select Walmart and tap **Pick branch**; navigate the WebView
    locator page and confirm a branch. Repeat with one other brand, verify both
    appear in the saved-branch summary, then change one branch from Settings.
-4. Organize with Walmart and Home Depot and confirm the saved branches appear on
-   the Organize screen without changing item text. On first use of a new store,
-   confirm the branch picker opens before the lookup.
+4. Add a supported store with no saved branch and confirm its brand-prefilled
+   branch picker opens. Reopen **Add store** with a saved branch or a custom name
+   and confirm list detail stays open. Organize with Walmart and Home Depot and
+   confirm the saved branches appear on the Organize screen without changing
+   item text. On first use of a new store, confirm the branch picker opens before
+   the lookup.
 5. Confirm aisle grouping and sort toggle.
 6. Defer an item to next week and check the calendar.
 7. Enable TalkBack, check off an item, and confirm the state persists after reopening the list.
@@ -273,3 +280,4 @@ and app-store listing closeout. Live manual gates remain pending.
 | 2026-11-22 | Icon adoption + app-store listing static final: `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck` | PASS | BUILD SUCCESSFUL. Supplied icons wired to launcher, photo, write, add-store, sort, and plain Add actions; list actions share one 48dp icon row with content descriptions. Obsolete `ic_sort.xml`, `add_item`, and `add_store` strings removed. App-store description and Flaticon attribution drafted in `docs/specs/13-app-store-listing.md` and linked from the spec index. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes. Lint 0 errors, 71 warnings, none in changed Java/layout/string files. Phase stays `in-progress`. |
 | 2026-11-22 | Final combined gate: `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`, `connectedDebugAndroidTest` | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports plus 43 connected tests, 0 failures/errors/skipped in both; lint 0 errors, 71 warnings; Spotless passes. D-045 migration fix and icon adoption verified together on physical SM-A536U1. Live manual gates remain NOT RUN; phase stays `in-progress`. |
 | 2026-11-22 | Mipmap launcher icon static gate | PASS | Manifest switched to `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`; `@drawable/ic_launcher` retained only as notification small icon. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes; lint 0 errors, 68 warnings. Connected rerun pending: device detached after static tasks completed. Phase stays `in-progress`. |
+| 2026-11-22 | Add-store branch prompt final gate: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `lintDebug`, `spotlessCheck`, `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | BUILD SUCCESSFUL. Selecting a supported brand in **Add store** with no saved branch opens the brand-prefilled branch picker; saved-branch and custom-store selections stay on list detail. 255 unit tests across 51 reports plus 44 connected tests, 0 failures/errors/skipped in both; lint 0 errors, 68 warnings, none in changed files; APK assembles; Spotless passes. Initial connected installs hit `INSTALL_FAILED_UPDATE_INCOMPATIBLE` from a stale work-profile package; after manual uninstall, one Espresso back assertion failed because the branch-picker toolbar has no nav icon, fixed with system back. Live manual gates remain NOT RUN; phase stays `in-progress`. |

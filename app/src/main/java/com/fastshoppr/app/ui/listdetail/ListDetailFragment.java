@@ -145,6 +145,9 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
       showDeferralDialog(req);
     } else if (content instanceof ListDetailUiEvent.NeedsScheduleDate req) {
       showNeedsScheduleDialog(req);
+    } else if (content instanceof ListDetailUiEvent.NavigateToBranchPicker req) {
+      Navigation.findNavController(requireView())
+          .navigate(R.id.list_detail_to_branch_picker, NavArguments.forBranch(req.brand()));
     }
   }
 
@@ -289,11 +292,6 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
           return true;
         });
     dialog.show();
-  }
-
-  private void showStorePicker() {
-    // Branch selection is handled from Settings or the organize screen.
-    // This method is kept for compatibility but does nothing.
   }
 
   private void scrollToStore(String storeId) {

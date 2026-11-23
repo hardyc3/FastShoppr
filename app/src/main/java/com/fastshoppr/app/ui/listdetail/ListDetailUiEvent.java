@@ -5,6 +5,7 @@
  */
 package com.fastshoppr.app.ui.listdetail;
 
+import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 
@@ -12,7 +13,8 @@ public sealed interface ListDetailUiEvent
     permits ListDetailUiEvent.ShowError,
         ListDetailUiEvent.ShowMessage,
         ListDetailUiEvent.RequestDeferral,
-        ListDetailUiEvent.NeedsScheduleDate {
+        ListDetailUiEvent.NeedsScheduleDate,
+        ListDetailUiEvent.NavigateToBranchPicker {
 
   record ShowError(UiError error) implements ListDetailUiEvent {}
 
@@ -33,4 +35,6 @@ public sealed interface ListDetailUiEvent
   record NeedsScheduleDate(
       String storeId, String originalText, String itemTextWithoutPhrase, String phrase)
       implements ListDetailUiEvent {}
+
+  record NavigateToBranchPicker(StoreBrand brand) implements ListDetailUiEvent {}
 }
