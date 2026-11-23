@@ -1,11 +1,11 @@
-# Phase 10 — Pricing Spike
+# Phase 11 — Pricing Spike
 
 - **Status:** `not-started`
-- **Depends on:** Phase 9
+- **Depends on:** Phase 10
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-11-13
+- **Last updated:** 2026-11-22
 
 ## Goal
 
@@ -13,7 +13,7 @@ Validate whether local prices can be extracted reliably from public store pages,
 
 ## Context
 
-Price comparison is post-MVP. This spike prevents Phase 11 from depending on data that does not exist or is too fragile.
+Price comparison is post-MVP. Phase 10 completes store lookup coverage; this spike prevents Phase 12 from depending on price data that does not exist or is too fragile.
 
 ## In scope
 
@@ -22,7 +22,7 @@ Price comparison is post-MVP. This spike prevents Phase 11 from depending on dat
 - Whether size/unit is visible.
 - Manual price and custom store requirements.
 - Sanitized fixtures.
-- `docs/spikes/phase-10-pricing-report.md`.
+- `docs/spikes/phase-11-pricing-report.md`.
 - Go/no-go recommendation per store.
 
 ## Out of scope
@@ -76,7 +76,7 @@ For each store, document:
 ## Deliverables
 
 ```text
-docs/spikes/phase-10-pricing-report.md
+docs/spikes/phase-11-pricing-report.md
 app/src/test/resources/fixtures/pricing/
 ```
 
@@ -88,7 +88,7 @@ app/src/test/resources/fixtures/pricing/
 - [ ] Sanitized fixtures exist for each tested store.
 - [ ] Manual price and custom store requirements are documented.
 - [ ] A go/no-go decision exists for automated extraction per store.
-- [ ] The report recommends a Phase 11 scope.
+- [ ] The report recommends a Phase 12 scope.
 - [ ] No production price feature is implemented.
 - [ ] No personal data or secrets are committed.
 - [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator) when the phase adds Android code; no test has failed, errored, or been skipped.
@@ -111,18 +111,18 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 1. Open the pricing report.
 2. Show each store's price availability and fixture.
 3. Show the manual-price and custom-store requirements.
-4. Review the go/no-go recommendation and Phase 11 scope.
+4. Review the go/no-go recommendation and Phase 12 scope.
 
 ## Risks
 
-- Prices may not be available on public pages. Mitigation: manual prices and a reduced Phase 11 scope.
+- Prices may not be available on public pages. Mitigation: manual prices and a reduced Phase 12 scope.
 - Prices may be location-specific and volatile. Mitigation: store context, timestamps, and expiry.
 - Legal/ToS constraints. Mitigation: public pages only, rate limits, no bulk scraping.
 
 ## Open questions
 
 - Which third store should be tested first?
-- Should custom stores be available in Phase 11 or a separate phase?
+- Should custom stores be available in Phase 12 or a separate phase?
 - Is manual price entry enough if automated extraction fails?
 
 ## Completion log

@@ -4,13 +4,14 @@ This record accompanies the Phase 9 (MVP Release) implementation. It captures
 the release configuration, audits, manual demo script, and verification
 evidence required by `docs/specs/phases/phase-09-mvp-release.md`.
 
-> **Rework status (2026-11-22):** the D-043/D-044/D-045 rework (generic WebView
+> **Final status (2026-11-22):** the D-043/D-044/D-045 rework (generic WebView
 > branch picker, handwriting **Save**/review flow, removal of the dropped
 > accessibility-tool gate, and removal of store hours/visit features) is
-> code-complete. D-043/D-044 instrumentation passed earlier. The D-045 static
-> gate passes; `connectedDebugAndroidTest` is blocked because no device or
-> emulator is attached. Live manual gates remain open. Phase 9 stays
-> `in-progress`.
+> complete. The combined static and instrumentation gate passed on physical
+> Samsung SM-A536U1: 255 unit tests and 44 connected tests, 0 failures/errors/
+> skipped; lint 0 errors. The device operator reported all live manual gates
+> passed the same day. All Phase 9 acceptance criteria are checked and the
+> phase is `done`.
 
 ## Release configuration
 
@@ -231,20 +232,19 @@ API 36) was connected for this verification pass. Animation scales were already
   `accessibility_script` deleted), the probe process was force-stopped, and
   airplane mode was restored off.
 
-### Manual gates still open
+### Manual gates
 
-These require a device operator and remain unverified; Phase 9 stays
-`in-progress` until they are recorded as passes. Step-by-step instructions are
-in `docs/release/phase-09-manual-tests.md`.
+All gates in `docs/release/phase-09-manual-tests.md` were run by a device
+operator and reported passed on 2026-11-22. Phase 9 is `done`. No per-step
+screenshots were captured in this environment; the sign-off is recorded in the
+phase completion log.
 
-1. Full demo in `docs/release/phase-09-manual-tests.md` Gate 1 (handwriting
-   **Save**/review flow, photo capture, branch picker on first use, organize and
-   AI suggestions, defer to next week, cached-aisle behavior).
-2. `docs/release/phase-09-manual-tests.md` Gate 2 (WebView branch picker,
-   first-use prompt, Settings change, Organize context, delete-all clearing).
-3. `docs/release/phase-09-manual-tests.md` Gate 3 (TalkBack traversal).
-4. Confirm no **Store hours & visit** action, no visit-time preference in
-   Settings/Schedule, and no open/closed or hours text appears on a list.
+| Gate | Result | Notes |
+|---|---|---|
+| Gate 1 — full demo | PASS | Handwriting **Save**/review flow, photo capture, branch picker on first use, organize and AI suggestions, defer to next week, cached-aisle behavior |
+| Gate 2 — branch picker | PASS | WebView branch picker for all five brands, first-use prompt, Settings change, Organize context, delete-all clearing |
+| Gate 3 — TalkBack | PASS | Core journey completes with TalkBack on; no unlabeled interactive control or dead swipe stop |
+| D-045 removal check | PASS | No **Store hours & visit** action, no visit-time preference, no open/closed or hours text on a list |
 
 
 ## User feedback (verbatim, 2026-11-22)

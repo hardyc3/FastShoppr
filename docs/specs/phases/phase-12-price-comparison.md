@@ -1,11 +1,11 @@
-# Phase 11 — Price Comparison
+# Phase 12 — Price Comparison
 
 - **Status:** `not-started`
-- **Depends on:** Phase 10
+- **Depends on:** Phase 11
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-11-13
+- **Last updated:** 2026-11-22
 
 ## Goal
 
@@ -13,14 +13,14 @@ Let users compare item prices across their local stores, with automated store-pa
 
 ## Context
 
-Phase 10 determines which stores can provide usable local prices. This phase implements the post-MVP comparison experience without weakening the routing MVP.
+Phase 11 determines which stores can provide usable local prices. This phase implements the post-MVP comparison experience without weakening the routing MVP.
 
 ## In scope
 
 - `PriceQuote` entity, DAO, and repository.
 - Custom store CRUD.
 - Manual price entry and edit.
-- Automated price extraction for stores approved in Phase 10.
+- Automated price extraction for stores approved in Phase 11.
 - Price cache and refresh.
 - Compare-prices UI.
 - Cheapest-store suggestion per item.
@@ -64,7 +64,7 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 
 ### Automated prices
 
-- Only for stores approved in Phase 10.
+- Only for stores approved in Phase 11.
 - Reuse store context, rate limits, and block handling.
 - Extract price, product name, size, and URL where available.
 - Do not infer prices from unrelated products.
@@ -120,7 +120,7 @@ Phase 10 determines which stores can provide usable local prices. This phase imp
 
 - [ ] Users can add, edit, and archive custom stores.
 - [ ] Users can enter and edit manual prices.
-- [ ] Automated prices work for stores approved in Phase 10.
+- [ ] Automated prices work for stores approved in Phase 11.
 - [ ] Prices show source, timestamp, and staleness.
 - [ ] Cheapest suggestions are correct for comparable sizes.
 - [ ] Size mismatches do not declare a winner.

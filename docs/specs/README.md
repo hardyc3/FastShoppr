@@ -49,9 +49,10 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 6c | Lookup extraction confidence and regex simplification | `done` | 6b |
 | 7 | Background routing | `done` | 5, 6, 6b |
 | 8 | Schedule & calendar | `done` | 3, 7 |
-| 9 | MVP release | `in-progress` | 8 |
-| 10 | Pricing spike | `not-started` | 9 |
-| 11 | Price comparison | `not-started` | 10 |
+| 9 | MVP release | `done` | 8 |
+| 10 | Store integration coverage | `not-started` | 9 |
+| 11 | Pricing spike | `not-started` | 10 |
+| 12 | Price comparison | `not-started` | 11 |
 
 ## Status values
 
@@ -64,7 +65,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 
 - The app is Java 21 with XML Views and ViewBinding. Do not add Kotlin app source, the Kotlin Android plugin, or Jetpack Compose. Gradle Kotlin DSL is allowed for build scripts.
 - The current release is local-first. There is no backend, cloud sync, sharing, or authentication.
-- Price comparison is post-MVP (Phases 10–11).
+- Store integration coverage for all supported brands is Phase 10. Price comparison is post-MVP (Phases 11–12).
 - Google Maps Popular Times and busyness scraping are not used. Store hours and visit planning were removed by D-045.
 - On-device AI is optional and always has a deterministic fallback.
 - Walmart WebView lookups require the foreground-service design.

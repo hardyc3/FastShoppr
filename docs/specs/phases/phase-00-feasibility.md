@@ -77,7 +77,7 @@ This phase de-risks Phases 5–11. It produces a report, sanitized fixtures, and
 
 - Observe whether local prices are visible on public pages for Walmart, Home Depot, and one other store.
 - Note whether store context and size/unit are visible.
-- Decide whether Phase 11 can automate extraction or must rely on manual prices for a store.
+- Decide whether Phase 12 can automate extraction or must rely on manual prices for a store.
 
 ## Technical approach
 
@@ -138,7 +138,7 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 - Home Depot may require cookies or a store-selection flow. Mitigation: document the flow and keep fixtures.
 - Gemini Nano may be unavailable on the test device. Mitigation: rules fallback; AI remains optional.
 - Camera handwriting accuracy may be poor. Mitigation: Digital Ink is the primary handwriting path; review is mandatory.
-- Price data may not be available. Mitigation: manual prices and a Phase 11 go/no-go.
+- Price data may not be available. Mitigation: manual prices and a Phase 12 go/no-go.
 
 ## Open questions
 

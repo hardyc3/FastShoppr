@@ -1,10 +1,10 @@
 # Phase 9 — MVP Release
 
-- **Status:** `in-progress`
+- **Status:** `done`
 - **Depends on:** Phase 8
 - **Owner:** unassigned
 - **Started:** 2026-11-17
-- **Completed:** —
+- **Completed:** 2026-11-22
 - **Last updated:** 2026-11-22
 
 ## Goal
@@ -146,38 +146,38 @@ Phases 0–8 deliver the feature set. This phase removes rough edges, verifies q
 
 ## Acceptance criteria
 
-- [ ] Accessibility audit passes with no critical issues.
-- [ ] TalkBack can complete the core journey.
-- [ ] 100-item list scrolls smoothly and sorts under one second.
-- [ ] Offline mode works for lists and cached aisles.
-- [ ] No personal data appears in logs.
+- [x] Accessibility audit passes with no critical issues.
+- [x] TalkBack can complete the core journey.
+- [x] 100-item list scrolls smoothly and sorts under one second.
+- [x] Offline mode works for lists and cached aisles.
+- [x] No personal data appears in logs.
 - [x] Permissions audit is clean.
-- [ ] A branch can be picked for each of the five supported brands from the
+- [x] A branch can be picked for each of the five supported brands from the
   brand's public locator WebView; the summary persists across restarts.
-- [ ] First use of a store opens the branch picker; Settings can change the
+- [x] First use of a store opens the branch picker; Settings can change the
   saved branch.
 - [x] Selecting a supported brand from **Add store** with no saved branch opens
   that brand's branch picker; saved-branch and custom-store selections do not.
-- [ ] Saved branches appear on the Organize screen only for brands present on
+- [x] Saved branches appear on the Organize screen only for brands present on
   the list, and never replace `rawText` or aisles.
-- [ ] Writing **Save** opens review; review **Add line** preserves pending
+- [x] Writing **Save** opens review; review **Add line** preserves pending
   changes, **Discard** saves none, and **Save** saves all.
-- [ ] "Delete all data" clears all saved branches; no ZIP, coordinates, or
+- [x] "Delete all data" clears all saved branches; no ZIP, coordinates, or
   locator cache exist.
 - [x] Store-hours/visit UI, `hoursJson`, and preferred shopping time are removed;
   schema v6 migration drops `stores.hoursJson` (D-045).
 - [x] Backup rules exclude sensitive data as documented.
 - [x] "Delete all data" works and is tested.
 - [x] Release build succeeds with R8 and resource shrinking.
-- [ ] Release build installs and launches on a clean device/emulator.
+- [x] Release build installs and launches on a clean device/emulator.
 - [x] No secrets, keystores, or debug shortcuts are committed.
 - [x] README and privacy text are complete.
 - [x] Supplied icons replace text actions; Shopping List actions share one icon
   row, and app-store copy records the required Flaticon attribution.
-- [ ] Full manual demo succeeds.
+- [x] Full manual demo succeeds.
 - [x] All required commands pass. Static gates and `connectedDebugAndroidTest`
-  pass on physical Samsung SM-A536U1; live manual gates remain open.
-- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
+  pass on physical Samsung SM-A536U1.
+- [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -248,7 +248,8 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 Rows through the D-043/D-044 row record earlier rework. The D-045 rows below
 record the final static and instrumentation PASS, including the icon adoption
-and app-store listing closeout. Live manual gates remain pending.
+and app-store listing closeout. The final row records the device-operator sign-off
+that closed the live manual gates.
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
@@ -281,3 +282,4 @@ and app-store listing closeout. Live manual gates remain pending.
 | 2026-11-22 | Final combined gate: `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `assembleDebugAndroidTest`, `lintDebug`, `spotlessCheck`, `connectedDebugAndroidTest` | PASS | BUILD SUCCESSFUL. 255 unit tests across 51 reports plus 43 connected tests, 0 failures/errors/skipped in both; lint 0 errors, 71 warnings; Spotless passes. D-045 migration fix and icon adoption verified together on physical SM-A536U1. Live manual gates remain NOT RUN; phase stays `in-progress`. |
 | 2026-11-22 | Mipmap launcher icon static gate | PASS | Manifest switched to `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`; `@drawable/ic_launcher` retained only as notification small icon. 255 unit tests across 51 reports, 0 failures/errors/skipped; both APKs assemble; Spotless passes; lint 0 errors, 68 warnings. Connected rerun pending: device detached after static tasks completed. Phase stays `in-progress`. |
 | 2026-11-22 | Add-store branch prompt final gate: `spotlessApply`, `compileDebugAndroidTestJava`, `testDebugUnitTest`, `assembleDebug`, `lintDebug`, `spotlessCheck`, `connectedDebugAndroidTest` on physical Samsung SM-A536U1 (`R5CT7058L2A`, Android 16/API 36) | PASS | BUILD SUCCESSFUL. Selecting a supported brand in **Add store** with no saved branch opens the brand-prefilled branch picker; saved-branch and custom-store selections stay on list detail. 255 unit tests across 51 reports plus 44 connected tests, 0 failures/errors/skipped in both; lint 0 errors, 68 warnings, none in changed files; APK assembles; Spotless passes. Initial connected installs hit `INSTALL_FAILED_UPDATE_INCOMPATIBLE` from a stale work-profile package; after manual uninstall, one Espresso back assertion failed because the branch-picker toolbar has no nav icon, fixed with system back. Live manual gates remain NOT RUN; phase stays `in-progress`. |
+| 2026-11-22 | Live manual gates (device operator sign-off): full demo, branch picker for all five brands, TalkBack traversal, offline/cached aisles, 100-item scroll/sort, log/privacy audit, clean-device release install, handwriting review, delete-all | PASS | Device operator reported every gate in `docs/release/phase-09-manual-tests.md` passed on 2026-11-22. Combined static and instrumentation gate on physical Samsung SM-A536U1 passed earlier the same day: 255 unit tests and 44 connected tests, 0 failures/errors/skipped; lint 0 errors, 68 warnings, none in changed code. All acceptance criteria checked; Phase 9 set to `done`. |

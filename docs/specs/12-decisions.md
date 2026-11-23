@@ -109,7 +109,7 @@ Format:
 - Status: accepted
 - Decision: Implement price comparison after the routing MVP, using public store-page prices where available and manual override. Support custom local stores.
 - Rationale: Routing is the core differentiator. Price data is volatile and store-specific, so it needs its own spike.
-- Consequences: Phases 10–11 cover pricing. The MVP data model reserves a `PriceQuote` entity but does not expose price UI.
+- Consequences: Phases 11–12 cover pricing after Phase 10 completes store lookup coverage. The MVP data model reserves a `PriceQuote` entity but does not expose price UI.
 
 ## D-013 — Sharing, sync, and Google Sign-In are deferred
 
@@ -182,7 +182,7 @@ Format:
 - Status: accepted (amends D-004 and D-005)
 - Decision: Automated aisle extraction is not viable from this environment for either MVP store. Walmart redirects plain HTTP clients and the emulator WebView to a PerimeterX "Robot or human?" page. Home Depot returns HTTP 403 (Akamai) to plain HTTP clients and shows its error page in WebView. Keep the D-004/D-005 designs as the intended architecture, but treat live lookup as **conditional go** only: it must run as a user-initiated foreground WebView session with manual override, and otherwise the app falls back to manual aisle entry and cached results. OkHttp+Jsoup for Home Depot is kept only if a future verification pass from a real device gets real aisle pages; otherwise Home Depot also ships manual-entry-first.
 - Rationale: Verified 2026-11-03 from WSL (curl) and an API 36 emulator (WebView and OkHttp). Both stores present bot challenges; bypassing them is out of scope and against the store data access policy. Synthetic fixtures document the parser logic but prove nothing about live pages.
-- Consequences: Phase 6 ships with manual aisle entry as the guaranteed path. Lookup is an enhancement, not a requirement. Fixtures must be re-verified on a real device before trusting the parser. Price extraction (Phase 11) is likewise blocked: automated price lookup is a no-go until a real device passes the challenges; plan manual prices.
+- Consequences: Phase 6 ships with manual aisle entry as the guaranteed path. Lookup is an enhancement, not a requirement. Fixtures must be re-verified on a real device before trusting the parser. Price extraction (Phase 12) is likewise blocked: automated price lookup is a no-go until a real device passes the challenges; plan manual prices.
 
 ## D-022 — Walmart WebView extraction verified on emulator; Home Depot remains blocked
 
@@ -190,7 +190,7 @@ Format:
 - Status: accepted (amends D-021)
 - Decision: Walmart lookup is **conditionally viable** via the D-004 design: on 2026-11-03 an emulator WebView session loaded walmart.com and three search pages (milk, eggs, paper towels) once past PX; aisles extracted from `__NEXT_DATA__` (`"Location":[{"displayValue":"A29","aisle":{"zone":"A","aisle":29}}]` — milk→A29, eggs→AC4, paper towels→J29), prices and default store context visible. PX pass is intermittent (≈50% of sessions; plain HTTP always blocked). Home Depot remains **blocked** (HTTP 403 Akamai from curl, OkHttp, and interactive WebView). Lookup stays: user-initiated, foreground WebView only, cached, manual override always available, never unattended. Walmart aisle parsing keys off `LocationDisplayValue`/`"Location":[...]` in `__NEXT_DATA__`; fixture tests must use sanitized, trimmed captures.
 - Rationale: Phase 0 evidence (fixtures `walmart/webview-*.json`, report §1/§2). D-021's blanket "no automated path" was too strong for Walmart; HD unchanged.
-- Consequences: Phase 6 may implement Walmart assisted lookup (flag-gated, user-triggered). HD ships manual-entry-first; HD HTTP stays dead until a real-device/mobile-data pass. Phase 11 pricing extraction viable for Walmart/Target where pages load; HD no-go; manual prices remain the guaranteed path everywhere. Nothing here authorizes background or headless lookup.
+- Consequences: Phase 6 may implement Walmart assisted lookup (flag-gated, user-triggered). HD ships manual-entry-first; HD HTTP stays dead until a real-device/mobile-data pass. Phase 12 pricing extraction viable for Walmart/Target where pages load; HD no-go; manual prices remain the guaranteed path everywhere. Nothing here authorizes background or headless lookup.
 
 ## D-023 — Soft delete with a 30-day restore window
 
@@ -377,4 +377,12 @@ Format:
 - Decision: Remove the **Store hours & visit** action, manual hours entry, open/closed display, visit-window suggestions, `Store.hoursJson`, and the `preferred_shopping_time` setting from the MVP. The recurring schedule, calendar, deferral, and overdue features stay.
 - Rationale: Product feedback (2026-11-22): "We also want to remove the store hours and visit features." The data was manually entered and unparseable, so it could not produce a trustworthy suggestion.
 - Consequences: Room schema v6 drops `stores.hoursJson` with migration `MIGRATION_5_6`. `Store`/`StoreEntity`/`StoreMapper` no longer carry hours. Settings no longer stores or displays a preferred shopping time. Privacy text no longer lists store-hours or visit-time data. No Maps busyness data is used.
+
+## D-046 — Store integration coverage inserted as Phase 10
+
+- Date: 2026-11-22
+- Status: accepted (inserts Phase 10; renumbers the pricing phases to 11 and 12; amends `AGENTS.md`, `docs/specs/README.md`, `00-product.md`, `03-store-integration.md`, and `08-pricing-and-custom-stores.md`)
+- Decision: Add **Phase 10 — Store Integration Coverage** between the MVP release and pricing work. It verifies Home Depot HTTP aisle lookup and branch selection, implements or verifies automated aisle lookup and branch selection for Lowe's, Target, and Smiths, and keeps Walmart as a regression smoke only. Every supported brand gets a manual device test matrix. Custom stores stay manual-aisle only. The former Phase 10 (Pricing Spike) becomes Phase 11 and the former Phase 11 (Price Comparison) becomes Phase 12. The new Phase 10 is `not-started` and must not be started until explicitly instructed.
+- Rationale: Product feedback (2026-11-22): "Walmart seems to be good but we need to do the rest and verify with some manual tests that they work." Multi-store routing is the core product promise; claiming coverage for five brands without verified lookups for four of them is misleading.
+- Consequences: No price feature is pulled forward; Phase 11 still depends on a completed Phase 10 and Phase 12 on Phase 11. The existing store data access policy, explicit-branch-context rule, and `rawText` invariant are unchanged. No Room migration is expected; any new cache field requires its own migration and test. No new dependency is authorized by this decision. No implementation begins while Phase 10 is `not-started`.
 

@@ -6,14 +6,14 @@ MVP automated lookup supports:
 
 | Store | Method | Store context | Status |
 |---|---|---|---|
-| Walmart | WebView extraction | Branch picked in WebView | Phase 6 |
-| Home Depot | OkHttp + Jsoup | Branch picked in WebView | Phase 6 |
-| Lowe's | Manual aisle only | — | Later |
-| Target | Manual aisle only | — | Later |
-| Smiths | Manual aisle only | — | Later |
-| Custom stores | Manual aisle only | — | Post-MVP |
+| Walmart | WebView extraction | Branch picked in WebView | Phase 6; Phase 10 regression only |
+| Home Depot | OkHttp + Jsoup | Branch picked in WebView | Phase 6; verify in Phase 10 |
+| Lowe's | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Target | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Smiths | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Custom stores | Manual aisle only | — | No automated lookup planned |
 
-Manual aisle entry is always available and must never depend on a successful lookup.
+Manual aisle entry is always available and must never depend on a successful lookup. Automated lookup coverage for Lowe's, Target, and Smiths is the work of Phase 10 (D-046); that phase also verifies Home Depot and keeps Walmart as a regression smoke.
 
 ## Access policy
 
@@ -204,8 +204,10 @@ Home Depot product pages publicly show in-store availability such as `Aisle 52, 
 The app must know which physical store's layout to query. One generic WebView
 branch picker supplies that context for Walmart, Home Depot, Lowe's, Target, and
 Smiths (D-043). Automated Walmart and Home Depot lookups keep the flows
-documented above. The saved branch is explicit user context; it is not silently
-applied as a lookup result or treated as proof of an aisle.
+documented above. Phase 10 extends automated lookup to Lowe's, Target, and
+Smiths and verifies Home Depot with a device test matrix per brand (D-046).
+The saved branch is explicit user context; it is not silently applied as a
+lookup result or treated as proof of an aisle.
 
 Priority order for a user-visible store context:
 

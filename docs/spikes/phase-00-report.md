@@ -129,7 +129,7 @@ Pure Java, fixed clock (`2026-11-03`, Tuesday). Implementation: `phase0-spike/da
 
 Walmart and Target both render prices **with a store-scoped context**; extraction is identical in kind to the aisle extraction above (WebView + JS). Home Depot exposes nothing without passing Akamai.
 
-**Phase 11 impact:** automated price extraction is feasible **where pages load** (Walmart — intermittently; Target — after store selection in this test), not viable for Home Depot. A 2026-11-04 Target run also hit a bot/human verification wall, so Target extraction must be assisted/manual rather than unattended. Still: PX makes Walmart automation flaky; keep manual prices as the guaranteed path; treat extraction as optional assist with user override. Do not scrape around blocks.
+**Phase 12 impact:** automated price extraction is feasible **where pages load** (Walmart — intermittently; Target — after store selection in this test), not viable for Home Depot. A 2026-11-04 Target run also hit a bot/human verification wall, so Target extraction must be assisted/manual rather than unattended. Still: PX makes Walmart automation flaky; keep manual prices as the guaranteed path; treat extraction as optional assist with user override. Do not scrape around blocks.
 
 ## 8. Go / No-Go decisions
 
@@ -140,7 +140,7 @@ Digital Ink + Text Recognition v2 both run from Java; models download and cache.
 - Walmart: 3/3 items extracted on emulator once pages loaded (milk→A29, eggs→AC4, paper towels→J29); prices and store context visible. Requires user-visible foreground WebView, pass-the-wall tolerance, manual override, cached results, `__NEXT_DATA__` parsing. Not for unattended use. D-022 records this.
 - Home Depot: no automated path works (403 everywhere incl. WebView). Ships manual-entry-first; HTTP lookup stays dead until a real-device/mobile-data pass retrieves aisle pages. D-021 stands for HD.
 
-**Phase 11 (Price comparison): CONDITIONAL GO for Walmart/Target via WebView; NO-GO for Home Depot; manual prices remain the fallback.**
+**Phase 12 (Price comparison): CONDITIONAL GO for Walmart/Target via WebView; NO-GO for Home Depot; manual prices remain the fallback.**
 Automation is flaky by design (PX); user-initiated WebView with cached results is the ceiling. Do not build headless scraping.
 
 ## Non-goals confirmed

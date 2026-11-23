@@ -97,6 +97,18 @@ Fakes must be deterministic and configurable per test.
   returns to writing with pending changes preserved, **Discard** saves none,
   and **Save** saves all.
 
+## Phase 10 store integration coverage
+
+- Automated aisle lookup tests use sanitized fixtures for each changed brand:
+  aisle present, aisle absent, and blocked page.
+- Cache tests assert brand-scoped keys, 60-day expiry, and one request per second
+  per store.
+- Device manual tests cover branch selection → item entry → organize → aisle
+  result → sort for Home Depot, Lowe's, Target, and Smiths, plus a Walmart
+  regression smoke. Results are recorded per brand with device and date.
+- Custom-store tests assert manual-only aisle entry; no automated lookup path is
+  exercised.
+
 ## Fixtures
 
 - Store fixtures live in `app/src/test/resources/fixtures/`.

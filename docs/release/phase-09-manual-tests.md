@@ -1,9 +1,9 @@
 # Phase 9 — Manual test instructions
 
-These gates cannot be automated in this environment and must be run by a device
-operator before Phase 9 can be marked `done`. Record the outcome for each gate
+These gates cannot be automated in this environment and were run by a device
+operator before Phase 9 was marked `done`. The outcome for each gate is recorded
 in `docs/release/phase-09-verification.md` and the phase completion log. If any
-gate fails, leave Phase 9 `in-progress` and fix the issue first.
+gate had failed, Phase 9 would have stayed `in-progress` until it was fixed.
 
 ## Setup
 
@@ -126,4 +126,6 @@ with TalkBack on.
 Update `docs/release/phase-09-verification.md` and the completion log in
 `docs/specs/phases/phase-09-mvp-release.md` with the actual results, including
 device/emulator used and any failures. Only then check the acceptance boxes and
-set Phase 9 to `done`. Do not start Phase 10 until Phase 9 is reviewed.
+set Phase 9 to `done`. Phase 9 is now `done`; the new Phase 10
+(`phase-10-store-integration-coverage.md`) is `not-started` and must not be
+started until explicitly instructed.

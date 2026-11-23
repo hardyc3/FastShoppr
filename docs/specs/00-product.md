@@ -46,8 +46,10 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Overdue-item prompt.
 - Local-only storage; no account required.
 
-## Post-MVP scope (Phases 10–11)
+## Post-MVP scope (Phases 10–12)
 
+- Verified automated aisle lookup and branch selection for Lowe's, Target, and
+  Smiths, with Home Depot verification and a Walmart regression check (Phase 10).
 - User-added local stores.
 - Price collection from public store pages where available.
 - Manual price override.
@@ -64,7 +66,6 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Indoor navigation, maps, or turn-by-turn store routing.
 - Manual drag reordering.
 - Store-specific walking routes beyond aisle order.
-- Automated lookup for Lowe's, Target, and Smiths.
 - Barcode scanning.
 - Receipt scanning.
 - Widgets, Wear OS, tablets, or multi-platform clients.
@@ -79,7 +80,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | On-device AI cleanup | Yes | — | — |
 | Walmart aisle lookup | Yes | — | — |
 | Home Depot aisle lookup | Yes | — | — |
-| Lowe's/Target/Smiths automated lookup | Manual aisle | Later | — |
+| Lowe's/Target/Smiths automated lookup | Manual aisle | Phase 10 | — |
 | Multi-store list sections | Yes | — | — |
 | Aisle asc/desc toggle | Yes | — | — |
 | Background organizing | Yes | — | — |
