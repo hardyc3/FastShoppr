@@ -6,11 +6,14 @@
 package com.fastshoppr.app;
 
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.action.ViewActions.pressImeActionButton;
 import static androidx.test.espresso.action.ViewActions.replaceText;
+import static androidx.test.espresso.assertion.ViewAssertions.doesNotExist;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.RootMatchers.isDialog;
+import static androidx.test.espresso.matcher.RootMatchers.isPlatformPopup;
 import static androidx.test.espresso.matcher.ViewMatchers.hasDescendant;
 import static androidx.test.espresso.matcher.ViewMatchers.isAssignableFrom;
 import static androidx.test.espresso.matcher.ViewMatchers.isChecked;
@@ -19,11 +22,13 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
+import static org.junit.Assert.assertEquals;
 
 import android.content.Intent;
 import android.os.SystemClock;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.Spinner;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -34,7 +39,13 @@ import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.preferences.SettingsPreferences;
+import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.SortDirection;
+import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.model.StoreLocatorPages;
+import com.fastshoppr.app.domain.repository.SelectedStoreRepository;
+import com.fastshoppr.app.domain.repository.StoreRepository;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
 import javax.inject.Inject;
@@ -56,6 +67,10 @@ public final class ManualListsFlowTest {
 
   @Inject SettingsPreferences settingsPreferences;
 
+  @Inject StoreRepository storeRepository;
+
+  @Inject SelectedStoreRepository selectedStoreRepository;
+
   @Before
   public void setUp() {
     hiltRule.inject();
@@ -64,9 +79,13 @@ public final class ManualListsFlowTest {
     sqlite.execSQL("DELETE FROM capture_sessions");
     sqlite.execSQL("DELETE FROM shopping_lists");
     sqlite.execSQL("DELETE FROM aisle_cache");
+    sqlite.execSQL("DELETE FROM stores WHERE isCustom = 1");
     settingsPreferences.setSortDirection(SortDirection.ASC);
     settingsPreferences.setLastUsedStoreId(null);
     settingsPreferences.setDefaultStoreId(null);
+    for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+      selectedStoreRepository.clear(brand);
+    }
   }
 
   @Test
@@ -87,10 +106,10 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.add_store_button)).perform(click());
       androidx.test.espresso.Espresso.onView(withId(R.id.store_name_input))
           .inRoot(isDialog())
-          .perform(replaceText("Walmart"), pressImeActionButton());
+          .perform(replaceText("Corner Market"), pressImeActionButton());
 
-      waitForContentDescription("Add item to Walmart");
-      onFocusedView(withContentDescription("Add item to Walmart"))
+      waitForContentDescription("Add item to Corner Market");
+      onFocusedView(withContentDescription("Add item to Corner Market"))
           .perform(replaceText("milk"), clickAddItemButton());
       waitForItemText("milk");
 
@@ -122,11 +141,83 @@ public final class ManualListsFlowTest {
       onFocusedView(withId(R.id.save_item_button)).perform(click());
       waitForItemText("milk 2%");
 
-      onFocusedView(withContentDescription("Add item to Walmart")).perform(replaceText("eggs"));
+      onFocusedView(withContentDescription("Add item to Corner Market"))
+          .perform(replaceText("eggs"));
       waitForText("eggs");
       scenario.recreate();
-      waitForContentDescription("Add item to Walmart");
+      waitForContentDescription("Add item to Corner Market");
       onFocusedView(withText("eggs")).check(matches(isDisplayed()));
+    }
+  }
+
+  @Test
+  public void addStoreDialogListsSupportedStoresAndStillCreatesCustomStore() {
+    Intent intent =
+        new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
+      int storesBefore = storeRepository.getActive().size();
+      waitFor(
+          () -> onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed())));
+      onFocusedView(withId(R.id.create_list_button)).perform(click());
+      onFocusedView(withText(android.R.string.ok)).perform(click());
+      waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
+      waitForText(R.string.no_stores);
+
+      onFocusedView(withId(R.id.add_store_button)).perform(click());
+      onView(withId(R.id.store_spinner)).inRoot(isDialog()).check(matches(isDisplayed()));
+      onView(withId(R.id.store_name_input)).inRoot(isDialog()).check(matches(isDisplayed()));
+      onView(withId(R.id.store_spinner)).inRoot(isDialog()).perform(click());
+      onView(withText("Home Depot")).inRoot(isPlatformPopup()).check(matches(isDisplayed()));
+      onView(withText("Walmart")).inRoot(isPlatformPopup()).perform(click());
+      onView(withText(R.string.add_store_add)).inRoot(isDialog()).perform(click());
+
+      waitForBranchPicker();
+      onFocusedView(withId(R.id.branchBrandSpinner)).check(matches(withSpinnerValue("Walmart")));
+      pressBack();
+      waitForContentDescription("Add item to Walmart");
+      assertEquals(
+          "supported store must be reused", storesBefore, storeRepository.getActive().size());
+      onFocusedView(withContentDescription("Add item to Walmart"))
+          .perform(replaceText("milk"), clickAddItemButton());
+      waitForItemText("milk");
+
+      onFocusedView(withId(R.id.add_store_button)).perform(click());
+      onView(withId(R.id.store_spinner)).inRoot(isDialog()).check(matches(isDisplayed()));
+      onView(withId(R.id.store_name_input))
+          .inRoot(isDialog())
+          .perform(replaceText("Corner Market"), pressImeActionButton());
+
+      waitForContentDescription("Add item to Corner Market");
+      onView(withText(R.string.branch_picker_title)).check(doesNotExist());
+      assertEquals(
+          "custom name must create one new store",
+          storesBefore + 1,
+          storeRepository.getActive().size());
+    }
+  }
+
+  @Test
+  public void addStoreWithSavedBranchDoesNotOpenBranchPicker() {
+    selectedStoreRepository.select(branch(StoreBrand.WALMART));
+    Intent intent =
+        new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
+      waitFor(
+          () -> onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed())));
+      onFocusedView(withId(R.id.create_list_button)).perform(click());
+      onFocusedView(withText(android.R.string.ok)).perform(click());
+      waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
+      waitForText(R.string.no_stores);
+
+      onFocusedView(withId(R.id.add_store_button)).perform(click());
+      onView(withId(R.id.store_spinner)).inRoot(isDialog()).perform(click());
+      onView(withText("Walmart")).inRoot(isPlatformPopup()).perform(click());
+      onView(withText(R.string.add_store_add)).inRoot(isDialog()).perform(click());
+
+      waitForContentDescription("Add item to Walmart");
+      onView(withText(R.string.branch_picker_title)).check(doesNotExist());
     }
   }
 
@@ -252,6 +343,42 @@ public final class ManualListsFlowTest {
 
   private static void waitForContentDescription(String description) {
     waitFor(() -> onFocusedView(withContentDescription(description)).check(matches(isDisplayed())));
+  }
+
+  private static void waitForBranchPicker() {
+    waitFor(
+        () -> onFocusedView(withText(R.string.branch_picker_title)).check(matches(isDisplayed())));
+  }
+
+  private static Matcher<View> withSpinnerValue(String expected) {
+    return new TypeSafeMatcher<>() {
+      @Override
+      protected boolean matchesSafely(View view) {
+        if (!(view instanceof Spinner spinner) || spinner.getSelectedItem() == null) {
+          return false;
+        }
+        return expected.equals(spinner.getSelectedItem().toString());
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("spinner with selection \"").appendText(expected).appendText("\"");
+      }
+    };
+  }
+
+  private static NearbyStore branch(StoreBrand brand) {
+    return new NearbyStore(
+        "branch-" + brand.name(),
+        brand,
+        brand.getDisplayName() + " #123",
+        "1 Main St",
+        "Denver",
+        "CO",
+        null,
+        null,
+        null,
+        NearbyStoreSource.LOCATOR);
   }
 
   private static void waitFor(Runnable assertion) {

@@ -2,7 +2,7 @@
 
 ## Principles
 
-- Local-first: lists, images, aisle results, prices, and location stay on the device.
+- Local-first: lists, images, aisle results, prices, and saved branch metadata stay on the device; no ZIP or coordinates are collected.
 - No backend, no analytics SDK, no cloud sync, and no account in the MVP.
 - Collect the minimum data needed for a feature.
 - Request permissions at the moment of use, not at launch.
@@ -17,15 +17,14 @@
 | Capture images | App-private cache, deleted after review | No |
 | Handwriting strokes | Memory/session only | No |
 | Aisle cache | Room | No |
-| Store selection | Room/SharedPreferences | No |
-| Location coordinates | Room/SharedPreferences | No |
+| Saved branch (name and address) | SharedPreferences, one per brand | No |
 | Price quotes | Room | No |
 | Preferences | SharedPreferences | No |
 
 ## Threat model
 
 - A malicious or compromised retailer page could attempt to inject scripts or exfiltrate data through the WebView.
-- A lost device could expose local list and location data.
+- A lost device could expose local list data and saved store selections.
 - A parser or AI output could inject unexpected text into the UI.
 - A future sharing feature could introduce access-control and conflict risks.
 
@@ -44,15 +43,13 @@ Mitigations:
 | Permission | Purpose | Timing | Denial behavior |
 |---|---|---|---|
 | `CAMERA` | Photograph a handwritten list | When the user opens camera capture | Keep gallery and typed entry |
-| `ACCESS_COARSE_LOCATION` | Find nearby stores | When the user taps "use my location" | Ask for ZIP/store selection |
-| `ACCESS_FINE_LOCATION` | Optional precise nearby store | Only if coarse is insufficient and the user opts in | Fall back to coarse or manual |
 | `POST_NOTIFICATIONS` | Background organizing and schedule alerts | When the user enables those features | Create lists silently; queue Walmart lookups |
 | `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_DATA_SYNC` | Walmart WebView lookup | Declared in manifest, started by user action | Queue for foreground |
 | `INTERNET` | Store lookup (Walmart WebView; Home Depot HTTP when enabled) and ML Kit model download | When the user starts a lookup or the model downloads | Fall back to cached results and manual aisle entry |
 
 Rules:
 
-- Do not request location at app launch.
+- No location permission is requested; branch selection uses a WebView page.
 - Do not request notification permission until a notification feature is enabled.
 - Explain why a permission is needed before requesting it.
 - Handle "don't ask again" by directing the user to settings.
@@ -75,10 +72,15 @@ Rules:
 - Set a descriptive user agent.
 - Do not proxy traffic through a third party.
 - Stop on block responses instead of trying to evade them.
+- The WebView branch picker loads the brand's public locator page; no ZIP or
+  coordinate is added to the URL and no locator response is parsed or cached.
 
 ## WebView security
 
-- Enable JavaScript only because Walmart requires it.
+- Enable JavaScript for Walmart lookup and public store-locator pages.
+- Branch picker WebViews are limited to the selected brand's public locator
+  domain over HTTPS and are destroyed when the branch is confirmed or the
+  screen closes.
 - Disable file access, universal access from file URLs, and mixed content.
 - Do not add a `JavascriptInterface` that exposes app data.
 - Restrict navigation to the intended retailer domain.
@@ -95,7 +97,7 @@ Allowed:
 
 Not allowed:
 
-- Item text, list names, images, image URIs, addresses, coordinates, cookies, or AI prompts.
+- Item text, list names, images, image URIs, saved branch addresses, cookies, or AI prompts. No ZIP or coordinates exist to log.
 - Full URLs containing personal parameters.
 - Stack traces containing user data.
 
@@ -112,7 +114,7 @@ Use a debug-only logger that is disabled in release builds.
 ## Backups
 
 - Review Android auto-backup rules.
-- Exclude capture images and location if they are not needed for restore.
+- Exclude capture images if they are not needed for restore.
 - Document the chosen behavior in the phase that adds backup rules.
 - Do not back up secrets.
 

@@ -56,12 +56,14 @@ public final class InkCanvasView extends View {
 
   private void applyThemeColor(Context context) {
     TypedValue value = new TypedValue();
-    if (context.getTheme().resolveAttribute(android.R.attr.colorControlHighlight, value, true)
+    if (context
+            .getTheme()
+            .resolveAttribute(com.google.android.material.R.attr.colorOnSurface, value, true)
         && value.resourceId != 0) {
       paint.setColor(context.getColor(value.resourceId));
     } else if (context
             .getTheme()
-            .resolveAttribute(com.google.android.material.R.attr.colorOnSurface, value, true)
+            .resolveAttribute(android.R.attr.colorControlHighlight, value, true)
         && value.resourceId != 0) {
       paint.setColor(context.getColor(value.resourceId));
     } else {
@@ -114,12 +116,20 @@ public final class InkCanvasView extends View {
         onTouchMove(x, y);
         return true;
       case MotionEvent.ACTION_UP:
+        onTouchUp();
+        performClick();
+        return true;
       case MotionEvent.ACTION_CANCEL:
         onTouchUp();
         return true;
       default:
         return super.onTouchEvent(event);
     }
+  }
+
+  @Override
+  public boolean performClick() {
+    return super.performClick();
   }
 
   public boolean isDrawing() {

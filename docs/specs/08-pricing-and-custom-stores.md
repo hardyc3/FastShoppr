@@ -2,7 +2,7 @@
 
 ## Status
 
-Post-MVP. Implemented in Phases 10–11 after the local routing MVP is released.
+Post-MVP. Implemented in Phases 11–12 after the local routing MVP is released and Phase 10 completes store lookup coverage.
 
 ## Goals
 
@@ -136,14 +136,14 @@ Indexes:
 
 Mitigations:
 
-- Phase 10 spike validates each store before implementation.
+- Phase 11 spike validates each store before implementation.
 - Manual override is always available.
 - Show timestamps and sources.
 - Do not promise savings or real-time accuracy.
 
-## Phase 10 spike criteria
+## Phase 11 spike criteria
 
-Before Phase 11, document for each target store:
+Before Phase 12, document for each target store:
 
 - Whether a local price is visible on a public page.
 - Whether store context is required and how it is set.

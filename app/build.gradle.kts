@@ -3,6 +3,17 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
+// Release signing is supplied by the environment. Unsigned release builds remain possible for
+// local verification; no signing material is stored in the repository.
+val releaseSigningEnv =
+    listOf(
+        providers.environmentVariable("FASTSHOPPR_KEYSTORE_PATH"),
+        providers.environmentVariable("FASTSHOPPR_STORE_PASSWORD"),
+        providers.environmentVariable("FASTSHOPPR_KEY_ALIAS"),
+        providers.environmentVariable("FASTSHOPPR_KEY_PASSWORD"),
+    )
+val hasReleaseSigning = releaseSigningEnv.all { it.isPresent }
+
 android {
     namespace = "com.fastshoppr.app"
     compileSdk = 36
@@ -32,6 +43,17 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = file(releaseSigningEnv[0].get())
+                storePassword = releaseSigningEnv[1].get()
+                keyAlias = releaseSigningEnv[2].get()
+                keyPassword = releaseSigningEnv[3].get()
+            }
+        }
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = false
@@ -39,6 +61,9 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",

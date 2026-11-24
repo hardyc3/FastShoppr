@@ -41,8 +41,6 @@ public final class StoreEntity {
 
   public final boolean isArchived;
 
-  @Nullable public final String hoursJson;
-
   public final long createdAt;
 
   public final long updatedAt;
@@ -60,7 +58,6 @@ public final class StoreEntity {
       boolean isCustom,
       boolean isDefault,
       boolean isArchived,
-      @Nullable String hoursJson,
       long createdAt,
       long updatedAt) {
     this.id = id;
@@ -75,7 +72,6 @@ public final class StoreEntity {
     this.isCustom = isCustom;
     this.isDefault = isDefault;
     this.isArchived = isArchived;
-    this.hoursJson = hoursJson;
     this.createdAt = createdAt;
     this.updatedAt = updatedAt;
   }

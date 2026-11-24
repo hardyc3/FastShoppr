@@ -6,9 +6,14 @@
 package com.fastshoppr.app.ui.listdetail;
 
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -22,9 +27,6 @@ import com.fastshoppr.app.databinding.FragmentListDetailBinding;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
-import com.fastshoppr.app.domain.repository.SettingsRepository;
-import com.fastshoppr.app.domain.repository.StoreRepository;
-import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
@@ -35,8 +37,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
-import java.util.concurrent.ExecutorService;
-import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 
 @AndroidEntryPoint
 public final class ListDetailFragment extends Fragment implements ListDetailAdapter.Listener {
@@ -44,11 +46,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   private FragmentListDetailBinding binding;
   private ListDetailViewModel viewModel;
   private ListDetailAdapter adapter;
-
-  @Inject StoreRepository storeRepository;
-  @Inject SettingsRepository settingsRepository;
-  @Inject Clock clock;
-  @Inject ExecutorService executor;
+  private List<Store> addableStores = List.of();
 
   @Nullable
   @Override
@@ -69,7 +67,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     binding.listDetailRecycler.setAdapter(adapter);
 
     binding.sortToggleButton.setOnClickListener(v -> viewModel.toggleSortDirection());
-    binding.addStoreButton.setOnClickListener(v -> showAddStoreDialog());
+    binding.addStoreButton.setOnClickListener(v -> showAddStoreDialog(addableStores));
     binding.captureWriteButton.setOnClickListener(v -> openCapture(R.id.capture_ink, false));
     binding.capturePhotoButton.setOnClickListener(v -> openCapture(R.id.capture_camera, false));
     binding.organizeButton.setOnClickListener(
@@ -78,10 +76,13 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
                 .navigate(
                     R.id.lookup,
                     NavArguments.forList(requireArguments().getString(NavArguments.LIST_ID))));
-    binding.storeHoursButton.setOnClickListener(v -> showStoreHoursDialog());
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
+    viewModel
+        .getAddableStores()
+        .observe(
+            getViewLifecycleOwner(), stores -> addableStores = stores == null ? List.of() : stores);
     viewModel.refresh();
   }
 
@@ -144,6 +145,9 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
       showDeferralDialog(req);
     } else if (content instanceof ListDetailUiEvent.NeedsScheduleDate req) {
       showNeedsScheduleDialog(req);
+    } else if (content instanceof ListDetailUiEvent.NavigateToBranchPicker req) {
+      Navigation.findNavController(requireView())
+          .navigate(R.id.list_detail_to_branch_picker, NavArguments.forBranch(req.brand()));
     }
   }
 
@@ -211,120 +215,48 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
         .show();
   }
 
-  private void showStoreHoursDialog() {
-    ListDetailUiState state = viewModel.getState().getValue();
-    if (state == null || state.getStores().isEmpty()) {
-      new MaterialAlertDialogBuilder(requireContext())
-          .setTitle(R.string.store_hours_title)
-          .setMessage(R.string.store_hours_unknown)
-          .setPositiveButton(R.string.ok, null)
-          .show();
-      return;
-    }
-    String[] names = new String[state.getStores().size()];
-    for (int i = 0; i < state.getStores().size(); i++)
-      names[i] = state.getStores().get(i).getName();
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.store_hours_title)
-        .setItems(
-            names,
-            (d, which) -> showStoreHoursFor(state.getStores().get(which), state.getShoppingDate()))
-        .setNegativeButton(R.string.cancel, null)
-        .show();
-  }
-
-  private void showStoreHoursFor(Store store, java.time.LocalDate date) {
-    String hours = store.getHoursJson();
-    boolean hasHours = hours != null && !hours.isBlank();
-    String base =
-        hasHours
-            ? getString(R.string.store_hours_for_date, date.toString(), hours.trim())
-            : getString(R.string.store_hours_unknown);
-    // Open/closed shown only when hours explicitly present and parseable; not parsed here ->
-    // unavailable.
-    String openClosed =
-        hasHours
-            ? getString(R.string.store_hours_open_closed_unavailable)
-            : getString(R.string.store_hours_open_closed_unknown);
-    String pref = settingsRepository == null ? null : settingsRepository.getPreferredShoppingTime();
-    String suggestion;
-    if (!hasHours || pref == null || pref.isBlank()) {
-      suggestion = getString(R.string.visit_suggestion_unknown);
-    } else {
-      suggestion =
-          getString(
-              R.string.visit_suggestion,
-              pref + " (" + getString(R.string.visit_suggestion_verify_hours) + ")");
-    }
-    String message = base + "\n" + openClosed + "\n\n" + suggestion;
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(store.getName())
-        .setMessage(message)
-        .setPositiveButton(R.string.ok, null)
-        .setNeutralButton(R.string.edit_store_hours, (d, w) -> showEditHours(store))
-        .show();
-  }
-
-  private void showEditHours(Store store) {
-    final android.widget.EditText input = new android.widget.EditText(requireContext());
-    input.setHint("e.g. Mon-Sun 8:00 AM - 10:00 PM");
-    if (store.getHoursJson() != null) input.setText(store.getHoursJson());
-    new MaterialAlertDialogBuilder(requireContext())
-        .setTitle(R.string.edit_store_hours)
-        .setView(input)
-        .setNegativeButton(R.string.cancel, null)
-        .setPositiveButton(
-            R.string.save,
-            (d, w) -> {
-              String text = input.getText() == null ? null : input.getText().toString().trim();
-              if (executor == null || storeRepository == null) return;
-              executor.execute(
-                  () -> {
-                    try {
-                      Store updated =
-                          new Store(
-                              store.getId(),
-                              store.getBrand(),
-                              store.getName(),
-                              store.getAddressLine(),
-                              store.getCity(),
-                              store.getState(),
-                              store.getPostalCode(),
-                              store.getLatitude(),
-                              store.getLongitude(),
-                              store.isCustom(),
-                              store.isDefault(),
-                              store.isArchived(),
-                              text == null || text.isEmpty() ? null : text,
-                              store.getCreatedAt(),
-                              clock.nowMillis());
-                      storeRepository.save(updated);
-                      if (isAdded())
-                        requireActivity()
-                            .runOnUiThread(
-                                () ->
-                                    Snackbar.make(
-                                            binding.getRoot(),
-                                            R.string.store_hours_saved,
-                                            Snackbar.LENGTH_SHORT)
-                                        .show());
-                    } catch (Exception ignored) {
-                    }
-                  });
-            })
-        .show();
-  }
-
-  private void showAddStoreDialog() {
+  private void showAddStoreDialog(List<Store> stores) {
     View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_store, null);
-    android.widget.Spinner spinner = dialogView.findViewById(R.id.store_spinner);
+    Spinner spinner = dialogView.findViewById(R.id.store_spinner);
     android.widget.EditText nameInput = dialogView.findViewById(R.id.store_name_input);
-    if (nameInput != null) {
-      nameInput.setEnabled(true);
+
+    List<String> labels = new ArrayList<>();
+    labels.add(getString(R.string.add_store_select));
+    for (Store store : stores) {
+      labels.add(store.getName());
     }
-    if (spinner != null) {
-      spinner.setVisibility(View.GONE);
-    }
+    ArrayAdapter<String> spinnerAdapter =
+        new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, labels);
+    spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    spinner.setAdapter(spinnerAdapter);
+    spinner.setOnItemSelectedListener(
+        new AdapterView.OnItemSelectedListener() {
+          @Override
+          public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            if (position > 0) {
+              nameInput.setText("");
+            }
+          }
+
+          @Override
+          public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    nameInput.addTextChangedListener(
+        new TextWatcher() {
+          @Override
+          public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+          @Override
+          public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+          @Override
+          public void afterTextChanged(Editable s) {
+            if (s.length() > 0 && spinner.getSelectedItemPosition() != 0) {
+              spinner.setSelection(0, false);
+            }
+          }
+        });
+
     androidx.appcompat.app.AlertDialog dialog =
         new MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.add_store_title)
@@ -332,36 +264,34 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.add_store_add, null)
             .create();
+    Runnable addStore =
+        () -> {
+          String name = textOf(nameInput.getText()).trim();
+          if (!name.isEmpty()) {
+            viewModel.addStore(name);
+            dialog.dismiss();
+            return;
+          }
+          int position = spinner.getSelectedItemPosition();
+          if (position > 0 && position <= stores.size()) {
+            viewModel.addStore(stores.get(position - 1));
+            dialog.dismiss();
+            return;
+          }
+          nameInput.setError(getString(R.string.add_store_required));
+          nameInput.requestFocus();
+        };
     dialog.setOnShowListener(
         d ->
             dialog
                 .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
-                .setOnClickListener(
-                    v -> {
-                      String name = nameInput == null ? "" : textOf(nameInput.getText());
-                      if (!name.trim().isEmpty()) {
-                        viewModel.addStore(name.trim());
-                        dialog.dismiss();
-                      }
-                    }));
-    if (nameInput != null) {
-      nameInput.setOnEditorActionListener(
-          (v, actionId, event) -> {
-            String name = textOf(nameInput.getText());
-            if (!name.trim().isEmpty()) {
-              viewModel.addStore(name.trim());
-              dialog.dismiss();
-              return true;
-            }
-            return false;
-          });
-    }
+                .setOnClickListener(v -> addStore.run()));
+    nameInput.setOnEditorActionListener(
+        (v, actionId, event) -> {
+          addStore.run();
+          return true;
+        });
     dialog.show();
-  }
-
-  private void showStorePicker() {
-    // Store selection is now handled via the organize flow (WalmartStoreFragment).
-    // This method is kept for compatibility but does nothing.
   }
 
   private void scrollToStore(String storeId) {
@@ -374,7 +304,9 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   @Override
-  public void onItemChecked(String itemId, boolean checked) {}
+  public void onItemChecked(String itemId, boolean checked) {
+    viewModel.setChecked(itemId, checked);
+  }
 
   @Override
   public void onItemEdit(ListItem item) {

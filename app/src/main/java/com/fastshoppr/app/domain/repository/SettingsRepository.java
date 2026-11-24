@@ -41,11 +41,5 @@ public interface SettingsRepository {
 
   void setOnboardingCompleted(boolean completed);
 
-  boolean isWalmartStoreVerified();
-
-  void setWalmartStoreVerified(boolean verified);
-
-  String getPreferredShoppingTime();
-
-  void setPreferredShoppingTime(String time);
+  void clearAll();
 }

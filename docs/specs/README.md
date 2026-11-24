@@ -24,13 +24,14 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | `03-store-integration.md` | Lookup architecture, Walmart WebView, Home Depot HTTP, cache, rate limits |
 | `04-ocr-and-input.md` | Typed, Digital Ink, camera, gallery, review, normalization |
 | `05-on-device-ai.md` | Gemini Nano usage, fallbacks, prompts, privacy, testing |
-| `06-scheduling-dates-calendar.md` | Shopping dates, custom interval, deferral parsing, calendar, overdue items, store hours |
+| `06-scheduling-dates-calendar.md` | Shopping dates, custom interval, deferral parsing, calendar, overdue items |
 | `07-background-work.md` | WorkManager, foreground service, notifications, retries |
 | `08-pricing-and-custom-stores.md` | Post-MVP price comparison and custom local stores |
 | `09-testing-quality.md` | Test strategy, fixtures, performance, accessibility, release checks |
 | `10-security-privacy.md` | Local-first data, permissions, secrets, logging, release safety |
 | `11-future-sharing-sync.md` | Deferred real-time sharing and account sync design |
 | `12-decisions.md` | Accepted architectural and product decisions |
+| `13-app-store-listing.md` | Store description copy and required icon attribution |
 | `templates/phase-template.md` | Required structure for every phase file |
 
 ## Phase status
@@ -48,9 +49,10 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 6c | Lookup extraction confidence and regex simplification | `done` | 6b |
 | 7 | Background routing | `done` | 5, 6, 6b |
 | 8 | Schedule & calendar | `done` | 3, 7 |
-| 9 | MVP release | `not-started` | 8 |
-| 10 | Pricing spike | `not-started` | 9 |
-| 11 | Price comparison | `not-started` | 10 |
+| 9 | MVP release | `done` | 8 |
+| 10 | Store integration coverage | `not-started` | 9 |
+| 11 | Pricing spike | `not-started` | 10 |
+| 12 | Price comparison | `not-started` | 11 |
 
 ## Status values
 
@@ -63,8 +65,8 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 
 - The app is Java 21 with XML Views and ViewBinding. Do not add Kotlin app source, the Kotlin Android plugin, or Jetpack Compose. Gradle Kotlin DSL is allowed for build scripts.
 - The current release is local-first. There is no backend, cloud sync, sharing, or authentication.
-- Price comparison is post-MVP (Phases 10–11).
-- Google Maps Popular Times is not used. Visit planning uses store hours and the user's schedule.
+- Store integration coverage for all supported brands is Phase 10. Price comparison is post-MVP (Phases 11–12).
+- Google Maps Popular Times and busyness scraping are not used. Store hours and visit planning were removed by D-045.
 - On-device AI is optional and always has a deterministic fallback.
 - Walmart WebView lookups require the foreground-service design.
 - `rawText` is never replaced by a store match or AI suggestion.

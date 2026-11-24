@@ -93,6 +93,20 @@ public final class CaptureImageStore {
     }
   }
 
+  /** Deletes every cached capture image. Used by the "Delete all data" action. */
+  public void deleteAll() {
+    File[] files = capturesDir.listFiles();
+    if (files == null) {
+      return;
+    }
+    for (File file : files) {
+      if (file.isFile()) {
+        //noinspection ResultOfMethodCallIgnored
+        file.delete();
+      }
+    }
+  }
+
   public boolean exists(@Nullable String path) {
     if (path == null || path.isBlank()) {
       return false;

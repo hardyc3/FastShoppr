@@ -16,6 +16,7 @@ import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -25,7 +26,6 @@ import android.os.Bundle;
 import android.os.SystemClock;
 import android.view.View;
 import android.widget.CheckBox;
-import android.widget.EditText;
 import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
@@ -39,6 +39,7 @@ import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
@@ -107,6 +108,7 @@ public final class CaptureFlowsTest {
               onFocusedView(withId(R.id.recyclerView))
                   .check(matches(hasDescendant(withText("Walmart")))));
       onFocusedView(withId(R.id.reviewNote)).check(matches(isDisplayed()));
+      onFocusedView(withId(R.id.btnAddLine)).check(matches(not(isDisplayed())));
 
       onFocusedView(withId(R.id.btnMergeSelected)).perform(click());
       waitForText("milk eggs");
@@ -137,17 +139,24 @@ public final class CaptureFlowsTest {
   }
 
   @Test
-  public void addLineThenSaveCreatesItemFromReviewedText() {
+  public void handwritingDraftReviewSavesAllLines() {
+    String draft =
+        captureRepository.encodeDraft(
+            List.of(
+                new CapturedLine("milk", null, true, 0.95f, false, null, null),
+                new CapturedLine("eggs", null, true, 0.2f, false, null, null),
+                new CapturedLine("apples", null, true, 0f, true, null, null)));
+    captureRepository.insert(
+        new CaptureSession("cap-ink", listId, ItemSource.DIGITAL_INK, null, draft, 2L, null, null));
+
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
-      navigate(scenario, R.id.review, NavArguments.forCapture("cap-1"));
+      navigate(scenario, R.id.review, NavArguments.forCapture("cap-ink"));
 
       waitForText("milk");
-      onFocusedView(withId(R.id.checkSelectAll)).perform(click());
-      onFocusedView(withId(R.id.btnAddLine)).perform(click());
-      onFocusedView(withId(R.id.recyclerView))
-          .perform(RecyclerViewActions.actionOnItemAtPosition(2, setTextInRowField("apples")));
-      onFocusedView(withId(R.id.checkSelectAll)).perform(click());
+      waitForText("eggs");
+      waitForText("apples");
+      onFocusedView(withId(R.id.btnAddLine)).check(matches(isDisplayed()));
       onFocusedView(withId(R.id.btnSave)).perform(click());
 
       waitForText("Weekly shop");
@@ -157,6 +166,7 @@ public final class CaptureFlowsTest {
       for (ListItem item : items) {
         if ("apples".equals(item.getRawText())) {
           found = true;
+          assertEquals(ItemSource.DIGITAL_INK, item.getSource());
         }
       }
       assertTrue(found);
@@ -206,30 +216,6 @@ public final class CaptureFlowsTest {
           throw new AssertionError("row has no checkBox");
         }
         checkBox.performClick();
-        uiController.loopMainThreadUntilIdle();
-      }
-    };
-  }
-
-  private static ViewAction setTextInRowField(String text) {
-    return new ViewAction() {
-      @Override
-      public Matcher<View> getConstraints() {
-        return isAssignableFrom(android.view.ViewGroup.class);
-      }
-
-      @Override
-      public String getDescription() {
-        return "set text in row field";
-      }
-
-      @Override
-      public void perform(UiController uiController, View view) {
-        EditText field = view.findViewById(R.id.textField);
-        if (field == null) {
-          throw new AssertionError("row has no textField");
-        }
-        field.setText(text);
         uiController.loopMainThreadUntilIdle();
       }
     };

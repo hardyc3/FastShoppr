@@ -11,13 +11,11 @@ MVP stores:
 - Walmart (WebView-based lookup)
 - Home Depot (HTTP + HTML parsing)
 
-Store sections for Lowe's, Target, Smiths, and custom stores may exist in the UI, but automated lookup is added later. Manual aisle entry is always available.
+Store sections for Lowe's, Target, and Smiths may exist in the UI, but automated lookup is planned for Phase 10. Custom stores remain manual-aisle only. Manual aisle entry is always available.
 
 ## Current phase
 
-**Phase 8 — Schedule & calendar** is `done` (see `docs/specs/phases/phase-08-schedule-calendar.md`) and awaits review. Phase 9 is `not-started`. Do not start a later phase until the current phase is marked complete and reviewed.
-
-Do not start a later phase until the current phase is marked complete and reviewed.
+**Phase 9 — MVP Release** is `done` and reviewed (see `docs/specs/phases/phase-09-mvp-release.md`). **Phase 10 — Store Integration Coverage** is `not-started` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Do not start Phase 10 until explicitly instructed. Phase 11 — Pricing Spike and Phase 12 — Price Comparison remain `not-started`.
 
 ## Read order
 
@@ -40,6 +38,8 @@ The Gradle wrapper is committed. Run these commands from the repository root; us
 ./gradlew spotlessCheck
 ./gradlew connectedDebugAndroidTest   # requires a running emulator/device
 ```
+
+Spotless preserves existing Java line endings; the repo has mixed CRLF/LF files.
 
 A phase is not complete unless the relevant commands pass.
 
@@ -92,7 +92,7 @@ docs/specs/
   11-future-sharing-sync.md
   12-decisions.md
   templates/phase-template.md
-  phases/phase-00-feasibility.md ... phase-11-price-comparison.md
+  phases/phase-00-feasibility.md ... phase-12-price-comparison.md
 ```
 
 The Android project is created in Phase 1. Use this package layout:

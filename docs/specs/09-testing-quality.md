@@ -67,6 +67,8 @@ Rules:
   - Toggle sort direction.
   - Defer an item.
   - Open the calendar.
+  - Save handwriting with the writing screen **Save** button and open review.
+  - Review **Add line**, **Discard**, and **Save** navigation.
 - Use `FragmentScenario` for isolated screen tests.
 - Use Robolectric for permission-denied and date/time edge cases where practical.
 - Do not assert on implementation details.
@@ -81,9 +83,31 @@ Provide fakes for:
 - `ItemNameCleaner`
 - `DatePhraseParser`
 - Notification publisher
-- Location provider
+- Branch picker WebView delegate
 
 Fakes must be deterministic and configurable per test.
+
+## Phase 9 branch picker and handwriting flows
+
+- Branch picker tests use a fake WebView delegate. No real locator request,
+  HTTP parsing, ZIP, location permission, or coordinate state is involved.
+- Cover one saved branch per brand, first-use prompt, Settings change, and
+  delete-all clearing.
+- Handwriting tests assert writing **Save** opens review, review **Add line**
+  returns to writing with pending changes preserved, **Discard** saves none,
+  and **Save** saves all.
+
+## Phase 10 store integration coverage
+
+- Automated aisle lookup tests use sanitized fixtures for each changed brand:
+  aisle present, aisle absent, and blocked page.
+- Cache tests assert brand-scoped keys, 60-day expiry, and one request per second
+  per store.
+- Device manual tests cover branch selection → item entry → organize → aisle
+  result → sort for Home Depot, Lowe's, Target, and Smiths, plus a Walmart
+  regression smoke. Results are recorded per brand with device and date.
+- Custom-store tests assert manual-only aisle entry; no automated lookup path is
+  exercised.
 
 ## Fixtures
 
@@ -101,6 +125,8 @@ Fakes must be deterministic and configurable per test.
   - Camera/gallery OCR.
   - Gemini Nano availability and fallback.
   - Walmart WebView extraction.
+  - WebView branch picker navigation and branch confirmation.
+  - Handwriting **Save** → review **Add line**/**Discard**/**Save** flow.
   - Foreground service notification.
   - Background organizing completion notification.
 - Record manual test results in the phase completion log.
@@ -154,16 +180,16 @@ Rules:
 - Every interactive control has a content description or label.
 - Touch targets are at least 48dp.
 - Text scales with system font size.
+- TalkBack can traverse lists, store sections, and the calendar.
 - Color contrast meets WCAG AA where practical.
 - The app supports dark theme.
-- TalkBack can traverse lists, store sections, and the calendar.
 - Error messages are announced and actionable.
 - Do not rely on color alone for status.
 
 ## Release checks
 
 - R8 enabled with keep rules for Room, Hilt, Gson models, and ML Kit.
-- No debug logging of item text, images, or location.
+- No debug logging of item text or images.
 - No secrets or signing files committed.
 - Version code and name set.
 - Privacy policy link or in-app text present.
@@ -176,7 +202,8 @@ A phase is complete only when:
 
 - New behavior has unit tests.
 - DAO changes have Room tests.
-- Critical UI changes have Espresso or Robolectric coverage.
+- Critical UI changes have Espresso or Robolectric coverage, including the
+  branch picker and handwriting **Save**/review flows.
 - Permission, notification, or background changes have instrumentation or manual verification.
 - All required commands and tests pass, including `connectedDebugAndroidTest` on the simulated device (emulator) where required.
 - No test in the phase test plan is failing, errored, skipped, or unrun.

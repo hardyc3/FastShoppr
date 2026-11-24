@@ -16,7 +16,17 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentSettingsBinding;
+import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.ui.common.SingleEvent;
+import com.fastshoppr.app.ui.common.StoreBrandLabel;
+import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @AndroidEntryPoint
 public final class SettingsFragment extends Fragment {
@@ -49,9 +59,106 @@ public final class SettingsFragment extends Fragment {
     binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
     binding.btnOpenSchedule.setOnClickListener(
         v -> Navigation.findNavController(v).navigate(R.id.action_settings_to_schedule));
+    binding.btnDeleteAllData.setOnClickListener(v -> confirmDeleteAllData());
+
+    binding.btnPickBranch.setOnClickListener(
+        v ->
+            Navigation.findNavController(v)
+                .navigate(
+                    R.id.action_settings_to_branch_picker, NavArguments.forBranch(currentBrand())));
+    binding.btnForgetSavedStore.setOnClickListener(this::showForgetStoreDialog);
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
+    viewModel
+        .getStoreMessageEvent()
+        .observe(
+            getViewLifecycleOwner(),
+            event -> {
+              SingleEvent<SettingsViewModel.StoreMessage> message = event;
+              if (message.getContentIfNotHandled() != null && binding != null) {
+                Snackbar.make(
+                        binding.getRoot(),
+                        R.string.settings_store_removed_message,
+                        Snackbar.LENGTH_LONG)
+                    .show();
+              }
+            });
+    viewModel
+        .getDeleteEvent()
+        .observe(
+            getViewLifecycleOwner(),
+            event -> {
+              Boolean success = event.getContentIfNotHandled();
+              if (success == null || binding == null) {
+                return;
+              }
+              if (success) {
+                Navigation.findNavController(binding.getRoot()).popBackStack();
+              } else {
+                Snackbar.make(
+                        binding.getRoot(),
+                        R.string.settings_delete_all_failed,
+                        Snackbar.LENGTH_LONG)
+                    .show();
+              }
+            });
     viewModel.load();
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    if (viewModel != null) {
+      viewModel.refresh();
+    }
+  }
+
+  private StoreBrand currentBrand() {
+    StoreBrand[] brands = StoreBrandLabel.locatorBrands();
+    int position = binding.storeBrandSpinner.getSelectedItemPosition();
+    return position >= 0 && position < brands.length ? brands[position] : StoreBrand.WALMART;
+  }
+
+  private void showForgetStoreDialog(View view) {
+    SettingsViewModel.SettingsUiState state = viewModel.getState().getValue();
+    if (state == null || state.getSelectedStores().isEmpty()) {
+      Snackbar.make(view, R.string.settings_store_no_saved, Snackbar.LENGTH_LONG).show();
+      return;
+    }
+    Map<StoreBrand, NearbyStore> selected = state.getSelectedStores();
+    List<StoreBrand> brands = new ArrayList<>();
+    List<String> labels = new ArrayList<>();
+    for (StoreBrand brand : StoreBrandLabel.locatorBrands()) {
+      NearbyStore store = selected.get(brand);
+      if (store != null) {
+        brands.add(brand);
+        labels.add(getString(StoreBrandLabel.labelRes(brand)) + ": " + store.getLabel());
+      }
+    }
+    int[] selection = {-1};
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.settings_store_forget_title)
+        .setSingleChoiceItems(
+            labels.toArray(new String[0]), -1, (dialog, which) -> selection[0] = which)
+        .setNegativeButton(R.string.cancel, null)
+        .setPositiveButton(
+            R.string.settings_store_remove,
+            (dialog, which) -> {
+              if (selection[0] >= 0 && selection[0] < brands.size()) {
+                viewModel.forgetStore(brands.get(selection[0]));
+              }
+            })
+        .show();
+  }
+
+  private void confirmDeleteAllData() {
+    new MaterialAlertDialogBuilder(requireContext())
+        .setTitle(R.string.settings_delete_all_title)
+        .setMessage(R.string.settings_delete_all_message)
+        .setNegativeButton(R.string.cancel, null)
+        .setPositiveButton(
+            R.string.settings_delete_all_confirm, (dialog, which) -> viewModel.deleteAllData())
+        .show();
   }
 
   private void render(SettingsViewModel.SettingsUiState state) {
@@ -73,6 +180,25 @@ public final class SettingsFragment extends Fragment {
     }
     binding.btnDownloadModel.setVisibility(
         state.getAiStatus() == SettingsViewModel.AiStatus.DOWNLOADABLE ? View.VISIBLE : View.GONE);
+    binding.storeSummary.setText(formatStoreSummary(state));
+  }
+
+  private String formatStoreSummary(SettingsViewModel.SettingsUiState state) {
+    if (state.getSelectedStores().isEmpty()) {
+      return getString(R.string.settings_store_no_saved);
+    }
+    List<String> lines = new ArrayList<>();
+    for (StoreBrand brand : StoreBrandLabel.locatorBrands()) {
+      NearbyStore store = state.getSelectedStores().get(brand);
+      if (store != null) {
+        lines.add(
+            getString(
+                R.string.settings_store_saved_format,
+                getString(StoreBrandLabel.labelRes(brand)),
+                store.getLabel()));
+      }
+    }
+    return String.join("\n", lines);
   }
 
   private int statusTextRes(SettingsViewModel.SettingsUiState state) {

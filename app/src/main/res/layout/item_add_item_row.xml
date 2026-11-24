@@ -24,11 +24,16 @@
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <com.google.android.material.button.MaterialButton
+    <ImageButton
         android:id="@+id/add_item_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="@dimen/spacing_small"
+        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/add_item_description"
-        android:text="@string/add_item" />
+        android:minWidth="0dp"
+        android:minHeight="48dp"
+        android:padding="12dp"
+        android:scaleType="centerInside"
+        android:src="@drawable/square_plus_24" />
 </LinearLayout>

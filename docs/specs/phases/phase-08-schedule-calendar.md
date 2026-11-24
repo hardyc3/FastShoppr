@@ -5,11 +5,13 @@
 - **Owner:** unassigned
 - **Started:** 2026-11-16
 - **Completed:** 2026-11-16
-- **Last updated:** 2026-11-16 (verification complete)
+- **Last updated:** 2026-11-22 (D-045 scope note)
+
+> D-045 removes store hours, visit windows, and preferred shopping time from the MVP. Historical Phase 8 records below are retained as evidence of work performed at the time; those items are no longer current product behavior.
 
 ## Goal
 
-Make shopping dates first-class: recurring schedules, auto-created lists, a calendar view, natural-language deferral, overdue prompts, and store-hours-based visit planning.
+Make shopping dates first-class: recurring schedules, auto-created lists, a calendar view, natural-language deferral, and overdue prompts.
 
 ## Context
 

@@ -80,6 +80,122 @@ public final class MigrationTest {
     versionThree.close();
   }
 
+  @Test
+  public void migratesVersionThreeToVersionFourWithListDetailIndexes() throws IOException {
+    SupportSQLiteDatabase versionThree = helper.createDatabase(TEST_DATABASE, 3);
+    versionThree.execSQL(
+        "INSERT INTO list_items (id, listId, storeId, rawText, displayName, normalizedText, "
+            + "targetDate, lookupStatus, source, isChecked, sortPosition, createdAt, updatedAt) "
+            + "VALUES ('item-1', 'list-1', 'store-1', 'milk', 'milk', 'milk', '2026-11-13', "
+            + "'PENDING', 'TYPED', 0, 0, 1, 1)");
+    versionThree.close();
+
+    SupportSQLiteDatabase versionFour =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            4,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4);
+
+    assertTrue(indexExists(versionFour, "index_list_items_list_deleted_sort"));
+    assertTrue(indexExists(versionFour, "index_list_items_list_deleted_store_sort"));
+    assertEquals(1, rowCount(versionFour, "list_items"));
+    versionFour.close();
+  }
+
+  @Test
+  public void migratesVersionFourToVersionFiveAndRetiresRemovedStore() throws IOException {
+    SupportSQLiteDatabase versionFour = helper.createDatabase(TEST_DATABASE, 4);
+    versionFour.execSQL(
+        "INSERT INTO stores (id, brand, name, isCustom, isDefault, isArchived, createdAt, updatedAt) "
+            + "VALUES ('d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f', 'MACYS', 'Legacy Store', 0, 0, 0, 1, 1)");
+    versionFour.execSQL(
+        "INSERT INTO aisle_cache (id, storeId, normalizedQuery, source, fetchedAt, expiresAt) "
+            + "VALUES ('cache-1', 'd6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f', 'milk', 'LOCAL', 1, 1)");
+    versionFour.close();
+
+    SupportSQLiteDatabase versionFive =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            5,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5);
+
+    Cursor cursor =
+        versionFive.query(
+            "SELECT brand, name, isCustom, isDefault, isArchived FROM stores WHERE id = ?",
+            new Object[] {"d6d7e4f5-6a7b-4c8d-9e0f-1a2b3c4d5e6f"});
+    try {
+      assertTrue(cursor.moveToFirst());
+      assertEquals("CUSTOM", cursor.getString(0));
+      assertEquals("Removed store", cursor.getString(1));
+      assertEquals(1, cursor.getInt(2));
+      assertEquals(0, cursor.getInt(3));
+      assertEquals(1, cursor.getInt(4));
+    } finally {
+      cursor.close();
+    }
+    assertEquals(0, rowCount(versionFive, "aisle_cache"));
+    versionFive.close();
+  }
+
+  @Test
+  public void migratesVersionFiveToVersionSixAndDropsStoreHours() throws IOException {
+    SupportSQLiteDatabase versionFive = helper.createDatabase(TEST_DATABASE, 5);
+    versionFive.execSQL(
+        "INSERT INTO stores (id, brand, name, hoursJson, isCustom, isDefault, isArchived, "
+            + "createdAt, updatedAt) VALUES ('store-1', 'WALMART', 'Walmart', "
+            + "'Mon-Fri 8-10', 0, 0, 0, 1, 1)");
+    assertTrue(columnExists(versionFive, "stores", "hoursJson"));
+    versionFive.close();
+
+    SupportSQLiteDatabase versionSix =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            6,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5,
+            Migrations.MIGRATION_5_6);
+
+    assertFalse(columnExists(versionSix, "stores", "hoursJson"));
+    assertEquals(1, rowCount(versionSix, "stores"));
+    versionSix.close();
+  }
+
+  private static boolean columnExists(SupportSQLiteDatabase database, String table, String column) {
+    Cursor cursor = database.query("PRAGMA table_info(`" + table + "`)");
+    try {
+      while (cursor.moveToNext()) {
+        if (column.equals(cursor.getString(1))) {
+          return true;
+        }
+      }
+      return false;
+    } finally {
+      cursor.close();
+    }
+  }
+
+  private static boolean indexExists(SupportSQLiteDatabase database, String index) {
+    Cursor cursor =
+        database.query(
+            "SELECT name FROM sqlite_master WHERE type = 'index' AND name = ?",
+            new Object[] {index});
+    try {
+      return cursor.moveToFirst();
+    } finally {
+      cursor.close();
+    }
+  }
+
   private static boolean tableExists(SupportSQLiteDatabase database, String table) {
     Cursor cursor =
         database.query(

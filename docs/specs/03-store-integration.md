@@ -6,14 +6,14 @@ MVP automated lookup supports:
 
 | Store | Method | Store context | Status |
 |---|---|---|---|
-| Walmart | WebView extraction | Selected store / ZIP | Phase 6 |
-| Home Depot | OkHttp + Jsoup | Selected store / ZIP | Phase 6 |
-| Lowe's | Manual aisle only | — | Later |
-| Target | Manual aisle only | — | Later |
-| Smiths | Manual aisle only | — | Later |
-| Custom stores | Manual aisle only | — | Post-MVP |
+| Walmart | WebView extraction | Branch picked in WebView | Phase 6; Phase 10 regression only |
+| Home Depot | OkHttp + Jsoup | Branch picked in WebView | Phase 6; verify in Phase 10 |
+| Lowe's | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Target | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Smiths | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
+| Custom stores | Manual aisle only | — | No automated lookup planned |
 
-Manual aisle entry is always available and must never depend on a successful lookup.
+Manual aisle entry is always available and must never depend on a successful lookup. Automated lookup coverage for Lowe's, Target, and Smiths is the work of Phase 10 (D-046); that phase also verifies Home Depot and keeps Walmart as a regression smoke.
 
 ## Access policy
 
@@ -26,6 +26,47 @@ Manual aisle entry is always available and must never depend on a successful loo
 - Never bypass authentication, paywalls, or access controls.
 - Never crawl entire catalogs or run lookups for items the user did not enter.
 - Record assumptions in this spec and keep sanitized fixtures for tests.
+
+## Branch picker (Phase 9)
+
+Settings has a brand selector and a **Pick branch** button. Tapping **Pick
+branch** opens that brand's public store-locator page in a WebView. The user
+navigates the page, selects and confirms a branch, and the app saves one branch
+per brand. First use of a store requires a branch pick; Settings can change it
+later. The saved branch is displayed on the Organize screen for brands present
+on the list. It is **display context only**: it never rewrites `rawText`, never
+replaces an aisle, and does not claim that an automated result was proven
+against that branch.
+
+Supported locator brands and public pages (documented assumptions, not
+guaranteed APIs):
+
+| Brand | Public page |
+|---|---|
+| Walmart | `https://www.walmart.com/store/finder` |
+| Home Depot | `https://www.homedepot.com/l/store-locator` |
+| Lowe's | `https://www.lowes.com/store` |
+| Target | `https://www.target.com/store-locator` |
+| Smiths | `https://www.smithsfoodanddrug.com/stores/search` |
+
+Custom stores have no automated locator and no **Pick branch** action.
+
+Rules:
+
+- Save only the selected branch name and street/city/state metadata in
+  SharedPreferences, one value per brand. Do not store a ZIP, coordinates, or a
+  locator cache; discard postal codes parsed from a retailer page before saving
+  or displaying the branch.
+- Do not request location permission and do not add a location provider
+  dependency.
+- Do not fetch, parse, rank, or cache locator responses over HTTP. The WebView
+  is the only locator surface and the user drives selection.
+- Set the WebView user agent to identify FastShoppr. Restrict navigation to the
+  selected brand's public locator domain over HTTPS; expose no
+  `JavascriptInterface` and no app data to page scripts.
+- If the page is blocked or unavailable, show a clear message and let the user
+  retry from Settings. Manual aisle entry remains available.
+- **Delete all data** clears all saved branches.
 
 ## Lookup contract
 
@@ -101,8 +142,9 @@ Walmart is JavaScript-heavy and does not reliably expose aisle data in static HT
 
 ### Store context
 
-- Determine the nearest store from the last known location or the user's selected store.
-- Allow manual override in settings.
+- Use the branch saved for Walmart via **Pick branch**. If none is saved, open
+  the branch picker before the lookup.
+- The branch can be changed in Settings.
 - If store context cannot be established, return `NEEDS_REVIEW` rather than guessing.
 - Do not silently use a store from another city or state.
 
@@ -138,8 +180,9 @@ Home Depot product pages publicly show in-store availability such as `Aisle 52, 
 
 ### Store context
 
-- Determine the store from the user's selected store or nearest location.
-- Persist the store identifier and any required cookies for the session.
+- Use the branch saved for Home Depot via **Pick branch**; open the branch
+  picker first if none is saved.
+- Persist the saved branch metadata and any required cookies for the session.
 - If the page does not show a local aisle, return `NotFound` or `NEEDS_REVIEW`.
 - Do not infer an aisle from a different store.
 
@@ -158,32 +201,40 @@ Home Depot product pages publicly show in-store availability such as `Aisle 52, 
 
 ## Store context
 
-The app must know which physical store's layout to query.
+The app must know which physical store's layout to query. One generic WebView
+branch picker supplies that context for Walmart, Home Depot, Lowe's, Target, and
+Smiths (D-043). Automated Walmart and Home Depot lookups keep the flows
+documented above. Phase 10 extends automated lookup to Lowe's, Target, and
+Smiths and verifies Home Depot with a device test matrix per brand (D-046).
+The saved branch is explicit user context; it is not silently applied as a
+lookup result or treated as proof of an aisle.
 
-Priority order:
+Priority order for a user-visible store context:
 
-1. Store explicitly selected by the user for the item or list.
-2. **Last used store.**
-3. **Nearest store from a recent location fix (auto-selected on first item).**
-4. Manual ZIP/store selection prompt.
+1. Branch explicitly saved for the brand in **Settings → Pick branch**.
+2. No branch saved: open the WebView branch picker when the brand is first added
+   to a list or when Organize first uses that brand.
 
-**Auto-selection flow:**
+**Explicit selection flow:**
 
-- On first item addition, request `ACCESS_COARSE_LOCATION` if not previously granted.
-- If granted, use last known location to determine nearest store.
-- Display selected store name and address in list UI with "edited" indicator.
-- User can override store selection via the store picker at any time.
-- Store choice is remembered for the current shopping list session.
-- If location permission is denied, fall back to last used store or ask for ZIP.
+- Choose the brand in Settings and tap **Pick branch**.
+- The app opens that brand's public store-locator page in a WebView.
+- The user navigates the page, selects a branch, and confirms it.
+- The app saves one branch per brand and shows it in Settings and on the
+  Organize screen when that brand is present on the list.
 
 Rules:
 
-- Do not request location at app launch. Request only on first item addition.
-- Explain why location is needed before requesting: "Find the nearest store for aisle lookup."
-- If permission is denied, use last selected store or ask for ZIP/store selection.
-- Show the store name and address in the list UI so the user can verify it.
-- Never log coordinates.
-- Manual override always available and takes precedence over auto-selection.
+- First use of a store requires picking its branch; adding a supported brand to
+  a list opens the brand-prefilled picker when no branch is saved. Settings can
+  change the saved branch.
+- Save only branch name and address metadata. No ZIP, coordinates, location
+  permission, HTTP locator parsing, or locator cache.
+- Show the saved store name and address so the user can verify it.
+- If the locator page is blocked or unavailable, show a clear message; manual
+  aisle entry remains available.
+- Saved branches never change `rawText` or aisles.
+- **Delete all data** clears all saved branches.
 
 ## Caching
 
@@ -237,8 +288,14 @@ Rules:
 When the user taps "Organize list" from the list detail screen:
 
 1. Navigate to the lookup progress screen.
-2. If the Walmart store has been verified (user completed store selection in `WalmartStoreFragment` at least once and has not tapped "Forget store"), start the lookup automatically.
-3. If the store has not been verified, automatically open `WalmartStoreFragment` for the user to pick their store. When the user taps "Done" (or the fragment is popped), return to the lookup screen and start the lookup automatically.
-4. Tapping "Forget store" clears the verification flag and cookies; the next organize attempt will prompt for verification again.
+2. If a saved branch exists for the brand, start the lookup automatically.
+3. If no branch is saved for a brand on the list, open the generic WebView
+   branch picker for that brand. After the user selects and confirms a branch,
+   return to the lookup screen and start the lookup automatically.
+4. Changing the branch in Settings takes effect on the next organize run.
+5. **Delete all data** clears saved branches; the next organize run prompts for
+   a branch again.
 
-This minimizes button clicks: the user never has to tap a separate "Verify store" or "Start lookup" button on the normal path.
+This minimizes button clicks: the user picks a branch only on first use of a
+store or when changing it in Settings. No separate "Verify store" or "Start
+lookup" button is needed on the normal path.

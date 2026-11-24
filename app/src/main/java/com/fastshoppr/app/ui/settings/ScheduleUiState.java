@@ -14,7 +14,6 @@ public final class ScheduleUiState {
   public final IntervalUnit intervalUnit;
   public final LocalDate nextShoppingDate;
   public final boolean notifyOnCreate;
-  public final String preferredShoppingTime;
   public final String message;
 
   public ScheduleUiState(
@@ -23,14 +22,12 @@ public final class ScheduleUiState {
       IntervalUnit intervalUnit,
       LocalDate nextShoppingDate,
       boolean notifyOnCreate,
-      String preferredShoppingTime,
       String message) {
     this.enabled = enabled;
     this.intervalValue = intervalValue;
     this.intervalUnit = intervalUnit;
     this.nextShoppingDate = nextShoppingDate;
     this.notifyOnCreate = notifyOnCreate;
-    this.preferredShoppingTime = preferredShoppingTime;
     this.message = message;
   }
 }

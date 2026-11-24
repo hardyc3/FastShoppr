@@ -11,10 +11,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -24,6 +28,7 @@ import static org.mockito.Mockito.when;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.SavedStateHandle;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
+import com.fastshoppr.app.data.capture.CapturedLinesCodec;
 import com.fastshoppr.app.domain.ai.ItemNameCleaner;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.ai.NoOpItemNameCleaner;
@@ -31,6 +36,7 @@ import com.fastshoppr.app.domain.ai.RuleBasedItemNameCleaner;
 import com.fastshoppr.app.domain.model.AiAvailability;
 import com.fastshoppr.app.domain.model.AiCleanupSource;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.CleanItemRequest;
 import com.fastshoppr.app.domain.model.CleanItemResult;
 import com.fastshoppr.app.domain.model.ItemSource;
@@ -51,11 +57,18 @@ import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingScheduler;
+import com.google.gson.Gson;
 import java.time.LocalDate;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -77,6 +90,7 @@ public final class ReviewViewModelTest {
   @Mock private SettingsRepository settingsRepository;
 
   private final List<ReviewViewModel.ReviewUiEvent> events = new ArrayList<>();
+  private final CapturedLinesCodec draftCodec = new CapturedLinesCodec(new Gson());
 
   private ReviewViewModel viewModel;
 
@@ -110,7 +124,6 @@ public final class ReviewViewModelTest {
             false,
             false,
             false,
-            null,
             1,
             1);
     Store homeDepot =
@@ -127,22 +140,30 @@ public final class ReviewViewModelTest {
             false,
             false,
             false,
-            null,
             1,
             1);
 
-    when(captureRepository.getById("cap-1")).thenReturn(session);
-    when(captureRepository.decodeRecognizedLines("json"))
+    lenient().when(captureRepository.getById("cap-1")).thenReturn(session);
+    lenient()
+        .when(captureRepository.decodeRecognizedLines("json"))
         .thenReturn(List.of(new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f)));
-    when(listRepository.getById("list-1")).thenReturn(list);
-    when(storeRepository.getActive()).thenReturn(List.of(homeDepot, walmart));
+    lenient().when(captureRepository.decodeDraft(anyString())).thenReturn(List.of());
+    lenient()
+        .when(captureRepository.encodeDraft(anyList()))
+        .thenAnswer(call -> draftCodec.encode(call.getArgument(0)));
+    lenient().when(listRepository.getById("list-1")).thenReturn(list);
+    lenient().when(storeRepository.getActive()).thenReturn(List.of(homeDepot, walmart));
 
     createViewModel(new NoOpItemNameCleaner());
   }
 
   private void createViewModel(ItemNameCleaner cleaner) {
+    createViewModel(cleaner, new DirectExecutorService());
+  }
+
+  private ReviewViewModel createViewModel(ItemNameCleaner cleaner, ExecutorService executor) {
     OrganizingScheduler scheduler = mock(OrganizingScheduler.class);
-    viewModel =
+    ReviewViewModel target =
         new ReviewViewModel(
             captureRepository,
             storeRepository,
@@ -157,10 +178,12 @@ public final class ReviewViewModelTest {
             new ItemNameCleanerCoordinator(
                 cleaner, new RuleBasedItemNameCleaner(), settingsRepository),
             scheduler,
-            new DirectExecutorService(),
+            executor,
             Runnable::run,
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, "cap-1")));
-    viewModel.getEvents().observeForever(event -> record(event.getContentIfNotHandled()));
+    target.getEvents().observeForever(event -> record(event.getContentIfNotHandled()));
+    viewModel = target;
+    return target;
   }
 
   private ItemNameCleaner availableCleaner(CleanItemResult result) {
@@ -365,6 +388,90 @@ public final class ReviewViewModelTest {
   }
 
   @Test
+  public void reloadCaptureWaitsForPendingWritesAndReparsesDraft() {
+    viewModel.loadCapture();
+    viewModel.setLineText(0, "pending edit");
+    when(captureRepository.decodeDraft("json"))
+        .thenReturn(
+            List.of(
+                new CapturedLine("from ink", null, true, 0.8f, false, "store-1", "2026-11-08")));
+
+    viewModel.reloadCapture();
+
+    assertEquals(1, viewModel.getLineCount());
+    assertEquals("from ink", viewModel.getLine(0).getText());
+    assertTrue(hasEvent(ReviewViewModel.ReviewUiEvent.CaptureLoaded.class));
+  }
+
+  @Test
+  public void reloadInvalidatesStaleLoad() {
+    ManualExecutorService executor = new ManualExecutorService();
+    when(captureRepository.decodeDraft("json"))
+        .thenReturn(
+            List.of(
+                new CapturedLine("old draft", null, true, 0.8f, false, "store-1", "2026-11-08")));
+    ReviewViewModel target = createViewModel(new NoOpItemNameCleaner(), executor);
+
+    target.loadCapture();
+    when(captureRepository.decodeDraft("json"))
+        .thenReturn(
+            List.of(
+                new CapturedLine("fresh draft", null, true, 0.9f, false, "store-1", "2026-11-08")));
+    target.reloadCapture();
+    executor.drain();
+
+    assertEquals(1, target.getLineCount());
+    assertEquals("fresh draft", target.getLine(0).getText());
+  }
+
+  @Test
+  public void draftWriteFailureReportsSaveFailed() {
+    viewModel.loadCapture();
+    doThrow(new RuntimeException("db down"))
+        .when(captureRepository)
+        .updateDraft(eq("cap-1"), anyString(), any());
+
+    viewModel.setLineText(0, "edited");
+
+    ReviewViewModel.ReviewUiEvent.ShowError error =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
+    assertNotNull(error);
+    assertEquals(UiError.SAVE_FAILED, error.error());
+  }
+
+  @Test
+  public void discardWaitsForQueuedDraftWriteBeforeSoftDelete() {
+    ManualExecutorService executor = new ManualExecutorService();
+    List<String> order = Collections.synchronizedList(new ArrayList<>());
+    doAnswer(
+            call -> {
+              order.add("delete");
+              return null;
+            })
+        .when(captureRepository)
+        .softDelete("cap-1");
+    ReviewViewModel target = createViewModel(new NoOpItemNameCleaner(), executor);
+
+    target.loadCapture();
+    executor.drain();
+    target.setLineText(0, "edited");
+    target.discard();
+
+    assertTrue(order.isEmpty());
+    verify(captureRepository, never()).softDelete("cap-1");
+
+    // The queued write task runs first but is suppressed because discard was requested.
+    executor.runNext();
+    assertTrue(order.isEmpty());
+    verify(captureRepository, never()).softDelete("cap-1");
+
+    // Only after that task completes does the discard continuation delete the capture.
+    executor.runNext();
+    assertEquals(List.of("delete"), order);
+    assertNotNull(findEvent(ReviewViewModel.ReviewUiEvent.Discarded.class));
+  }
+
+  @Test
   public void confidenceFlagFollowsSourceThreshold() {
     viewModel.loadCapture();
 
@@ -533,6 +640,70 @@ public final class ReviewViewModelTest {
     verify(cleaner, never()).clean(any());
   }
 
+  @Test
+  public void addLineWithTextAddsLocalReviewLineAndPersistsDraft() {
+    viewModel.loadCapture();
+
+    viewModel.addLine("bread");
+
+    assertEquals(3, viewModel.getLineCount());
+    ReviewViewModel.ReviewLine added = viewModel.getLine(2);
+    assertEquals("bread", added.getText());
+    assertFalse(added.isSelected());
+    assertTrue(added.isManual());
+    assertEquals("store-1", added.getStoreId());
+    assertEquals("2026-11-08", added.getTargetDate());
+    assertTrue(hasEvent(ReviewViewModel.ReviewUiEvent.LinesChanged.class));
+    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+    verify(captureRepository).updateDraft(eq("cap-1"), json.capture(), any());
+    List<CapturedLine> draft = draftCodec.decode(json.getValue());
+    assertEquals(3, draft.size());
+    assertEquals("bread", draft.get(2).getText());
+  }
+
+  @Test
+  public void addLineReturnsToInkAndPersistsCurrentEdits() {
+    viewModel.loadCapture();
+    viewModel.setLineText(0, "organic milk");
+    viewModel.setLineSelected(1, false);
+    viewModel.setLineStore(0, "store-2");
+    viewModel.setLineDate(0, LocalDate.of(2026, 12, 1));
+    viewModel.acceptSuggestionAs(
+        new ReviewViewModel.CleanupSuggestion(
+            0, "organic milk", "Organic Milk", 0.9f, "test", AiCleanupSource.RULES),
+        "Organic Milk");
+
+    viewModel.addLine();
+
+    ReviewViewModel.ReviewUiEvent.NavigateToInk event =
+        findEvent(ReviewViewModel.ReviewUiEvent.NavigateToInk.class);
+    assertNotNull(event);
+    assertEquals("list-1", event.listId());
+    assertEquals("cap-1", event.captureId());
+    verify(captureRepository, never()).saveReviewed(anyString(), any(), anyLong());
+    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+    verify(captureRepository, atLeastOnce()).updateDraft(eq("cap-1"), json.capture(), any());
+    List<CapturedLine> draft =
+        draftCodec.decode(json.getAllValues().get(json.getAllValues().size() - 1));
+    assertEquals("organic milk", draft.get(0).getText());
+    assertEquals("Organic Milk", draft.get(0).getDisplayName());
+    assertTrue(draft.get(0).isSelected());
+    assertEquals("store-2", draft.get(0).getStoreId());
+    assertEquals("2026-12-01", draft.get(0).getTargetDate());
+    assertFalse(draft.get(1).isSelected());
+  }
+
+  @Test
+  public void addLineWithoutLoadedCaptureReportsError() {
+    viewModel.addLine();
+
+    ReviewViewModel.ReviewUiEvent.ShowError error =
+        findEvent(ReviewViewModel.ReviewUiEvent.ShowError.class);
+    assertNotNull(error);
+    assertEquals(UiError.CAPTURE_NOT_FOUND, error.error());
+    verify(captureRepository, never()).updateDraft(anyString(), anyString(), any());
+  }
+
   private ReviewViewModel.CleanupState cleanupState() {
     return viewModel.getCleanupState().getValue();
   }
@@ -557,5 +728,62 @@ public final class ReviewViewModelTest {
       }
     }
     return null;
+  }
+
+  /** Deterministic executor that lets a test observe the order of queued draft writes. */
+  private static final class ManualExecutorService extends AbstractExecutorService {
+
+    private final Deque<Runnable> tasks = new ArrayDeque<>();
+    private boolean shutdown;
+
+    @Override
+    public void execute(Runnable command) {
+      if (shutdown) {
+        throw new IllegalStateException("executor shut down");
+      }
+      tasks.addLast(command);
+    }
+
+    @Override
+    public void shutdown() {
+      shutdown = true;
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+      shutdown = true;
+      List<Runnable> pending = new ArrayList<>(tasks);
+      tasks.clear();
+      return pending;
+    }
+
+    @Override
+    public boolean isShutdown() {
+      return shutdown;
+    }
+
+    @Override
+    public boolean isTerminated() {
+      return shutdown && tasks.isEmpty();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) {
+      return isTerminated();
+    }
+
+    private void runNext() {
+      Runnable task = tasks.pollFirst();
+      if (task == null) {
+        throw new AssertionError("no queued task");
+      }
+      task.run();
+    }
+
+    private void drain() {
+      while (!tasks.isEmpty()) {
+        runNext();
+      }
+    }
   }
 }

@@ -68,8 +68,10 @@ public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAd
     h.dot.setVisibility(hasList ? View.VISIBLE : View.GONE);
     String desc =
         d.date.toString()
-            + (d.isToday ? ", today" : "")
-            + (hasList ? ", has shopping list" : ", no list");
+            + (d.isToday ? h.itemView.getContext().getString(R.string.calendar_day_today) : "")
+            + (hasList
+                ? h.itemView.getContext().getString(R.string.calendar_day_has_list)
+                : h.itemView.getContext().getString(R.string.calendar_day_no_list));
     h.itemView.setContentDescription(desc);
     h.itemView.setOnClickListener(v -> listener.onDayClick(d));
   }

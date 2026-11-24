@@ -29,7 +29,7 @@ Do not use as a substitute for `pre-commit-review` (defect/security review) or `
 - Only the phase marked `in-progress` in `docs/specs/README.md` was implemented.
 - Dependencies of that phase are `done`; no later phase work started early.
 - Phase status transitions are accurate (`in-progress` -> `done` only with evidence; `blocked` recorded when blocked).
-- No deferred feature added: backend/sync/sharing/auth, price comparison before Phases 10–11, Google Maps Popular Times, paid cloud LLM.
+- No deferred feature added: backend/sync/sharing/auth, store-integration coverage before Phase 10, price comparison before Phases 11–12, Google Maps Popular Times, paid cloud LLM.
 - No acceptance criterion checked without matching evidence; no phase marked `done` with failing commands.
 
 ### 2. Language and stack

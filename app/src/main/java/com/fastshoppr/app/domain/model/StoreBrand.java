@@ -6,10 +6,20 @@
 package com.fastshoppr.app.domain.model;
 
 public enum StoreBrand {
-  WALMART,
-  HOME_DEPOT,
-  LOWES,
-  TARGET,
-  SMITHS,
-  CUSTOM
+  WALMART("Walmart"),
+  HOME_DEPOT("Home Depot"),
+  LOWES("Lowe's"),
+  TARGET("Target"),
+  SMITHS("Smiths"),
+  CUSTOM("Custom");
+
+  private final String displayName;
+
+  StoreBrand(String displayName) {
+    this.displayName = displayName;
+  }
+
+  public String getDisplayName() {
+    return displayName;
+  }
 }

@@ -19,6 +19,7 @@ import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.model.StoreLocatorPages;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
@@ -28,6 +29,7 @@ import com.fastshoppr.app.domain.usecase.AddItemUseCase;
 import com.fastshoppr.app.domain.usecase.ApplyLookupCandidateUseCase;
 import com.fastshoppr.app.domain.usecase.DeferItemUseCase;
 import com.fastshoppr.app.domain.usecase.DeleteItemUseCase;
+import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.ResolveDatePhraseUseCase;
@@ -45,6 +47,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
 @HiltViewModel
@@ -57,6 +60,8 @@ public final class ListDetailViewModel extends ViewModel {
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
+  private final GetSelectedStoresUseCase getSelectedStores;
+  private final ExecutorService executor;
   private final AddItemUseCase addItemUseCase;
   private final ToggleItemCheckedUseCase toggleItemCheckedUseCase;
   private final DeleteItemUseCase deleteItemUseCase;
@@ -76,6 +81,7 @@ public final class ListDetailViewModel extends ViewModel {
   private final LiveData<ShoppingList> listLiveData;
   private final LiveData<List<ListItem>> itemsLiveData;
   private final LiveData<List<Store>> storesLiveData;
+  private final MutableLiveData<List<Store>> addableStores = new MutableLiveData<>(List.of());
   private final MutableLiveData<ListDetailUiState> state =
       new MutableLiveData<>(ListDetailUiState.loading());
   private final MutableLiveData<SingleEvent<ListDetailUiEvent>> events = new MutableLiveData<>();
@@ -102,6 +108,8 @@ public final class ListDetailViewModel extends ViewModel {
       ListItemRepository itemRepository,
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
+      GetSelectedStoresUseCase getSelectedStores,
+      ExecutorService executor,
       AddItemUseCase addItemUseCase,
       ToggleItemCheckedUseCase toggleItemCheckedUseCase,
       DeleteItemUseCase deleteItemUseCase,
@@ -119,6 +127,8 @@ public final class ListDetailViewModel extends ViewModel {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
+    this.getSelectedStores = getSelectedStores;
+    this.executor = executor;
     this.addItemUseCase = addItemUseCase;
     this.toggleItemCheckedUseCase = toggleItemCheckedUseCase;
     this.deleteItemUseCase = deleteItemUseCase;
@@ -149,6 +159,11 @@ public final class ListDetailViewModel extends ViewModel {
 
   public LiveData<SingleEvent<ListDetailUiEvent>> getEvents() {
     return events;
+  }
+
+  /** Active stores ordered for the add-store dialog; the Fragment never queries or sorts. */
+  public LiveData<List<Store>> getAddableStores() {
+    return addableStores;
   }
 
   public void refresh() {
@@ -401,6 +416,7 @@ public final class ListDetailViewModel extends ViewModel {
 
   private void onStoresChanged(List<Store> activeStores) {
     stores = activeStores == null ? List.of() : activeStores;
+    addableStores.setValue(StoreOrdering.byBrandThenName(stores));
     storesLoaded = true;
     rebuild();
   }
@@ -503,7 +519,7 @@ public final class ListDetailViewModel extends ViewModel {
             null));
   }
 
-  /** Adds a new store (custom or supported brand) and shows it in the list. */
+  /** Creates a custom store and shows it in the list. */
   public void addStore(String name) {
     String trimmed = name == null ? "" : name.trim();
     if (trimmed.isEmpty()) {
@@ -524,7 +540,6 @@ public final class ListDetailViewModel extends ViewModel {
             true,
             false,
             false,
-            null,
             System.currentTimeMillis(),
             System.currentTimeMillis());
     new Thread(
@@ -542,6 +557,34 @@ public final class ListDetailViewModel extends ViewModel {
               }
             })
         .start();
+  }
+
+  /** Shows an existing store as a section on this list without creating a duplicate store. */
+  public void addStore(Store store) {
+    if (store == null) {
+      return;
+    }
+    mainHandler.post(
+        () -> {
+          pendingStoreId = store.getId();
+          pendingStore = store;
+          rebuild();
+        });
+    if (!StoreLocatorPages.supports(store.getBrand())) {
+      return;
+    }
+    executor.execute(
+        () -> {
+          try {
+            if (getSelectedStores.execute(store.getBrand()) == null) {
+              events.postValue(
+                  new SingleEvent<>(
+                      new ListDetailUiEvent.NavigateToBranchPicker(store.getBrand())));
+            }
+          } catch (RuntimeException ignored) {
+            // Branch context is optional; the store stays added and manual aisles still work.
+          }
+        });
   }
 
   private String getDraft(String storeId) {
@@ -566,5 +609,6 @@ public final class ListDetailViewModel extends ViewModel {
     listLiveData.removeObserver(listObserver);
     itemsLiveData.removeObserver(itemsObserver);
     storesLiveData.removeObserver(storesObserver);
+    mainHandler.removeCallbacksAndMessages(null);
   }
 }

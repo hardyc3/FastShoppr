@@ -85,12 +85,18 @@
             android:orientation="horizontal"
             android:paddingTop="8dp">
 
-            <androidx.appcompat.widget.AppCompatButton
+            <ImageButton
                 android:id="@+id/btnAddLine"
                 android:layout_width="0dp"
                 android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="@string/add_line" />
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/add_line"
+                android:minWidth="0dp"
+                android:minHeight="48dp"
+                android:padding="12dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/square_plus_24" />
 
             <androidx.appcompat.widget.AppCompatButton
                 android:id="@+id/btnSplit"

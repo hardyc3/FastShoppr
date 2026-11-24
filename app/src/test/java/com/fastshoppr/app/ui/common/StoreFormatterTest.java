@@ -30,7 +30,6 @@ public final class StoreFormatterTest {
             false,
             false,
             false,
-            null,
             0,
             0);
 
@@ -53,7 +52,6 @@ public final class StoreFormatterTest {
             false,
             false,
             false,
-            null,
             0,
             0);
 

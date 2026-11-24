@@ -34,7 +34,7 @@ Phase 0 validated extraction. This phase turns the spikes into production servic
 - WorkManager orchestration and notifications (Phase 7).
 - Foreground service UI polish beyond the minimal extraction harness.
 - Lowe's, Target, Smiths, or custom store lookups.
-- Price extraction (Phase 11).
+- Price extraction (Phase 12).
 - AI or OCR changes.
 
 ## Requirements

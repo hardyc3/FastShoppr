@@ -11,19 +11,25 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.model.StoreLocatorPages;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingCounts;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
@@ -34,13 +40,16 @@ public final class LookupViewModel extends ViewModel {
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
   private final SettingsRepository settingsRepository;
+  private final GetSelectedStoresUseCase getSelectedStores;
+  private final StoreContextFormatter storeContextFormatter;
   private final OrganizingScheduler scheduler;
   private final OrganizingProgressStore progressStore;
   private final ExecutorService executor;
 
   private final MutableLiveData<String> storeContext = new MutableLiveData<>("");
-  private final MutableLiveData<Boolean> hasWalmart = new MutableLiveData<>(false);
-  private final MutableLiveData<Boolean> walmartVerified = new MutableLiveData<>(false);
+  private final MutableLiveData<StoreBrand> missingBranch = new MutableLiveData<>(null);
+  private final MutableLiveData<Boolean> branchesReady = new MutableLiveData<>(true);
+  private final MutableLiveData<Boolean> branchCheckDone = new MutableLiveData<>(false);
   private final MediatorLiveData<OrganizingProgressStore.Progress> progress =
       new MediatorLiveData<>();
   private final MutableLiveData<OrganizingCounts> counts = new MutableLiveData<>();
@@ -51,6 +60,8 @@ public final class LookupViewModel extends ViewModel {
       ListItemRepository itemRepository,
       StoreRepository storeRepository,
       SettingsRepository settingsRepository,
+      GetSelectedStoresUseCase getSelectedStores,
+      StoreContextFormatter storeContextFormatter,
       OrganizingScheduler scheduler,
       OrganizingProgressStore progressStore,
       ExecutorService executor,
@@ -58,6 +69,8 @@ public final class LookupViewModel extends ViewModel {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
     this.settingsRepository = settingsRepository;
+    this.getSelectedStores = getSelectedStores;
+    this.storeContextFormatter = storeContextFormatter;
     this.scheduler = scheduler;
     this.progressStore = progressStore;
     this.executor = executor;
@@ -79,12 +92,16 @@ public final class LookupViewModel extends ViewModel {
     return storeContext;
   }
 
-  public LiveData<Boolean> getHasWalmart() {
-    return hasWalmart;
+  public LiveData<StoreBrand> getMissingBranch() {
+    return missingBranch;
   }
 
-  public LiveData<Boolean> getWalmartVerified() {
-    return walmartVerified;
+  public LiveData<Boolean> getBranchesReady() {
+    return branchesReady;
+  }
+
+  public LiveData<Boolean> getBranchCheckDone() {
+    return branchCheckDone;
   }
 
   public LiveData<OrganizingProgressStore.Progress> getProgress() {
@@ -105,24 +122,24 @@ public final class LookupViewModel extends ViewModel {
   }
 
   public void loadContext() {
-    walmartVerified.postValue(settingsRepository.isWalmartStoreVerified());
+    branchCheckDone.postValue(false);
     executor.execute(
         () -> {
           try {
             List<ListItem> items = itemRepository.getByList(listId);
             counts.postValue(OrganizingCounts.from(items));
             String context = "";
-            boolean walmartPresent = false;
+            StoreBrand baseBrand = null;
+            Set<StoreBrand> presentBrands = new LinkedHashSet<>();
             StringBuilder details = new StringBuilder();
             java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
             java.util.Map<String, String> storeNames = new java.util.LinkedHashMap<>();
             for (ListItem item : items) {
               Store store = resolveStoreForItem(item);
               if (store != null) {
-                if (store.getBrand() == StoreBrand.WALMART) {
-                  walmartPresent = true;
-                }
+                presentBrands.add(store.getBrand());
                 if (context.isEmpty()) {
+                  baseBrand = store.getBrand();
                   String addr = store.getAddressLine();
                   context = store.getName() + (addr == null || addr.isBlank() ? "" : " — " + addr);
                 }
@@ -154,9 +171,10 @@ public final class LookupViewModel extends ViewModel {
                   .append(c[4]);
             }
             perStoreDetails.postValue(details.toString());
-            hasWalmart.postValue(walmartPresent);
-            storeContext.postValue(context);
+            storeContext.postValue(appendSelectedStores(context, baseBrand, presentBrands));
+            publishBranchRequirement(presentBrands);
           } catch (Exception ignored) {
+            branchCheckDone.postValue(true);
           }
         });
   }
@@ -175,6 +193,44 @@ public final class LookupViewModel extends ViewModel {
 
   public boolean canPostNotifications() {
     return scheduler.canPostNotifications();
+  }
+
+  private void publishBranchRequirement(Set<StoreBrand> presentBrands) {
+    Map<StoreBrand, NearbyStore> selected = getSelectedStores.execute();
+    for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+      if (presentBrands.contains(brand) && !selected.containsKey(brand)) {
+        missingBranch.postValue(brand);
+        branchesReady.postValue(false);
+        return;
+      }
+    }
+    missingBranch.postValue(null);
+    branchesReady.postValue(true);
+    branchCheckDone.postValue(true);
+  }
+
+  private String appendSelectedStores(
+      String base, StoreBrand baseBrand, Set<StoreBrand> presentBrands) {
+    Map<StoreBrand, NearbyStore> selected = getSelectedStores.execute();
+    List<String> lines = new ArrayList<>();
+    for (StoreBrand brand : presentBrands) {
+      NearbyStore store = selected.get(brand);
+      if (store != null) {
+        lines.add(storeContextFormatter.savedBranchLine(brand, store.getLabel()));
+      }
+    }
+    if (lines.isEmpty()) {
+      return base;
+    }
+    StringBuilder result = new StringBuilder();
+    if (!base.isEmpty() && (baseBrand == null || !selected.containsKey(baseBrand))) {
+      result.append(base).append('\n');
+    }
+    result
+        .append(storeContextFormatter.savedBranchesHeader())
+        .append('\n')
+        .append(String.join("\n", lines));
+    return result.toString();
   }
 
   private Store resolveStoreForItem(ListItem item) {

@@ -11,6 +11,7 @@ import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.InkData;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.RecognizedLine;
@@ -22,6 +23,7 @@ import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.lifecycle.HiltViewModel;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
@@ -69,6 +71,7 @@ public final class InkCaptureViewModel extends ViewModel {
   private final Clock clock;
   private final ExecutorService executor;
   private final String listId;
+  private final String existingCaptureId;
 
   private final MutableLiveData<InkCaptureUiState> state =
       new MutableLiveData<>(InkCaptureUiState.checking());
@@ -88,6 +91,7 @@ public final class InkCaptureViewModel extends ViewModel {
     this.clock = clock;
     this.executor = executor;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
+    this.existingCaptureId = savedStateHandle.get(NavArguments.CAPTURE_ID);
     prepareModel();
   }
 
@@ -119,7 +123,8 @@ public final class InkCaptureViewModel extends ViewModel {
         });
   }
 
-  public void finish(InkData ink) {
+  /** Recognizes the new strokes and appends them to the current review draft. */
+  public void save(InkData ink) {
     if (ink == null || ink.isEmpty()) {
       postEvent(new InkUiEvent.StrokesRequired());
       return;
@@ -144,26 +149,43 @@ public final class InkCaptureViewModel extends ViewModel {
                 postEvent(new InkUiEvent.EmptyRecognition());
                 return;
               }
-              createSession(lines);
+              persistDraft(lines);
             });
   }
 
-  private void createSession(List<RecognizedLine> lines) {
-    String json = captureRepository.encodeRecognizedLines(lines);
+  private void persistDraft(List<RecognizedLine> recognized) {
     CompletableFuture.supplyAsync(
             () -> {
-              CaptureSession session =
-                  new CaptureSession(
-                      idGenerator.newId(),
-                      listId,
-                      ItemSource.DIGITAL_INK,
-                      null,
-                      json,
-                      clock.nowMillis(),
-                      null,
-                      null);
-              captureRepository.insert(session);
-              return session.getId();
+              List<CapturedLine> draft = new ArrayList<>();
+              if (existingCaptureId != null) {
+                CaptureSession session = captureRepository.getById(existingCaptureId);
+                draft.addAll(captureRepository.decodeDraft(session.getRecognizedLinesJson()));
+              }
+              for (RecognizedLine line : recognized) {
+                if (line.getText().isBlank()) {
+                  continue;
+                }
+                draft.add(
+                    new CapturedLine(
+                        line.getText(), null, true, line.getConfidence(), false, null, null));
+              }
+              String json = captureRepository.encodeDraft(draft);
+              if (existingCaptureId == null) {
+                CaptureSession session =
+                    new CaptureSession(
+                        idGenerator.newId(),
+                        listId,
+                        ItemSource.DIGITAL_INK,
+                        null,
+                        json,
+                        clock.nowMillis(),
+                        null,
+                        null);
+                captureRepository.insert(session);
+                return session.getId();
+              }
+              captureRepository.updateDraft(existingCaptureId, json, null);
+              return existingCaptureId;
             },
             executor)
         .whenComplete(

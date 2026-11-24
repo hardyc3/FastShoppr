@@ -34,7 +34,13 @@ import com.fastshoppr.app.domain.model.LookupStatus;
       @Index("storeId"),
       @Index("targetDate"),
       @Index("lookupStatus"),
-      @Index("deletedAt")
+      @Index("deletedAt"),
+      @Index(
+          value = {"listId", "deletedAt", "sortPosition"},
+          name = "index_list_items_list_deleted_sort"),
+      @Index(
+          value = {"listId", "deletedAt", "storeId", "sortPosition"},
+          name = "index_list_items_list_deleted_store_sort")
     })
 public final class ListItemEntity {
 

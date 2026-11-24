@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.ViewGroup;
 import android.widget.PopupMenu;
 import androidx.annotation.NonNull;
+import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
@@ -120,6 +121,7 @@ public final class ShoppingListAdapter extends ListAdapter<ListRow, RecyclerView
             case ARCHIVED -> R.string.archived_lists;
           };
       binding.getRoot().setText(titleRes);
+      ViewCompat.setAccessibilityHeading(binding.getRoot(), true);
     }
   }
 
@@ -152,6 +154,14 @@ public final class ShoppingListAdapter extends ListAdapter<ListRow, RecyclerView
                   R.plurals.store_count, summary.getStoreCount(), summary.getStoreCount());
       binding.listRowCounts.setText(
           context.getString(R.string.list_row_counts, itemText, storeText));
+      binding
+          .getRoot()
+          .setContentDescription(
+              context.getString(
+                  R.string.a11y_open_list_card,
+                  summary.getList().getName(),
+                  formatDate(summary.getList().getShoppingDate()),
+                  binding.listRowCounts.getText()));
       binding.getRoot().setOnClickListener(v -> listener.onOpenList(summary.getList().getId()));
       binding.listRowOverflow.setOnClickListener(
           v -> {

@@ -16,6 +16,7 @@ import com.fastshoppr.app.domain.concurrent.MainThreadExecutor;
 import com.fastshoppr.app.domain.model.AiAvailability;
 import com.fastshoppr.app.domain.model.AiCleanupSource;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.CleanItemRequest;
 import com.fastshoppr.app.domain.model.CleanItemResult;
 import com.fastshoppr.app.domain.model.ItemSource;
@@ -59,6 +60,7 @@ public final class ReviewViewModel extends ViewModel {
           ReviewUiEvent.LoadFailed,
           ReviewUiEvent.LinesChanged,
           ReviewUiEvent.SelectionChanged,
+          ReviewUiEvent.NavigateToInk,
           ReviewUiEvent.SaveCompleted,
           ReviewUiEvent.Discarded,
           ReviewUiEvent.ShowError,
@@ -71,6 +73,8 @@ public final class ReviewViewModel extends ViewModel {
     record LinesChanged() implements ReviewUiEvent {}
 
     record SelectionChanged() implements ReviewUiEvent {}
+
+    record NavigateToInk(String listId, String captureId) implements ReviewUiEvent {}
 
     record SaveCompleted() implements ReviewUiEvent {}
 
@@ -294,6 +298,9 @@ public final class ReviewViewModel extends ViewModel {
   private boolean isSaving;
   private boolean loading;
   private boolean loaded;
+  private int loadGeneration;
+  private CompletableFuture<Void> draftWrites = CompletableFuture.completedFuture(null);
+  private boolean draftDiscarded;
   private boolean aiCleanupEnabled;
   private boolean screenStarted;
   private volatile CleanupStatus cleanupStatus = CleanupStatus.IDLE;
@@ -388,6 +395,7 @@ public final class ReviewViewModel extends ViewModel {
       return;
     }
     loading = true;
+    int generation = ++loadGeneration;
     CompletableFuture.supplyAsync(
             () -> {
               CaptureSession session = captureRepository.getById(captureId);
@@ -397,27 +405,68 @@ public final class ReviewViewModel extends ViewModel {
             },
             executor)
         .whenComplete(
-            (loadedCapture, error) -> {
-              loading = false;
-              if (error != null || loadedCapture == null) {
-                postEvent(new ReviewUiEvent.LoadFailed(UiError.CAPTURE_NOT_FOUND));
+            (loadedCapture, error) ->
+                postToMain(
+                    () -> {
+                      if (generation != loadGeneration) {
+                        return;
+                      }
+                      loading = false;
+                      if (error != null || loadedCapture == null) {
+                        postEvent(new ReviewUiEvent.LoadFailed(UiError.CAPTURE_NOT_FOUND));
+                        return;
+                      }
+                      if (loadedCapture.stores().isEmpty()) {
+                        postEvent(new ReviewUiEvent.LoadFailed(UiError.NO_STORES));
+                        return;
+                      }
+                      currentCapture = loadedCapture.session();
+                      currentList = loadedCapture.list();
+                      stores = StoreOrdering.byBrandThenName(loadedCapture.stores());
+                      source = currentCapture.getSource();
+                      defaultDate = currentList.getShoppingDate();
+                      parseLines();
+                      aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
+                      loaded = true;
+                      refreshCleanupState();
+                      checkCleanupAvailability();
+                      postEvent(new ReviewUiEvent.CaptureLoaded());
+                    }));
+  }
+
+  /** Reloads the persisted draft after returning from the writing screen. */
+  public void reloadCapture() {
+    pendingDraftWrites()
+        .whenComplete(
+            (ignored, error) ->
+                postToMain(
+                    () -> {
+                      loadGeneration++;
+                      loading = false;
+                      loaded = false;
+                      loadCapture();
+                    }));
+  }
+
+  /** Returns to the writing screen with every pending review change preserved. */
+  public void addLine() {
+    if (draftDiscarded
+        || currentCapture == null
+        || NavArguments.PLACEHOLDER_CAPTURE_ID.equals(currentCapture.getId())) {
+      postEvent(new ReviewUiEvent.ShowError(UiError.CAPTURE_NOT_FOUND));
+      return;
+    }
+    String json = captureRepository.encodeDraft(toCapturedLines());
+    String listId = currentCapture.getListId();
+    String captureId = currentCapture.getId();
+    queueDraftWrite(json, captureId)
+        .whenComplete(
+            (ignored, error) -> {
+              if (error != null) {
+                postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
                 return;
               }
-              if (loadedCapture.stores().isEmpty()) {
-                postEvent(new ReviewUiEvent.LoadFailed(UiError.NO_STORES));
-                return;
-              }
-              currentCapture = loadedCapture.session();
-              currentList = loadedCapture.list();
-              stores = StoreOrdering.byBrandThenName(loadedCapture.stores());
-              source = currentCapture.getSource();
-              defaultDate = currentList.getShoppingDate();
-              parseLines();
-              aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
-              loaded = true;
-              refreshCleanupState();
-              checkCleanupAvailability();
-              postEvent(new ReviewUiEvent.CaptureLoaded());
+              postEvent(new ReviewUiEvent.NavigateToInk(listId, captureId));
             });
   }
 
@@ -426,6 +475,7 @@ public final class ReviewViewModel extends ViewModel {
         new ReviewLine(
             text == null ? "" : text, false, 0.0f, true, defaultStoreId(), defaultTargetDate()));
     recountSelection();
+    persistDraft();
     postEvent(new ReviewUiEvent.LinesChanged());
   }
 
@@ -443,6 +493,7 @@ public final class ReviewViewModel extends ViewModel {
     if (index >= 0 && index < lines.size()) {
       lines.set(index, lines.get(index).withSelected(selected));
       recountSelection();
+      persistDraft();
       postEvent(new ReviewUiEvent.SelectionChanged());
     }
   }
@@ -451,12 +502,14 @@ public final class ReviewViewModel extends ViewModel {
   public void setLineText(int index, String text) {
     if (index >= 0 && index < lines.size()) {
       lines.set(index, lines.get(index).withText(text));
+      persistDraft();
     }
   }
 
   public void deleteSelected() {
     lines.removeIf(ReviewLine::isSelected);
     recountSelection();
+    persistDraft();
     postEvent(new ReviewUiEvent.LinesChanged());
   }
 
@@ -464,6 +517,7 @@ public final class ReviewViewModel extends ViewModel {
     if (index >= 0 && index < lines.size()) {
       lines.remove(index);
       recountSelection();
+      persistDraft();
       postEvent(new ReviewUiEvent.LinesChanged());
     }
   }
@@ -496,6 +550,7 @@ public final class ReviewViewModel extends ViewModel {
     lines.clear();
     lines.addAll(updated);
     recountSelection();
+    persistDraft();
     postEvent(new ReviewUiEvent.LinesChanged());
   }
 
@@ -531,12 +586,14 @@ public final class ReviewViewModel extends ViewModel {
     lines.set(index, line.withText(head));
     lines.add(index + 1, second);
     recountSelection();
+    persistDraft();
     postEvent(new ReviewUiEvent.LinesChanged());
   }
 
   public void setLineStore(int index, String storeId) {
     if (index >= 0 && index < lines.size()) {
       lines.set(index, lines.get(index).withStoreId(storeId));
+      persistDraft();
       postEvent(new ReviewUiEvent.LinesChanged());
     }
   }
@@ -544,6 +601,7 @@ public final class ReviewViewModel extends ViewModel {
   public void setLineDate(int index, LocalDate date) {
     if (index >= 0 && index < lines.size() && date != null) {
       lines.set(index, lines.get(index).withTargetDate(DateText.formatIso(date)));
+      persistDraft();
       postEvent(new ReviewUiEvent.LinesChanged());
     }
   }
@@ -624,6 +682,7 @@ public final class ReviewViewModel extends ViewModel {
     ReviewLine line = getLine(index);
     if (line != null && Objects.equals(line.getText(), suggestion.getRawText())) {
       lines.set(index, line.withDisplayName(editedName.trim()));
+      persistDraft();
       postEvent(new ReviewUiEvent.LinesChanged());
     }
     synchronized (cleanupSuggestions) {
@@ -662,6 +721,7 @@ public final class ReviewViewModel extends ViewModel {
     }
     refreshCleanupState();
     if (changed) {
+      persistDraft();
       postEvent(new ReviewUiEvent.LinesChanged());
     }
   }
@@ -876,8 +936,10 @@ public final class ReviewViewModel extends ViewModel {
 
   public void discard() {
     CaptureSession session = currentCapture;
-    CompletableFuture.runAsync(
-            () -> {
+    draftDiscarded = true;
+    pendingDraftWrites()
+        .whenCompleteAsync(
+            (ignored, writeError) -> {
               if (session != null) {
                 captureRepository.softDelete(session.getId());
                 imageStore.delete(session.getImageUri());
@@ -887,6 +949,7 @@ public final class ReviewViewModel extends ViewModel {
         .whenComplete(
             (ignored, error) -> {
               if (error != null) {
+                draftDiscarded = false;
                 postEvent(new ReviewUiEvent.ShowError(UiError.DISCARD_FAILED));
                 return;
               }
@@ -898,26 +961,92 @@ public final class ReviewViewModel extends ViewModel {
 
   private void parseLines() {
     lines.clear();
-    List<RecognizedLine> recognized =
-        captureRepository.decodeRecognizedLines(currentCapture.getRecognizedLinesJson());
-    for (RecognizedLine recognizedLine : recognized) {
-      if (recognizedLine.getText().isBlank()) {
-        continue;
+    String json = currentCapture.getRecognizedLinesJson();
+    List<CapturedLine> draft = captureRepository.decodeDraft(json);
+    if (!draft.isEmpty()) {
+      for (CapturedLine line : draft) {
+        if (line.getText().isBlank()) {
+          continue;
+        }
+        lines.add(
+            new ReviewLine(
+                line.getText(),
+                line.getDisplayName(),
+                line.isSelected(),
+                line.getConfidence(),
+                line.isManual(),
+                line.getStoreId() == null ? defaultStoreId() : line.getStoreId(),
+                line.getTargetDate() == null ? defaultTargetDate() : line.getTargetDate()));
       }
-      ReviewLine line =
-          new ReviewLine(
-              recognizedLine.getText(),
-              true,
-              recognizedLine.getConfidence(),
-              false,
-              defaultStoreId(),
-              defaultTargetDate());
-      lines.add(line);
+    } else {
+      List<RecognizedLine> recognized = captureRepository.decodeRecognizedLines(json);
+      for (RecognizedLine recognizedLine : recognized) {
+        if (recognizedLine.getText().isBlank()) {
+          continue;
+        }
+        lines.add(
+            new ReviewLine(
+                recognizedLine.getText(),
+                true,
+                recognizedLine.getConfidence(),
+                false,
+                defaultStoreId(),
+                defaultTargetDate()));
+      }
     }
     if (lines.isEmpty()) {
       lines.add(new ReviewLine("", true, 0.0f, true, defaultStoreId(), defaultTargetDate()));
     }
     recountSelection();
+  }
+
+  private List<CapturedLine> toCapturedLines() {
+    List<CapturedLine> draft = new ArrayList<>(lines.size());
+    for (ReviewLine line : lines) {
+      draft.add(
+          new CapturedLine(
+              line.getText(),
+              line.getDisplayName(),
+              line.isSelected(),
+              line.getConfidence(),
+              line.isManual(),
+              line.getStoreId(),
+              line.getTargetDate()));
+    }
+    return draft;
+  }
+
+  /** Keeps the review edits available when the user returns to the writing screen. */
+  private void persistDraft() {
+    if (draftDiscarded
+        || currentCapture == null
+        || NavArguments.PLACEHOLDER_CAPTURE_ID.equals(currentCapture.getId())) {
+      return;
+    }
+    queueDraftWrite(captureRepository.encodeDraft(toCapturedLines()), currentCapture.getId())
+        .exceptionally(
+            error -> {
+              postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
+              return null;
+            });
+  }
+
+  /** Serializes draft snapshots so a slower earlier edit cannot overwrite a later one. */
+  private synchronized CompletableFuture<Void> queueDraftWrite(String json, String captureId) {
+    CompletableFuture<Void> write =
+        draftWrites.thenRunAsync(
+            () -> {
+              if (!draftDiscarded) {
+                captureRepository.updateDraft(captureId, json, null);
+              }
+            },
+            executor);
+    draftWrites = write.handle((ignored, error) -> null);
+    return write;
+  }
+
+  private synchronized CompletableFuture<Void> pendingDraftWrites() {
+    return draftWrites;
   }
 
   private String defaultStoreId() {
@@ -933,6 +1062,7 @@ public final class ReviewViewModel extends ViewModel {
       lines.set(index, lines.get(index).withSelected(selected));
     }
     recountSelection();
+    persistDraft();
   }
 
   private void recountSelection() {

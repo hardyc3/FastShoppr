@@ -7,6 +7,7 @@ package com.fastshoppr.app.domain.repository;
 
 import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.CaptureSession;
+import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import java.util.List;
@@ -40,4 +41,13 @@ public interface CaptureRepository {
 
   /** Parses {@code recognizedLinesJson}; malformed input yields an empty list. */
   List<RecognizedLine> decodeRecognizedLines(String json);
+
+  /** Serializes the current review draft for {@code recognizedLinesJson}. */
+  String encodeDraft(List<CapturedLine> lines);
+
+  /** Parses a review draft; malformed input yields an empty list. */
+  List<CapturedLine> decodeDraft(String json);
+
+  /** Persists the current review draft on a capture session. */
+  void updateDraft(String captureId, String draftJson, Long completedAt);
 }

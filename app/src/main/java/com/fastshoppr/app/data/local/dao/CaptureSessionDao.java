@@ -43,6 +43,12 @@ public interface CaptureSessionDao {
   int complete(String id, long completedAt);
 
   @Query(
+      "UPDATE capture_sessions SET recognizedLinesJson = :draftJson, "
+          + "completedAt = CASE WHEN :completedAt IS NULL THEN completedAt ELSE :completedAt END "
+          + "WHERE id = :id AND deletedAt IS NULL")
+  int updateDraft(String id, String draftJson, Long completedAt);
+
+  @Query(
       "UPDATE capture_sessions SET deletedAt = :deletedAt "
           + "WHERE id = :id AND deletedAt IS NULL")
   int softDelete(String id, long deletedAt);

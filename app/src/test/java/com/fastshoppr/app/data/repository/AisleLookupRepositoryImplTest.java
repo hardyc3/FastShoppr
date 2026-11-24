@@ -73,7 +73,6 @@ public class AisleLookupRepositoryImplTest {
             false,
             true,
             false,
-            null,
             0L,
             0L);
     storeRepo.put(walmartStore);

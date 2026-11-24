@@ -37,17 +37,19 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Bulk review and edit of recognized items.
 - Optional on-device AI cleanup with deterministic fallback.
 - Automatic aisle lookup for Walmart and Home Depot.
+- User-picked store branch from each retailer's public WebView locator, shown as verification context.
 - Manual aisle entry for every store, with caching so lookups aren't required every time.
 - Background organizing with notifications.
 - Aisle ascending/descending sorting within each store.
 - Custom-interval recurring shopping schedule with auto-created lists.
 - Natural-language item deferral such as "wait a week".
 - Overdue-item prompt.
-- Store hours and visit-time suggestions based on the user's schedule.
 - Local-only storage; no account required.
 
-## Post-MVP scope (Phases 10–11)
+## Post-MVP scope (Phases 10–12)
 
+- Verified automated aisle lookup and branch selection for Lowe's, Target, and
+  Smiths, with Home Depot verification and a Walmart regression check (Phase 10).
 - User-added local stores.
 - Price collection from public store pages where available.
 - Manual price override.
@@ -64,7 +66,6 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Indoor navigation, maps, or turn-by-turn store routing.
 - Manual drag reordering.
 - Store-specific walking routes beyond aisle order.
-- Automated lookup for Lowe's, Target, and Smiths.
 - Barcode scanning.
 - Receipt scanning.
 - Widgets, Wear OS, tablets, or multi-platform clients.
@@ -79,7 +80,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | On-device AI cleanup | Yes | — | — |
 | Walmart aisle lookup | Yes | — | — |
 | Home Depot aisle lookup | Yes | — | — |
-| Lowe's/Target/Smiths automated lookup | Manual aisle | Later | — |
+| Lowe's/Target/Smiths automated lookup | Manual aisle | Phase 10 | — |
 | Multi-store list sections | Yes | — | — |
 | Aisle asc/desc toggle | Yes | — | — |
 | Background organizing | Yes | — | — |
@@ -87,7 +88,6 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | Calendar view | Yes | — | — |
 | Item deferral by phrase | Yes | — | — |
 | Overdue prompt | Yes | — | — |
-| Store hours planning | Yes | — | — |
 | Custom local stores | — | Yes | — |
 | Price comparison | — | Yes | — |
 | Shared live editing | — | — | Yes |

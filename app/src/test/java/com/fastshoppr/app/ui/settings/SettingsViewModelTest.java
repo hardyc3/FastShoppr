@@ -7,17 +7,27 @@ package com.fastshoppr.app.ui.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.model.AiAvailability;
+import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.NearbyStoreSource;
+import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
+import com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase;
+import com.fastshoppr.app.domain.usecase.ForgetSelectedStoreUseCase;
+import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import org.junit.Before;
@@ -32,19 +42,34 @@ public final class SettingsViewModelTest {
   private final SettingsRepository settingsRepository = mock(SettingsRepository.class);
   private final ItemNameCleanerCoordinator cleanerCoordinator =
       mock(ItemNameCleanerCoordinator.class);
+  private final DeleteAllDataUseCase deleteAllDataUseCase = mock(DeleteAllDataUseCase.class);
+  private final ForgetSelectedStoreUseCase forgetSelectedStore =
+      mock(ForgetSelectedStoreUseCase.class);
+  private final GetSelectedStoresUseCase getSelectedStores = mock(GetSelectedStoresUseCase.class);
 
   private SettingsViewModel viewModel;
 
   @Before
   public void setUp() {
-    viewModel = new SettingsViewModel(settingsRepository, cleanerCoordinator, Runnable::run);
+    when(deleteAllDataUseCase.execute()).thenReturn(CompletableFuture.completedFuture(null));
+    when(getSelectedStores.execute()).thenReturn(Collections.emptyMap());
+    viewModel = newViewModel();
+  }
+
+  private SettingsViewModel newViewModel() {
+    return new SettingsViewModel(
+        settingsRepository,
+        cleanerCoordinator,
+        deleteAllDataUseCase,
+        forgetSelectedStore,
+        getSelectedStores);
   }
 
   @Test
   public void readsPersistedToggleState() {
     when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
 
-    viewModel = new SettingsViewModel(settingsRepository, cleanerCoordinator, Runnable::run);
+    viewModel = newViewModel();
     SettingsViewModel.SettingsUiState state = viewModel.getState().getValue();
 
     assertTrue(state.isAiCleanupEnabled());
@@ -131,6 +156,68 @@ public final class SettingsViewModelTest {
     verify(cleanerCoordinator, never()).downloadModel(any());
   }
 
+  @Test
+  public void savedBranchesAppearInStatePerBrand() {
+    Map<StoreBrand, NearbyStore> saved = Map.of(StoreBrand.WALMART, store(StoreBrand.WALMART));
+    when(getSelectedStores.execute()).thenReturn(saved);
+
+    viewModel = newViewModel();
+
+    assertEquals(saved, viewModel.getState().getValue().getSelectedStores());
+    assertEquals(1, viewModel.getState().getValue().getSelectedStores().size());
+  }
+
+  @Test
+  public void refreshReloadsBranchesAfterReturningFromBranchPicker() {
+    when(getSelectedStores.execute())
+        .thenReturn(Collections.emptyMap(), Map.of(StoreBrand.TARGET, store(StoreBrand.TARGET)));
+    viewModel = newViewModel();
+    assertTrue(viewModel.getState().getValue().getSelectedStores().isEmpty());
+
+    viewModel.refresh();
+
+    assertTrue(viewModel.getState().getValue().getSelectedStores().containsKey(StoreBrand.TARGET));
+  }
+
+  @Test
+  public void forgetStoreClearsItsBranchAndEmitsMessage() {
+    NearbyStore walmart = store(StoreBrand.WALMART);
+    when(getSelectedStores.execute())
+        .thenReturn(Map.of(StoreBrand.WALMART, walmart), Collections.emptyMap());
+    viewModel = newViewModel();
+    assertEquals(
+        walmart, viewModel.getState().getValue().getSelectedStores().get(StoreBrand.WALMART));
+
+    viewModel.forgetStore(StoreBrand.WALMART);
+
+    verify(forgetSelectedStore).execute(StoreBrand.WALMART);
+    assertTrue(viewModel.getState().getValue().getSelectedStores().isEmpty());
+    assertEquals(
+        SettingsViewModel.StoreMessage.STORE_REMOVED,
+        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+    assertNull(viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+  }
+
+  @Test
+  public void deleteAllDataPublishesOneSuccessEventAndRefreshesBranches() {
+    viewModel.deleteAllData();
+
+    verify(deleteAllDataUseCase).execute();
+    assertTrue(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+    assertNull(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+    verify(getSelectedStores, times(2)).execute();
+  }
+
+  @Test
+  public void deleteAllDataPublishesFailureEvent() {
+    when(deleteAllDataUseCase.execute())
+        .thenReturn(failedFuture(new IllegalStateException("disk failure")));
+
+    viewModel.deleteAllData();
+
+    assertFalse(viewModel.getDeleteEvent().getValue().getContentIfNotHandled());
+  }
+
   private void assertMapped(AiAvailability availability, SettingsViewModel.AiStatus expected) {
     when(cleanerCoordinator.availability())
         .thenReturn(CompletableFuture.completedFuture(availability));
@@ -138,6 +225,20 @@ public final class SettingsViewModelTest {
     viewModel.load();
 
     assertEquals(expected, viewModel.getState().getValue().getAiStatus());
+  }
+
+  private static NearbyStore store(StoreBrand brand) {
+    return new NearbyStore(
+        brand.name(),
+        brand,
+        brand.getDisplayName() + " #123",
+        "1 Main St",
+        null,
+        null,
+        null,
+        null,
+        null,
+        NearbyStoreSource.LOCATOR);
   }
 
   private static <T> CompletableFuture<T> failedFuture(Throwable error) {

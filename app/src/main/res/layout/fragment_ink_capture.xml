@@ -7,7 +7,9 @@
         android:id="@+id/inkCanvas"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/colorSurface" />
+        android:background="?attr/colorSurface"
+        android:contentDescription="@string/a11y_ink_canvas"
+        android:importantForAccessibility="yes" />
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
@@ -71,12 +73,12 @@
                 android:text="@string/clear" />
 
             <androidx.appcompat.widget.AppCompatButton
-                android:id="@+id/btnFinish"
+                android:id="@+id/btnSave"
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/finish"
-                android:text="@string/finish" />
+                android:contentDescription="@string/save"
+                android:text="@string/save" />
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>

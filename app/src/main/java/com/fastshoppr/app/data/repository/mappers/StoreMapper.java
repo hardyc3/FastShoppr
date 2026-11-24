@@ -26,7 +26,6 @@ public final class StoreMapper {
         store.isCustom(),
         store.isDefault(),
         store.isArchived(),
-        store.getHoursJson(),
         store.getCreatedAt(),
         store.getUpdatedAt());
   }
@@ -45,7 +44,6 @@ public final class StoreMapper {
         entity.isCustom,
         entity.isDefault,
         entity.isArchived,
-        entity.hoursJson,
         entity.createdAt,
         entity.updatedAt);
   }
