@@ -45,7 +45,7 @@ guaranteed APIs):
 |---|---|
 | Walmart | `https://www.walmart.com/store/finder` |
 | Home Depot | `https://www.homedepot.com/l/store-locator` |
-| Lowe's | `https://www.lowes.com/store-locator` |
+| Lowe's | `https://www.lowes.com/store` |
 | Target | `https://www.target.com/store-locator` |
 | Smiths | `https://www.smithsfoodanddrug.com/stores/search` |
 

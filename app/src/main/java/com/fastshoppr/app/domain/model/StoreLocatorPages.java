@@ -44,7 +44,7 @@ public final class StoreLocatorPages {
     return switch (brand) {
       case WALMART -> "https://www.walmart.com/store/finder";
       case HOME_DEPOT -> "https://www.homedepot.com/l/store-locator";
-      case LOWES -> "https://www.lowes.com/store-locator";
+      case LOWES -> "https://www.lowes.com/store";
       case TARGET -> "https://www.target.com/store-locator";
       case SMITHS -> "https://www.smithsfoodanddrug.com/stores/search";
       default -> throw new IllegalArgumentException("No public locator page for brand: " + brand);
