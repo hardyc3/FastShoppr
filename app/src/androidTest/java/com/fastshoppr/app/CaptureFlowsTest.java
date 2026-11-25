@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.CheckBox;
 import androidx.core.content.ContextCompat;
@@ -265,15 +264,6 @@ public final class CaptureFlowsTest {
   }
 
   private static void waitFor(Runnable assertion) {
-    long deadline = SystemClock.uptimeMillis() + 5_000L;
-    while (SystemClock.uptimeMillis() < deadline) {
-      try {
-        assertion.run();
-        return;
-      } catch (AssertionError | RuntimeException exception) {
-        SystemClock.sleep(50L);
-      }
-    }
-    assertion.run();
+    TestWait.waitFor(assertion);
   }
 }

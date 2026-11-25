@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
@@ -25,6 +26,7 @@ import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -132,8 +134,8 @@ public final class LookupViewModel extends ViewModel {
             StoreBrand baseBrand = null;
             Set<StoreBrand> presentBrands = new LinkedHashSet<>();
             StringBuilder details = new StringBuilder();
-            java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
-            java.util.Map<String, String> storeNames = new java.util.LinkedHashMap<>();
+            Map<String, int[]> byStore = new LinkedHashMap<>();
+            Map<String, String> storeNames = new LinkedHashMap<>();
             for (ListItem item : items) {
               Store store = resolveStoreForItem(item);
               if (store != null) {
@@ -145,15 +147,15 @@ public final class LookupViewModel extends ViewModel {
                 }
                 storeNames.putIfAbsent(store.getId(), store.getName());
                 int[] c = byStore.computeIfAbsent(store.getId(), k -> new int[5]);
-                com.fastshoppr.app.domain.model.LookupStatus s = item.getLookupStatus();
-                if (s == com.fastshoppr.app.domain.model.LookupStatus.FOUND) c[0]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW) c[1]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NOT_FOUND) c[2]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.ERROR) c[3]++;
+                LookupStatus s = item.getLookupStatus();
+                if (s == LookupStatus.FOUND) c[0]++;
+                else if (s == LookupStatus.NEEDS_REVIEW) c[1]++;
+                else if (s == LookupStatus.NOT_FOUND) c[2]++;
+                else if (s == LookupStatus.ERROR) c[3]++;
                 else c[4]++; // pending/queued/in-progress
               }
             }
-            for (java.util.Map.Entry<String, int[]> e : byStore.entrySet()) {
+            for (Map.Entry<String, int[]> e : byStore.entrySet()) {
               if (details.length() > 0) details.append("\n");
               String name = storeNames.getOrDefault(e.getKey(), "Store");
               int[] c = e.getValue();

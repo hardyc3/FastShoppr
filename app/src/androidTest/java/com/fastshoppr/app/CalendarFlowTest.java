@@ -16,7 +16,6 @@ import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
 
 import android.content.Intent;
-import android.os.SystemClock;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -109,15 +108,6 @@ public final class CalendarFlowTest {
   }
 
   private static void waitFor(Runnable assertion) {
-    long deadline = SystemClock.uptimeMillis() + 5_000L;
-    while (SystemClock.uptimeMillis() < deadline) {
-      try {
-        assertion.run();
-        return;
-      } catch (AssertionError | RuntimeException exception) {
-        SystemClock.sleep(50L);
-      }
-    }
-    assertion.run();
+    TestWait.waitFor(assertion);
   }
 }

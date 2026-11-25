@@ -5,6 +5,7 @@
  */
 package com.fastshoppr.app.ui.listdetail;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,9 +14,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Spinner;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
@@ -24,7 +27,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.DialogSetAisleBinding;
 import com.fastshoppr.app.databinding.FragmentListDetailBinding;
+import com.fastshoppr.app.domain.lookup.LookupCandidatesCodec;
+import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
@@ -37,6 +43,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -152,8 +159,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showDeferralDialog(ListDetailUiEvent.RequestDeferral req) {
-    String targetText =
-        req.targetListDate().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE);
+    String targetText = req.targetListDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
     String msg = getString(R.string.defer_parsed_message, targetText);
     if (!req.resolvedDate().equals(req.targetListDate())) {
       msg =
@@ -167,8 +173,8 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
       msg = msg + "\n\n" + getString(R.string.defer_confirm_date_warning);
     }
     final boolean[] remove = {true};
-    com.google.android.material.dialog.MaterialAlertDialogBuilder b =
-        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+    MaterialAlertDialogBuilder b =
+        new MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.defer_title)
             .setMessage(
                 msg + (req.note() == null || req.note().isBlank() ? "" : "\n\n" + req.note()))
@@ -191,7 +197,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   }
 
   private void showNeedsScheduleDialog(ListDetailUiEvent.NeedsScheduleDate req) {
-    new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+    new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.defer_needs_schedule_title)
         .setMessage(R.string.defer_needs_schedule)
         .setPositiveButton(
@@ -199,7 +205,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             (d, w) ->
                 DatePickerUtil.showDatePicker(
                     this,
-                    java.time.LocalDate.now(),
+                    LocalDate.now(),
                     date ->
                         viewModel.confirmDeferredAdd(
                             req.storeId(),
@@ -218,7 +224,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
   private void showAddStoreDialog(List<Store> stores) {
     View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_store, null);
     Spinner spinner = dialogView.findViewById(R.id.store_spinner);
-    android.widget.EditText nameInput = dialogView.findViewById(R.id.store_name_input);
+    EditText nameInput = dialogView.findViewById(R.id.store_name_input);
 
     List<String> labels = new ArrayList<>();
     labels.add(getString(R.string.add_store_select));
@@ -257,7 +263,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
           }
         });
 
-    androidx.appcompat.app.AlertDialog dialog =
+    AlertDialog dialog =
         new MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.add_store_title)
             .setView(dialogView)
@@ -284,7 +290,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     dialog.setOnShowListener(
         d ->
             dialog
-                .getButton(android.content.DialogInterface.BUTTON_POSITIVE)
+                .getButton(DialogInterface.BUTTON_POSITIVE)
                 .setOnClickListener(v -> addStore.run()));
     nameInput.setOnEditorActionListener(
         (v, actionId, event) -> {
@@ -332,22 +338,18 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
   @Override
   public void onItemNotRight(ListItem item) {
-    java.util.List<com.fastshoppr.app.domain.lookup.StoreLookupResult.Found> candidates =
-        com.fastshoppr.app.domain.lookup.LookupCandidatesCodec.decode(
-            item.getMatchCandidatesJson());
-    if (item.getLookupStatus() == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW
-        && !candidates.isEmpty()) {
+    List<StoreLookupResult.Found> candidates =
+        LookupCandidatesCodec.decode(item.getMatchCandidatesJson());
+    if (item.getLookupStatus() == LookupStatus.NEEDS_REVIEW && !candidates.isEmpty()) {
       showCandidatePicker(item, candidates);
       return;
     }
     showSetAisleDialog(item);
   }
 
-  private void showCandidatePicker(
-      ListItem item,
-      java.util.List<com.fastshoppr.app.domain.lookup.StoreLookupResult.Found> candidates) {
-    java.util.List<String> labels = new java.util.ArrayList<>();
-    for (com.fastshoppr.app.domain.lookup.StoreLookupResult.Found c : candidates) {
+  private void showCandidatePicker(ListItem item, List<StoreLookupResult.Found> candidates) {
+    List<String> labels = new ArrayList<>();
+    for (StoreLookupResult.Found c : candidates) {
       String name = c.getProductName();
       if (name == null || name.isBlank()) {
         name = getString(R.string.lookup_candidate_unknown);

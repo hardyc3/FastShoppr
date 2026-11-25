@@ -5,6 +5,7 @@
  */
 package com.fastshoppr.app.ui.listdetail;
 
+import android.content.Context;
 import android.graphics.Paint;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.widget.PopupMenu;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.core.view.ViewCompat;
 import androidx.recyclerview.widget.DiffUtil;
@@ -25,9 +27,12 @@ import com.fastshoppr.app.databinding.ItemAttentionHeaderBinding;
 import com.fastshoppr.app.databinding.ItemListItemRowBinding;
 import com.fastshoppr.app.databinding.ItemStoreSectionHeaderBinding;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.LookupSource;
+import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.sort.AisleComparator;
 import com.fastshoppr.app.ui.common.StoreFormatter;
+import com.google.android.material.color.MaterialColors;
 import java.util.Objects;
 
 public final class ListDetailAdapter extends ListAdapter<ListDetailRow, RecyclerView.ViewHolder> {
@@ -228,19 +233,15 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
     }
 
     private void bindLookup(ListItem item) {
-      android.content.Context context = binding.getRoot().getContext();
-      com.fastshoppr.app.domain.model.LookupStatus status = item.getLookupStatus();
+      Context context = binding.getRoot().getContext();
+      LookupStatus status = item.getLookupStatus();
       String statusText = lookupStatusText(context, status);
-      boolean showStatus =
-          status != com.fastshoppr.app.domain.model.LookupStatus.PENDING
-              || item.getLookupError() != null;
+      boolean showStatus = status != LookupStatus.PENDING || item.getLookupError() != null;
       binding.itemLookupStatus.setText(statusText);
       binding.itemLookupStatus.setVisibility(showStatus ? View.VISIBLE : View.GONE);
 
       String error = item.getLookupError();
-      boolean stale =
-          item.getLookupSource() == com.fastshoppr.app.domain.model.LookupSource.CACHE
-              && error != null;
+      boolean stale = item.getLookupSource() == LookupSource.CACHE && error != null;
       // Show stale indicator subtly in status/error area; blocked/errors in error color.
       if (error != null && !error.trim().isEmpty()) {
         binding.itemLookupError.setText(
@@ -248,25 +249,24 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
         binding.itemLookupError.setVisibility(View.VISIBLE);
         binding.itemLookupError.setTextColor(
             stale
-                ? com.google.android.material.color.MaterialColors.getColor(
+                ? MaterialColors.getColor(
                     binding.itemLookupError,
                     com.google.android.material.R.attr.colorOnSurfaceVariant)
-                : com.google.android.material.color.MaterialColors.getColor(
+                : MaterialColors.getColor(
                     binding.itemLookupError, androidx.appcompat.R.attr.colorError));
       } else {
         binding.itemLookupError.setVisibility(View.GONE);
       }
 
       boolean showNotRight =
-          status == com.fastshoppr.app.domain.model.LookupStatus.FOUND
-              || status == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW
-              || status == com.fastshoppr.app.domain.model.LookupStatus.NOT_FOUND
-              || status == com.fastshoppr.app.domain.model.LookupStatus.ERROR;
+          status == LookupStatus.FOUND
+              || status == LookupStatus.NEEDS_REVIEW
+              || status == LookupStatus.NOT_FOUND
+              || status == LookupStatus.ERROR;
       binding.itemNotRight.setVisibility(showNotRight ? View.VISIBLE : View.GONE);
     }
 
-    private static String lookupStatusText(
-        android.content.Context context, com.fastshoppr.app.domain.model.LookupStatus status) {
+    private static String lookupStatusText(Context context, LookupStatus status) {
       return switch (status) {
         case PENDING -> context.getString(R.string.lookup_status_pending);
         case QUEUED -> context.getString(R.string.lookup_status_queued);
@@ -309,7 +309,7 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
       popup.show();
     }
 
-    private void setStrikeThrough(android.widget.TextView view, boolean strikeThrough) {
+    private void setStrikeThrough(TextView view, boolean strikeThrough) {
       int flags = view.getPaintFlags();
       if (strikeThrough) {
         flags |= Paint.STRIKE_THRU_TEXT_FLAG;
@@ -389,7 +389,7 @@ public final class ListDetailAdapter extends ListAdapter<ListDetailRow, Recycler
     }
   }
 
-  private static String aisleText(android.content.Context context, ListItem item) {
+  private static String aisleText(Context context, ListItem item) {
     String aisle = item.getAisle();
     String bay = item.getBay();
     boolean aisleUnresolved = AisleComparator.isUnresolved(aisle);

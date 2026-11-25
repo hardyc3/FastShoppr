@@ -12,11 +12,15 @@ import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.ItemReviewLineBinding;
+import com.google.android.material.button.MaterialButton;
 import java.util.List;
 import java.util.Locale;
 
@@ -72,12 +76,12 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
   final class ViewHolder extends RecyclerView.ViewHolder {
 
     final ItemReviewLineBinding binding;
-    final android.widget.CheckBox checkBox;
-    final android.widget.EditText textField;
-    private final android.widget.TextView displayNameText;
-    private final android.widget.TextView confidenceText;
-    private final com.google.android.material.button.MaterialButton storeButton;
-    private final com.google.android.material.button.MaterialButton dateButton;
+    final CheckBox checkBox;
+    final EditText textField;
+    private final TextView displayNameText;
+    private final TextView confidenceText;
+    private final MaterialButton storeButton;
+    private final MaterialButton dateButton;
     @Nullable private TextWatcher watcher;
 
     private ViewHolder(ItemReviewLineBinding binding) {

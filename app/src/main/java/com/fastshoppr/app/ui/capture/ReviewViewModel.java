@@ -914,21 +914,8 @@ public final class ReviewViewModel extends ViewModel {
                 postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
                 return;
               }
-              try {
-                java.util.Set<String> listIds = new java.util.HashSet<>();
-                if (listId != null) {
-                  listIds.add(listId);
-                }
-                for (ReviewedItem item : items) {
-                  // reviewed items are saved into the capture's list in current flow
-                  // (repository uses item.getListId()); schedule for all affected lists
-                }
-                for (String id : listIds) {
-                  if (organizingScheduler != null) {
-                    organizingScheduler.scheduleAfterSave(id);
-                  }
-                }
-              } catch (Exception schedulingError) {
+              if (listId != null && organizingScheduler != null) {
+                organizingScheduler.scheduleAfterSave(listId);
               }
               postEvent(new ReviewUiEvent.SaveCompleted());
             });

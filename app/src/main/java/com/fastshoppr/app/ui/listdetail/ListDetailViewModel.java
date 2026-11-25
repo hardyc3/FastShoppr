@@ -13,6 +13,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.date.LocalDateTimes;
+import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.ShoppingList;
@@ -45,8 +46,11 @@ import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
 
@@ -190,8 +194,8 @@ public final class ListDetailViewModel extends ViewModel {
       postError(UiError.RAW_TEXT_TOO_LONG);
       return;
     }
-    java.time.LocalDate today = LocalDateTimes.today(clock);
-    java.time.LocalDate currentListDate = list != null ? list.getShoppingDate() : today;
+    LocalDate today = LocalDateTimes.today(clock);
+    LocalDate currentListDate = list != null ? list.getShoppingDate() : today;
     resolveDatePhraseUseCase
         .resolve(trimmed, currentListDate, today)
         .whenComplete(
@@ -200,7 +204,7 @@ public final class ListDetailViewModel extends ViewModel {
                 var r = opt.get();
                 if (r.resolvedDate().isPresent()) {
                   var p = r.parsed();
-                  java.time.LocalDate targetListDate = r.resolvedDate().get();
+                  LocalDate targetListDate = r.resolvedDate().get();
                   String existingTargetListId = null;
                   if (r.nearestList().isPresent()
                       && r.nearestList().get().existingList().isPresent()) {
@@ -254,21 +258,21 @@ public final class ListDetailViewModel extends ViewModel {
       String storeId,
       String originalText,
       String itemTextWithoutPhrase,
-      java.time.LocalDate targetListDate,
+      LocalDate targetListDate,
       String existingTargetListId,
       boolean removePhrase) {
     String itemText = removePhrase ? itemTextWithoutPhrase : originalText;
     String finalText = itemText == null ? originalText : itemText.trim();
     if (finalText.isEmpty()) finalText = originalText;
     String listName = (list != null && list.getName() != null) ? list.getName() : "Shopping list";
-    final java.time.LocalDate date = targetListDate;
+    final LocalDate date = targetListDate;
     final String existingId = existingTargetListId;
     final String finalStoreId = storeId;
     final String finalItemText = finalText;
     new Thread(
             () -> {
               try {
-                com.fastshoppr.app.domain.model.ShoppingList targetList;
+                ShoppingList targetList;
                 if (existingId != null && !existingId.isBlank()) {
                   targetList = listRepository.getById(existingId);
                 } else {
@@ -374,8 +378,7 @@ public final class ListDetailViewModel extends ViewModel {
   }
 
   /** Applies a user-confirmed lookup candidate shown from a persisted Multiple result. */
-  public void applyLookupCandidate(
-      String itemId, com.fastshoppr.app.domain.lookup.StoreLookupResult.Found candidate) {
+  public void applyLookupCandidate(String itemId, StoreLookupResult.Found candidate) {
     applyLookupCandidateUseCase
         .apply(itemId, candidate)
         .whenComplete(
@@ -458,7 +461,7 @@ public final class ListDetailViewModel extends ViewModel {
 
     // Show stores with items, plus pending/added store, plus default/last-used (up to 3) for
     // auto-created/empty lists.
-    java.util.Set<String> included = new java.util.LinkedHashSet<>();
+    Set<String> included = new LinkedHashSet<>();
     List<Store> storesWithItems = new ArrayList<>();
     boolean pendingStillEmpty = false;
     for (Store store : orderedStores) {
@@ -528,7 +531,7 @@ public final class ListDetailViewModel extends ViewModel {
     }
     Store store =
         new Store(
-            java.util.UUID.randomUUID().toString(),
+            UUID.randomUUID().toString(),
             StoreBrand.CUSTOM,
             trimmed,
             null,

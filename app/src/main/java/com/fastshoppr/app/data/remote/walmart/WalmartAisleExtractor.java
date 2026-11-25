@@ -5,6 +5,7 @@
  */
 package com.fastshoppr.app.data.remote.walmart;
 
+import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.model.LookupSource;
 import com.google.gson.JsonArray;
@@ -12,8 +13,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,13 +69,13 @@ public final class WalmartAisleExtractor {
 
   public static StoreLookupResult extractFromPage(String htmlOrJson) {
     if (htmlOrJson == null || htmlOrJson.isBlank()) {
-      return new StoreLookupResult.Error(
-          new com.fastshoppr.app.domain.error.AppError.ParserFailed("Empty response"));
+      return new StoreLookupResult.Error(new AppError.ParserFailed("Empty response"));
     }
     String lower = htmlOrJson.toLowerCase(Locale.US);
     if (isBlockedPage(lower)) {
       return new StoreLookupResult.Blocked(
-          "Walmart challenge or sign-in page. Open the Walmart store page, complete verification, then retry.");
+          "Walmart challenge or sign-in page. Open the Walmart store page, complete verification,"
+              + " then retry.");
     }
 
     List<String> jsonBlobs = new ArrayList<>();
@@ -199,7 +202,7 @@ public final class WalmartAisleExtractor {
    * seen (insertion order), so {@code j23, j23, j24, j24, h1} yields {@code j23}.
    */
   private static StoreLookupResult resolveMostCommonAisle(List<String> allLocations) {
-    java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+    Map<String, Integer> counts = new LinkedHashMap<>();
     for (String loc : allLocations) {
       counts.merge(loc, 1, Integer::sum);
     }
@@ -212,7 +215,7 @@ public final class WalmartAisleExtractor {
     }
     // First aisle (insertion order = first occurrence) with max count wins ties.
     String winner = null;
-    for (java.util.Map.Entry<String, Integer> e : counts.entrySet()) {
+    for (Map.Entry<String, Integer> e : counts.entrySet()) {
       if (e.getValue() == maxCount) {
         winner = e.getKey();
         break;
@@ -367,7 +370,7 @@ public final class WalmartAisleExtractor {
 
   private static List<StoreLookupResult.Found> dedupe(List<StoreLookupResult.Found> found) {
     // Dedupe primarily by location; prefer entries with richer product metadata.
-    java.util.Map<String, StoreLookupResult.Found> byLocation = new java.util.LinkedHashMap<>();
+    Map<String, StoreLookupResult.Found> byLocation = new LinkedHashMap<>();
     for (StoreLookupResult.Found f : found) {
       String locKey = (safe(f.getAisle()) + "|" + safe(f.getBay())).toLowerCase(Locale.US);
       StoreLookupResult.Found existing = byLocation.get(locKey);

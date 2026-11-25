@@ -22,6 +22,7 @@ import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.repository.AisleCacheRepository;
 import com.fastshoppr.app.domain.repository.AisleLookupRepository;
+import com.fastshoppr.app.domain.repository.AisleLookupRepository.LookupOutcome;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
@@ -108,7 +109,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       throw new IllegalArgumentException("Item not found: " + itemId);
     }
     if (item.getLookupSource() == LookupSource.MANUAL) {
-      return new AisleLookupRepository.LookupOutcome(item, null, false, false, false, null);
+      return LookupOutcome.unchanged(item, null);
     }
 
     long now = clock.nowMillis();
@@ -124,8 +125,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
         if (!cached.isExpired(now)) {
           ListItem updated = applyCacheHit(item, cached, false, now);
           itemRepository.update(updated);
-          return new AisleLookupRepository.LookupOutcome(
-              updated, cached, true, false, false, foundFromCache(cached));
+          return LookupOutcome.fromCache(updated, cached, foundFromCache(cached));
         }
         // expired: usable offline with stale indicator; do not hit network from here when offline
         // caller/UI may treat as stale and optionally refresh. For an active lookup attempt,
@@ -148,13 +148,8 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
               null,
               now);
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(
-          updated,
-          null,
-          false,
-          false,
-          false,
-          new StoreLookupResult.Error(new AppError.LookupNotFound("No lookup service")));
+      return LookupOutcome.unchanged(
+          updated, new StoreLookupResult.Error(new AppError.LookupNotFound("No lookup service")));
     }
 
     markInProgress(item, now);
@@ -168,7 +163,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     long now = clock.nowMillis();
     ListItem item = itemRepository.getById(itemId);
     if (item == null || item.getLookupSource() == LookupSource.MANUAL) {
-      return new AisleLookupRepository.LookupOutcome(item, null, false, false, false, result);
+      return LookupOutcome.unchanged(item, result);
     }
 
     if (result instanceof StoreLookupResult.Found found) {
@@ -176,7 +171,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       cacheRepository.put(cache);
       ListItem updated = applyFound(item, found, now);
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(updated, cache, false, false, false, result);
+      return LookupOutcome.fromNetwork(updated, cache, result);
     }
 
     if (result instanceof StoreLookupResult.Multiple multiple) {
@@ -190,7 +185,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
               .updatedAt(now)
               .build();
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(updated, null, false, false, false, result);
+      return LookupOutcome.unchanged(updated, result);
     }
 
     if (result instanceof StoreLookupResult.NotFound notFound) {
@@ -207,7 +202,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
               null,
               now);
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(updated, null, false, false, false, result);
+      return LookupOutcome.unchanged(updated, result);
     }
 
     if (result instanceof StoreLookupResult.Blocked blocked) {
@@ -215,7 +210,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       ListItem updated =
           updateItem(item, LookupStatus.ERROR, null, msg, null, null, null, null, null, now);
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(updated, null, false, false, true, result);
+      return LookupOutcome.blocked(updated, result);
     }
 
     if (result instanceof StoreLookupResult.Error err) {
@@ -224,7 +219,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       if (staleUsable) {
         ListItem updated = applyCacheHit(item, stale, true, now);
         itemRepository.update(updated);
-        return new AisleLookupRepository.LookupOutcome(updated, stale, true, true, false, result);
+        return LookupOutcome.fromStaleCache(updated, stale, result);
       }
       ListItem updated =
           updateItem(
@@ -239,14 +234,14 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
               null,
               now);
       itemRepository.update(updated);
-      return new AisleLookupRepository.LookupOutcome(updated, null, false, false, false, result);
+      return LookupOutcome.unchanged(updated, result);
     }
 
     ListItem updated =
         updateItem(
             item, LookupStatus.ERROR, null, "Lookup failed.", null, null, null, null, null, now);
     itemRepository.update(updated);
-    return new AisleLookupRepository.LookupOutcome(updated, null, false, false, false, result);
+    return LookupOutcome.unchanged(updated, result);
   }
 
   private AisleLookupRepository.LookupOutcome unresolvedStoreOutcome(ListItem item, long now) {
@@ -263,13 +258,8 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
             null,
             now);
     itemRepository.update(updated);
-    return new AisleLookupRepository.LookupOutcome(
-        updated,
-        null,
-        false,
-        false,
-        false,
-        new StoreLookupResult.Error(new AppError.LookupNotFound("Unknown store")));
+    return LookupOutcome.unchanged(
+        updated, new StoreLookupResult.Error(new AppError.LookupNotFound("Unknown store")));
   }
 
   private StoreLookupResult performNetworkLookup(

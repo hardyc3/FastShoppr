@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.allOf;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Intent;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -382,15 +381,6 @@ public final class ManualListsFlowTest {
   }
 
   private static void waitFor(Runnable assertion) {
-    long deadline = SystemClock.uptimeMillis() + 5_000L;
-    while (SystemClock.uptimeMillis() < deadline) {
-      try {
-        assertion.run();
-        return;
-      } catch (AssertionError | RuntimeException exception) {
-        SystemClock.sleep(50L);
-      }
-    }
-    assertion.run();
+    TestWait.waitFor(assertion);
   }
 }
