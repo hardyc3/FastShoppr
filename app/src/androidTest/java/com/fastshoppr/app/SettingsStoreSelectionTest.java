@@ -13,17 +13,20 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.label;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.withSpinnerValue;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import android.view.View;
-import android.widget.Spinner;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.StoreBrand;
@@ -48,6 +51,8 @@ public final class SettingsStoreSelectionTest {
   @Rule public final HiltAndroidRule hiltRule = new HiltAndroidRule(this);
 
   @Inject SelectedStoreRepository selectedStoreRepository;
+
+  @Inject StoreLookupMessages storeLookupMessages;
 
   @Before
   public void setUp() {
@@ -85,6 +90,43 @@ public final class SettingsStoreSelectionTest {
   }
 
   @Test
+  public void savedBranchesForAllFiveBrandsAppearInSummary() {
+    for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+      selectedStoreRepository.select(
+          branch(brand, label(brand) + " #1", (brand.ordinal() + 1) + " Main St"));
+    }
+
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      onFocusedView(withId(R.id.open_settings_button)).perform(click());
+      waitFor(
+          () ->
+              onFocusedView(withId(R.id.storeSummary))
+                  .check(matches(withText(containsString(label(StoreBrand.WALMART) + " #1")))));
+
+      for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+        onFocusedView(withId(R.id.storeSummary))
+            .check(matches(withText(containsString(label(brand) + " #1"))));
+      }
+    }
+  }
+
+  @Test
+  public void verifiedOutcomeMessagesComeFromResources() {
+    assertEquals(
+        ApplicationProvider.getApplicationContext().getString(R.string.lookup_home_depot_blocked),
+        storeLookupMessages.forBrand(StoreBrand.HOME_DEPOT));
+    assertEquals(
+        ApplicationProvider.getApplicationContext().getString(R.string.lookup_lowes_blocked),
+        storeLookupMessages.forBrand(StoreBrand.LOWES));
+    assertEquals(
+        ApplicationProvider.getApplicationContext().getString(R.string.lookup_target_blocked),
+        storeLookupMessages.forBrand(StoreBrand.TARGET));
+    assertEquals(
+        ApplicationProvider.getApplicationContext().getString(R.string.lookup_smiths_no_aisle),
+        storeLookupMessages.forBrand(StoreBrand.SMITHS));
+  }
+
+  @Test
   public void brandPickerControlsUseCurrentBrandsAndExplainPrivacy() {
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
@@ -118,15 +160,15 @@ public final class SettingsStoreSelectionTest {
                   .check(matches(isDisplayed())));
 
       for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
-        String label = brandLabel(brand);
+        String brandLabel = label(brand);
         onFocusedView(withId(R.id.storeBrandSpinner)).perform(click());
-        onFocusedView(withText(label)).perform(click());
+        onFocusedView(withText(brandLabel)).perform(click());
         onFocusedView(withId(R.id.btnPickBranch)).perform(click());
 
         waitFor(
             () ->
                 onFocusedView(withId(R.id.branchBrandSpinner))
-                    .check(matches(withSpinnerValue(label))));
+                    .check(matches(withSpinnerValue(brandLabel))));
         pressBack();
         waitFor(() -> onFocusedView(withId(R.id.storeBrandSpinner)).check(matches(isDisplayed())));
       }
@@ -164,36 +206,6 @@ public final class SettingsStoreSelectionTest {
       onFocusedView(withId(R.id.storeSummary))
           .check(matches(withText(org.hamcrest.Matchers.not(containsString("Walmart #123")))));
     }
-  }
-
-  private static String brandLabel(StoreBrand brand) {
-    int resId =
-        switch (brand) {
-          case WALMART -> R.string.brand_walmart;
-          case HOME_DEPOT -> R.string.brand_home_depot;
-          case LOWES -> R.string.brand_lowes;
-          case TARGET -> R.string.brand_target;
-          case SMITHS -> R.string.brand_smiths;
-          case CUSTOM -> throw new IllegalArgumentException("custom has no locator brand");
-        };
-    return ApplicationProvider.getApplicationContext().getString(resId);
-  }
-
-  private static Matcher<View> withSpinnerValue(String expected) {
-    return new TypeSafeMatcher<>() {
-      @Override
-      protected boolean matchesSafely(View view) {
-        if (!(view instanceof Spinner spinner) || spinner.getSelectedItem() == null) {
-          return false;
-        }
-        return expected.equals(spinner.getSelectedItem().toString());
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("spinner with selection \"").appendText(expected).appendText("\"");
-      }
-    };
   }
 
   private void clearSelectedStores() {

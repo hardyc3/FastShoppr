@@ -14,7 +14,7 @@ import javax.inject.Singleton;
  *
  * <p>Live checks on 2026-11-25 found Home Depot blocked by HTTP 403, Lowe's blocked by Akamai,
  * Target behind human verification, and Smiths showing no public aisle on its product page. Those
- * brands stay manual-aisle-first; Walmart keeps its foreground WebView path. See D-053.
+ * brands stay manual-aisle-first; Walmart keeps its foreground WebView path. See D-053 and D-054.
  */
 @Singleton
 public final class StoreLookupSupport {
@@ -28,11 +28,9 @@ public final class StoreLookupSupport {
 
   public static final class Decision {
     public final Mode mode;
-    public final String reason;
 
-    private Decision(Mode mode, String reason) {
+    private Decision(Mode mode) {
       this.mode = mode;
-      this.reason = reason;
     }
   }
 
@@ -41,21 +39,13 @@ public final class StoreLookupSupport {
 
   public Decision forBrand(StoreBrand brand) {
     if (brand == null) {
-      return new Decision(Mode.MANUAL_ONLY, "Custom stores use manual aisle entry.");
+      return new Decision(Mode.MANUAL_ONLY);
     }
     return switch (brand) {
-      case WALMART -> new Decision(Mode.ENABLED, null);
-      case HOME_DEPOT ->
-          new Decision(
-              Mode.BLOCKED, "Home Depot access is blocked (HTTP 403); enter aisle manually.");
-      case LOWES -> new Decision(Mode.BLOCKED, "Lowe's access is denied; enter aisle manually.");
-      case TARGET ->
-          new Decision(Mode.BLOCKED, "Target requires human verification; enter aisle manually.");
-      case SMITHS ->
-          new Decision(
-              Mode.NO_PUBLIC_AISLE,
-              "Smiths product pages do not show a public aisle; enter aisle manually.");
-      case CUSTOM -> new Decision(Mode.MANUAL_ONLY, "Custom stores use manual aisle entry.");
+      case WALMART -> new Decision(Mode.ENABLED);
+      case HOME_DEPOT, LOWES, TARGET -> new Decision(Mode.BLOCKED);
+      case SMITHS -> new Decision(Mode.NO_PUBLIC_AISLE);
+      case CUSTOM -> new Decision(Mode.MANUAL_ONLY);
     };
   }
 }

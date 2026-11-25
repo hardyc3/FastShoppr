@@ -145,8 +145,8 @@ Phase 0 validated extraction. This phase turns the spikes into production servic
 - [x] Manual aisle values are never overwritten by lookup.
 - [x] `rawText` is unchanged; match data is stored separately.
 - [x] Unit tests use fixtures and fakes; no live calls in CI. (`./gradlew testDebugUnitTest` passed: 166 tests, 0 failures)
-- [x] A manual live test resolves at least three items per store. (Walmart: milk `A40` plus two Eggland's Best egg products `A28` on `emulator-5554`, 2026-11-25. Home Depot remains blocked over HTTP 403 and in-browser, so its live aisle result is an accepted no-go per D-053; manual aisle entry is the fallback.)
-- [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped. (Phase 10 re-run on 2026-11-25: 49/49 on `emulator-5554`, 0 skipped.)
+- [ ] A manual live test resolves at least three items per store. (Walmart: milk `A40` plus two Eggland's Best egg products `A28` on `emulator-5554`, 2026-11-25. Home Depot remains blocked over HTTP 403 and in-browser; its live aisle result is an accepted no-go per D-053, not a pass. Manual aisle entry is the fallback.)
+- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped. (Automated suite re-run on 2026-11-25: 51/51 on `emulator-5554`, 0 skipped; this criterion stays open because the live ≥3-items-per-store check above is not a pass for Home Depot.)
 
 ## Test plan
 

@@ -21,13 +21,14 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.label;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.withSpinnerValue;
 import static org.hamcrest.Matchers.allOf;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Intent;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Spinner;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -209,16 +210,16 @@ public final class ManualListsFlowTest {
       waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
 
       for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
-        String label = brandLabel(brand);
+        String brandLabel = label(brand);
         onFocusedView(withId(R.id.add_store_button)).perform(click());
         onView(withId(R.id.store_spinner)).inRoot(isDialog()).perform(click());
-        onView(withText(label)).inRoot(isPlatformPopup()).perform(click());
+        onView(withText(brandLabel)).inRoot(isPlatformPopup()).perform(click());
         onView(withText(R.string.add_store_add)).inRoot(isDialog()).perform(click());
 
         waitForBranchPicker();
-        onFocusedView(withId(R.id.branchBrandSpinner)).check(matches(withSpinnerValue(label)));
+        onFocusedView(withId(R.id.branchBrandSpinner)).check(matches(withSpinnerValue(brandLabel)));
         pressBack();
-        waitForContentDescription("Add item to " + label);
+        waitForContentDescription("Add item to " + brandLabel);
       }
     }
   }
@@ -374,36 +375,6 @@ public final class ManualListsFlowTest {
   private static void waitForBranchPicker() {
     waitFor(
         () -> onFocusedView(withText(R.string.branch_picker_title)).check(matches(isDisplayed())));
-  }
-
-  private static Matcher<View> withSpinnerValue(String expected) {
-    return new TypeSafeMatcher<>() {
-      @Override
-      protected boolean matchesSafely(View view) {
-        if (!(view instanceof Spinner spinner) || spinner.getSelectedItem() == null) {
-          return false;
-        }
-        return expected.equals(spinner.getSelectedItem().toString());
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("spinner with selection \"").appendText(expected).appendText("\"");
-      }
-    };
-  }
-
-  private static String brandLabel(StoreBrand brand) {
-    int resId =
-        switch (brand) {
-          case WALMART -> R.string.brand_walmart;
-          case HOME_DEPOT -> R.string.brand_home_depot;
-          case LOWES -> R.string.brand_lowes;
-          case TARGET -> R.string.brand_target;
-          case SMITHS -> R.string.brand_smiths;
-          case CUSTOM -> throw new IllegalArgumentException("custom has no locator brand");
-        };
-    return ApplicationProvider.getApplicationContext().getString(resId);
   }
 
   private static NearbyStore branch(StoreBrand brand) {

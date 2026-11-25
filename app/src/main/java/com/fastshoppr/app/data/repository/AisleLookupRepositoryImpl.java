@@ -7,6 +7,7 @@ package com.fastshoppr.app.data.repository;
 
 import com.fastshoppr.app.data.remote.lookup.LookupQueryNormalizer;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
+import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.data.remote.lookup.StoreLookupSupport;
 import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.id.IdGenerator;
@@ -52,6 +53,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
   private final IdGenerator idGenerator;
   private final RateLimiter rateLimiter;
   private final StoreLookupSupport lookupSupport;
+  private final StoreLookupMessages messages;
   private final Map<StoreBrand, StoreLookupService> services;
 
   @Inject
@@ -63,6 +65,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       IdGenerator idGenerator,
       RateLimiter rateLimiter,
       StoreLookupSupport lookupSupport,
+      StoreLookupMessages messages,
       Set<StoreLookupService> serviceSet) {
     this.itemRepository = itemRepository;
     this.cacheRepository = cacheRepository;
@@ -71,6 +74,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     this.idGenerator = idGenerator;
     this.rateLimiter = rateLimiter;
     this.lookupSupport = lookupSupport;
+    this.messages = messages;
     this.services = new EnumMap<>(StoreBrand.class);
     for (StoreLookupService service : serviceSet) {
       services.put(service.getBrand(), service);
@@ -125,7 +129,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
 
     if (!forceRefresh) {
       AisleCache cached = cacheRepository.find(store.getId(), query);
-      if (cached != null) {
+      if (cached != null && cacheMatchesBrand(cached, store)) {
         if (!cached.isExpired(now)) {
           ListItem updated = applyCacheHit(item, cached, false, now);
           itemRepository.update(updated);
@@ -142,10 +146,11 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       return LookupOutcome.unchanged(item, null);
     }
     if (supportDecision.mode != StoreLookupSupport.Mode.ENABLED) {
+      String reason = messages.forBrand(store.getBrand());
       StoreLookupResult result =
           supportDecision.mode == StoreLookupSupport.Mode.BLOCKED
-              ? new StoreLookupResult.Blocked(supportDecision.reason)
-              : new StoreLookupResult.NotFound(supportDecision.reason);
+              ? new StoreLookupResult.Blocked(reason)
+              : new StoreLookupResult.NotFound(reason);
       return applyNetworkResult(itemId, store, query, now, result);
     }
 
@@ -172,6 +177,19 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     long deadline = now + ITEM_DEADLINE_MILLIS;
     StoreLookupResult result = performNetworkLookup(service, store, item, query, deadline);
     return applyNetworkResult(itemId, store, query, now, result);
+  }
+
+  private boolean cacheMatchesBrand(AisleCache cached, Store store) {
+    Store cachedStore = storeRepository.getById(cached.getStoreId());
+    if (cachedStore == null || cachedStore.getBrand() != store.getBrand()) {
+      return false;
+    }
+    // A cache entry records the brand that produced it; never let another brand reuse it.
+    return switch (cached.getSource()) {
+      case WALMART_WEBVIEW -> store.getBrand() == StoreBrand.WALMART;
+      case HOME_DEPOT_HTTP -> store.getBrand() == StoreBrand.HOME_DEPOT;
+      case MANUAL, CACHE -> true;
+    };
   }
 
   private AisleLookupRepository.LookupOutcome applyNetworkResult(

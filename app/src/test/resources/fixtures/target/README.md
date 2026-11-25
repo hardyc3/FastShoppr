@@ -5,6 +5,7 @@ No live capture data, cookies, tokens, verification IDs, or personal information
 is included.
 
 - URL shape: `https://www.target.com/p/<product>/-/A-<id>`
+- Store context: none embedded; public product page only, no selected branch applied
 - Observed states from static HTML and `emulator-5554` Chrome:
   - `human-verification.html` -> bot challenge; static product HTML contains no
     public aisle or bay.

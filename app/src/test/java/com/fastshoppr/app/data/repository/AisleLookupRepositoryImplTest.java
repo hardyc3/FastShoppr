@@ -14,6 +14,7 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
+import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.data.remote.lookup.StoreLookupSupport;
 import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.lookup.StoreLookupRequest;
@@ -92,6 +93,7 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
+            new FakeStoreLookupMessages(),
             Set.of(walmartService));
   }
 
@@ -292,6 +294,7 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
+            new FakeStoreLookupMessages(),
             Set.of(service));
     ListItem item = item("i9", "eggs", LookupStatus.PENDING, null);
     itemRepo.insert(item);
@@ -397,6 +400,7 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
+            new FakeStoreLookupMessages(),
             Set.of(walmartService, lowesService));
     ListItem item = itemAtStore("i-lowes", "paper towels", lowes.getId());
     itemRepo.insert(item);
@@ -409,6 +413,8 @@ public class AisleLookupRepositoryImplTest {
         "Lowe's access is denied; enter aisle manually.",
         ((StoreLookupResult.Blocked) outcome.result).getReason());
     assertEquals(LookupStatus.ERROR, outcome.item.getLookupStatus());
+    assertEquals("paper towels", outcome.item.getRawText());
+    assertEquals("paper towels", outcome.item.getDisplayName());
     assertEquals(0, lowesService.calls.get());
   }
 
@@ -426,6 +432,8 @@ public class AisleLookupRepositoryImplTest {
     assertEquals(
         "Smiths product pages do not show a public aisle; enter aisle manually.",
         outcome.item.getLookupError());
+    assertEquals("milk", outcome.item.getRawText());
+    assertEquals("milk", outcome.item.getDisplayName());
   }
 
   @Test
@@ -467,6 +475,8 @@ public class AisleLookupRepositoryImplTest {
     assertTrue(outcome.fromCache);
     assertFalse(outcome.blocked);
     assertEquals("12", outcome.item.getAisle());
+    assertEquals("paper towels", outcome.item.getRawText());
+    assertEquals("paper towels", outcome.item.getDisplayName());
   }
 
   @Test
@@ -483,7 +493,7 @@ public class AisleLookupRepositoryImplTest {
   }
 
   @Test
-  public void cacheIsScopedToStoreBrand() {
+  public void cacheIsScopedToStoreBrandEvenWhenStoreIdIsReused() {
     cacheRepo.put(
         new AisleCache(
             "c-wm",
@@ -497,7 +507,7 @@ public class AisleLookupRepositoryImplTest {
             LookupSource.WALMART_WEBVIEW,
             clock.nowMillis(),
             clock.nowMillis() + 10_000L));
-    Store lowes = store(StoreBrand.LOWES, "store-lowes-separate");
+    Store lowes = store(StoreBrand.LOWES, walmartStore.getId());
     storeRepo.put(lowes);
     ListItem item = itemAtStore("i-separate", "paper towels", lowes.getId());
     itemRepo.insert(item);
@@ -546,6 +556,23 @@ public class AisleLookupRepositoryImplTest {
         .createdAt(1L)
         .updatedAt(1L)
         .build();
+  }
+
+  static final class FakeStoreLookupMessages extends StoreLookupMessages {
+    FakeStoreLookupMessages() {
+      super(null);
+    }
+
+    @Override
+    public String forBrand(StoreBrand brand) {
+      return switch (brand) {
+        case HOME_DEPOT -> "Home Depot access is blocked (HTTP 403); enter aisle manually.";
+        case LOWES -> "Lowe's access is denied; enter aisle manually.";
+        case TARGET -> "Target requires human verification; enter aisle manually.";
+        case SMITHS -> "Smiths product pages do not show a public aisle; enter aisle manually.";
+        default -> "Custom stores use manual aisle entry.";
+      };
+    }
   }
 
   static class CountingService implements StoreLookupService {

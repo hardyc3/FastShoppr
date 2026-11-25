@@ -5,6 +5,7 @@ No live capture data, cookies, tokens, or personal information is included.
 The saved branch summary shown by the site was not copied into the fixture.
 
 - URL shape: `https://www.smithsfoodanddrug.com/p/<product>/<upc>`
+- Store context: none embedded; public product page only, no selected branch applied
 - Observed states from `emulator-5554` Chrome:
   - `product-no-public-aisle.html` -> product page loads with availability and
     price notes, but no public in-store aisle or bay.
