@@ -5,31 +5,30 @@
  */
 package com.fastshoppr.app.ui.lookup;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentLookupBinding;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.ui.common.AppSettingsOpener;
+import com.fastshoppr.app.ui.common.PermissionLauncherBinder;
+import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingCounts;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.EnumSet;
+import javax.inject.Inject;
 
 @AndroidEntryPoint
 public final class LookupFragment extends Fragment {
@@ -41,7 +40,8 @@ public final class LookupFragment extends Fragment {
   private final EnumSet<StoreBrand> promptedBrands = EnumSet.noneOf(StoreBrand.class);
   private boolean autoStarted;
   private boolean branchPickerVisible;
-  private ActivityResultLauncher<String> notificationPermissionLauncher;
+
+  @Inject PermissionLauncherBinder permissionRequester;
 
   @Nullable
   @Override
@@ -68,21 +68,7 @@ public final class LookupFragment extends Fragment {
         }
       }
     }
-    notificationPermissionLauncher =
-        registerForActivityResult(
-            new ActivityResultContracts.RequestPermission(),
-            granted -> {
-              if (Boolean.FALSE.equals(granted)) {
-                Snackbar.make(
-                        requireView(),
-                        R.string.lookup_permission_denied_message,
-                        Snackbar.LENGTH_LONG)
-                    .show();
-              }
-              // proceed to organize regardless; scheduler handles denied permission by queuing
-              // Walmart
-              viewModel.organizeNow();
-            });
+    permissionRequester.bind(PlatformPermission.POST_NOTIFICATIONS, this);
   }
 
   @Override
@@ -96,6 +82,7 @@ public final class LookupFragment extends Fragment {
     binding.lookupRetryFailedButton.setOnClickListener(v -> viewModel.retryFailed());
     binding.lookupCancelButton.setOnClickListener(v -> viewModel.cancel());
 
+    viewModel.getPermissionActions().observe(getViewLifecycleOwner(), this::handlePermissionAction);
     viewModel.getStoreContext().observe(getViewLifecycleOwner(), this::renderStoreContext);
     viewModel.getProgress().observe(getViewLifecycleOwner(), this::renderProgress);
     viewModel.getCounts().observe(getViewLifecycleOwner(), this::renderCounts);
@@ -146,26 +133,30 @@ public final class LookupFragment extends Fragment {
       openBranchPicker(missing, true);
       return;
     }
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (ContextCompat.checkSelfPermission(
-              requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-          != PackageManager.PERMISSION_GRANTED) {
-        if (shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS)) {
+    viewModel.checkNotificationPermission();
+  }
+
+  private void handlePermissionAction(SingleEvent<PermissionAction> event) {
+    PermissionAction action = event == null ? null : event.getContentIfNotHandled();
+    if (action == null) {
+      return;
+    }
+    switch (action) {
+      case NONE -> {
+        // The ViewModel already started organization.
+      }
+      case RATIONALE ->
           new MaterialAlertDialogBuilder(requireContext())
               .setMessage(R.string.lookup_permission_rationale)
-              .setNegativeButton(android.R.string.cancel, (d, w) -> viewModel.organizeNow())
-              .setPositiveButton(
-                  R.string.ok,
-                  (d, w) ->
-                      notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS))
+              .setNegativeButton(
+                  android.R.string.cancel, (d, w) -> viewModel.permissionRationaleDeclined())
+              .setPositiveButton(R.string.ok, (d, w) -> viewModel.rationaleAccepted())
               .show();
-          return;
-        }
-        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
-        return;
+      case REQUEST -> {
+        // The ViewModel consumes REQUEST by calling PermissionRequester directly.
       }
+      case SETTINGS -> AppSettingsOpener.open(this);
     }
-    viewModel.organizeNow();
   }
 
   private void openBranchPicker(StoreBrand brand, boolean force) {
@@ -239,5 +230,11 @@ public final class LookupFragment extends Fragment {
   public void onDestroyView() {
     super.onDestroyView();
     binding = null;
+  }
+
+  @Override
+  public void onDestroy() {
+    permissionRequester.unbind(PlatformPermission.POST_NOTIFICATIONS, this);
+    super.onDestroy();
   }
 }

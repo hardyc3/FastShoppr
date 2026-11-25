@@ -60,6 +60,9 @@
             android:name="listId"
             android:defaultValue="placeholder-list"
             app:argType="string" />
+        <action
+            android:id="@+id/action_capture_typed_to_review"
+            app:destination="@id/review" />
     </fragment>
 
     <fragment

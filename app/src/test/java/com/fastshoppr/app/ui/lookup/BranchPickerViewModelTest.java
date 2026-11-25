@@ -30,6 +30,7 @@ import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.gson.Gson;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -54,6 +55,8 @@ public final class BranchPickerViewModelTest {
     getSelectedStores = mock(GetSelectedStoresUseCase.class);
     extractor = new BranchPageExtractor();
     when(getSelectedStores.execute(any(StoreBrand.class))).thenReturn(null);
+    when(forgetSelectedStore.execute(any(StoreBrand.class)))
+        .thenReturn(CompletableFuture.completedFuture(null));
     events = new RecordingEvents();
 
     SavedStateHandle savedState = new SavedStateHandle();
@@ -65,6 +68,7 @@ public final class BranchPickerViewModelTest {
             forgetSelectedStore,
             getSelectedStores,
             mock(IdGenerator.class),
+            Runnable::run,
             savedState);
     viewModel.getEvents().observeForever(events);
   }
@@ -177,6 +181,18 @@ public final class BranchPickerViewModelTest {
     verify(forgetSelectedStore).execute(StoreBrand.HOME_DEPOT);
     assertNull(viewModel.getState().getValue().getSelected());
     assertEquals(StoreBrand.HOME_DEPOT, events.branchRemoved.get(0));
+  }
+
+  @Test
+  public void forgetWaitsForWebViewClearBeforePublishingRemoval() {
+    CompletableFuture<Void> clear = new CompletableFuture<>();
+    when(forgetSelectedStore.execute(StoreBrand.HOME_DEPOT)).thenReturn(clear);
+
+    viewModel.forgetSelectedBranch();
+
+    assertTrue(events.branchRemoved.isEmpty());
+    clear.complete(null);
+    assertEquals(List.of(StoreBrand.HOME_DEPOT), events.branchRemoved);
   }
 
   private static String branchPageJson(

@@ -90,24 +90,24 @@ public final class OrganizingScheduler {
               listId, List.of(LookupStatus.IN_PROGRESS.name()), LookupStatus.QUEUED.name(), now);
           listItemDao.setLookupStatusForList(
               listId, List.of(LookupStatus.PENDING.name()), LookupStatus.QUEUED.name(), now);
-        });
 
-    Constraints constraints =
-        new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
-    Data data =
-        new Data.Builder()
-            .putString(OrganizingContracts.KEY_LIST_ID, listId)
-            .putBoolean(OrganizingContracts.KEY_FORCE_REFRESH, forceRefresh)
-            .build();
-    OneTimeWorkRequest request =
-        new OneTimeWorkRequest.Builder(OrganizeListWorker.class)
-            .setInputData(data)
-            .setConstraints(constraints)
-            .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
-            .addTag(OrganizingContracts.organizeWorkName(listId))
-            .build();
-    WorkManager.getInstance(context)
-        .enqueueUniqueWork(OrganizingContracts.organizeWorkName(listId), policy, request);
+          Constraints constraints =
+              new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
+          Data data =
+              new Data.Builder()
+                  .putString(OrganizingContracts.KEY_LIST_ID, listId)
+                  .putBoolean(OrganizingContracts.KEY_FORCE_REFRESH, forceRefresh)
+                  .build();
+          OneTimeWorkRequest request =
+              new OneTimeWorkRequest.Builder(OrganizeListWorker.class)
+                  .setInputData(data)
+                  .setConstraints(constraints)
+                  .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                  .addTag(OrganizingContracts.organizeWorkName(listId))
+                  .build();
+          WorkManager.getInstance(context)
+              .enqueueUniqueWork(OrganizingContracts.organizeWorkName(listId), policy, request);
+        });
   }
 
   public void cancel(String listId) {

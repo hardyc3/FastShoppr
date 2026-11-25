@@ -11,20 +11,29 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.model.StoreLocatorPages;
+import com.fastshoppr.app.domain.notification.NotificationPermissionStatus;
+import com.fastshoppr.app.domain.port.PermissionRequester;
+import com.fastshoppr.app.domain.port.PermissionStatus;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
+import com.fastshoppr.app.domain.usecase.RequestPermissionUseCase;
+import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingCounts;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +45,10 @@ import javax.inject.Inject;
 @HiltViewModel
 public final class LookupViewModel extends ViewModel {
 
+  private static final PlatformPermission PERMISSION = PlatformPermission.POST_NOTIFICATIONS;
+  private static final String KEY_PERMISSION_PREVIOUSLY_REQUESTED = "lookupPermissionRequested";
+  private static final String KEY_RATIONALE_ACKNOWLEDGED = "lookupRationaleAcknowledged";
+
   private final String listId;
   private final ListItemRepository itemRepository;
   private final StoreRepository storeRepository;
@@ -45,6 +58,11 @@ public final class LookupViewModel extends ViewModel {
   private final OrganizingScheduler scheduler;
   private final OrganizingProgressStore progressStore;
   private final ExecutorService executor;
+  private final NotificationPermissionStatus notificationPermissionStatus;
+  private final PermissionStatus permissionStatus;
+  private final PermissionRequester permissionRequester;
+  private final RequestPermissionUseCase permissionResolver;
+  private final SavedStateHandle savedStateHandle;
 
   private final MutableLiveData<String> storeContext = new MutableLiveData<>("");
   private final MutableLiveData<StoreBrand> missingBranch = new MutableLiveData<>(null);
@@ -54,6 +72,13 @@ public final class LookupViewModel extends ViewModel {
       new MediatorLiveData<>();
   private final MutableLiveData<OrganizingCounts> counts = new MutableLiveData<>();
   private final MutableLiveData<String> perStoreDetails = new MutableLiveData<>("");
+  private final MutableLiveData<SingleEvent<PermissionAction>> permissionActions =
+      new MutableLiveData<>();
+
+  private boolean permissionPreviouslyRequested;
+  private boolean rationaleAcknowledged;
+  private boolean lastPermissionGranted;
+  private boolean lastShouldShowRationale;
 
   @Inject
   public LookupViewModel(
@@ -65,6 +90,10 @@ public final class LookupViewModel extends ViewModel {
       OrganizingScheduler scheduler,
       OrganizingProgressStore progressStore,
       ExecutorService executor,
+      NotificationPermissionStatus notificationPermissionStatus,
+      PermissionStatus permissionStatus,
+      PermissionRequester permissionRequester,
+      RequestPermissionUseCase permissionResolver,
       SavedStateHandle savedStateHandle) {
     this.itemRepository = itemRepository;
     this.storeRepository = storeRepository;
@@ -74,7 +103,15 @@ public final class LookupViewModel extends ViewModel {
     this.scheduler = scheduler;
     this.progressStore = progressStore;
     this.executor = executor;
+    this.notificationPermissionStatus = notificationPermissionStatus;
+    this.permissionStatus = permissionStatus;
+    this.permissionRequester = permissionRequester;
+    this.permissionResolver = permissionResolver;
+    this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
+    permissionPreviouslyRequested =
+        Boolean.TRUE.equals(savedStateHandle.get(KEY_PERMISSION_PREVIOUSLY_REQUESTED));
+    rationaleAcknowledged = Boolean.TRUE.equals(savedStateHandle.get(KEY_RATIONALE_ACKNOWLEDGED));
     progress.addSource(progressStore.observe(), this::onProgressMap);
   }
 
@@ -116,6 +153,55 @@ public final class LookupViewModel extends ViewModel {
     return perStoreDetails;
   }
 
+  public LiveData<SingleEvent<PermissionAction>> getPermissionActions() {
+    return permissionActions;
+  }
+
+  /** Reads notification permission through the domain port before starting organization. */
+  public void checkNotificationPermission() {
+    if (!notificationPermissionStatus.isRuntimePermissionRequired()) {
+      organizeNow();
+      return;
+    }
+    checkPermission(
+        permissionStatus.isGranted(PERMISSION), permissionStatus.shouldShowRationale(PERMISSION));
+  }
+
+  private void checkPermission(boolean granted, boolean shouldShowRationale) {
+    lastPermissionGranted = granted;
+    lastShouldShowRationale = shouldShowRationale;
+    boolean permanentlyDenied = !granted && permissionPreviouslyRequested && !shouldShowRationale;
+    boolean rationaleDone = rationaleAcknowledged;
+    PermissionAction action = permissionResolver.resolve(granted, rationaleDone, permanentlyDenied);
+    if (action == PermissionAction.REQUEST) {
+      permissionRequester.request(PERMISSION, this::permissionResult);
+      return;
+    }
+    if (action == PermissionAction.NONE || action == PermissionAction.SETTINGS) {
+      organizeNow();
+    }
+    permissionActions.setValue(new SingleEvent<>(action));
+  }
+
+  /** Continues without notification prompts when the user declines the rationale. */
+  public void permissionRationaleDeclined() {
+    organizeNow();
+  }
+
+  public void rationaleAccepted() {
+    rationaleAcknowledged = true;
+    savedStateHandle.set(KEY_RATIONALE_ACKNOWLEDGED, true);
+    checkPermission(lastPermissionGranted, lastShouldShowRationale);
+  }
+
+  public void permissionResult(boolean granted) {
+    permissionPreviouslyRequested = true;
+    savedStateHandle.set(KEY_PERMISSION_PREVIOUSLY_REQUESTED, true);
+    rationaleAcknowledged = false;
+    savedStateHandle.set(KEY_RATIONALE_ACKNOWLEDGED, false);
+    checkPermission(granted, permissionStatus.shouldShowRationale(PERMISSION));
+  }
+
   public boolean isRunning() {
     OrganizingProgressStore.Progress p = progress.getValue();
     return p != null && p.running;
@@ -132,8 +218,8 @@ public final class LookupViewModel extends ViewModel {
             StoreBrand baseBrand = null;
             Set<StoreBrand> presentBrands = new LinkedHashSet<>();
             StringBuilder details = new StringBuilder();
-            java.util.Map<String, int[]> byStore = new java.util.LinkedHashMap<>();
-            java.util.Map<String, String> storeNames = new java.util.LinkedHashMap<>();
+            Map<String, int[]> byStore = new LinkedHashMap<>();
+            Map<String, String> storeNames = new LinkedHashMap<>();
             for (ListItem item : items) {
               Store store = resolveStoreForItem(item);
               if (store != null) {
@@ -145,15 +231,15 @@ public final class LookupViewModel extends ViewModel {
                 }
                 storeNames.putIfAbsent(store.getId(), store.getName());
                 int[] c = byStore.computeIfAbsent(store.getId(), k -> new int[5]);
-                com.fastshoppr.app.domain.model.LookupStatus s = item.getLookupStatus();
-                if (s == com.fastshoppr.app.domain.model.LookupStatus.FOUND) c[0]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NEEDS_REVIEW) c[1]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.NOT_FOUND) c[2]++;
-                else if (s == com.fastshoppr.app.domain.model.LookupStatus.ERROR) c[3]++;
+                LookupStatus s = item.getLookupStatus();
+                if (s == LookupStatus.FOUND) c[0]++;
+                else if (s == LookupStatus.NEEDS_REVIEW) c[1]++;
+                else if (s == LookupStatus.NOT_FOUND) c[2]++;
+                else if (s == LookupStatus.ERROR) c[3]++;
                 else c[4]++; // pending/queued/in-progress
               }
             }
-            for (java.util.Map.Entry<String, int[]> e : byStore.entrySet()) {
+            for (Map.Entry<String, int[]> e : byStore.entrySet()) {
               if (details.length() > 0) details.append("\n");
               String name = storeNames.getOrDefault(e.getKey(), "Store");
               int[] c = e.getValue();

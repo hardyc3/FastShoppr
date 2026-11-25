@@ -5,11 +5,16 @@
  */
 package com.fastshoppr.app.work;
 
+import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
+import com.fastshoppr.app.R;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.LookupSource;
 import com.fastshoppr.app.domain.model.LookupStatus;
@@ -107,8 +112,7 @@ public class OrganizeListWorker extends Worker {
           new OrganizingProgressStore.Progress(listId, done, total, "Starting…", true, false));
       notifications.notifyProgress(
           listId,
-          getApplicationContext()
-              .getString(com.fastshoppr.app.R.string.notification_organizing_title),
+          getApplicationContext().getString(R.string.notification_organizing_title),
           done,
           total,
           false);
@@ -141,14 +145,12 @@ public class OrganizeListWorker extends Worker {
             blocked
                 ? "Stopped (blocked)"
                 : getApplicationContext()
-                    .getString(
-                        com.fastshoppr.app.R.string.notification_organizing_progress, done, total);
+                    .getString(R.string.notification_organizing_progress, done, total);
         progressStore.update(
             new OrganizingProgressStore.Progress(listId, done, total, status, true, false));
         notifications.notifyProgress(
             listId,
-            getApplicationContext()
-                .getString(com.fastshoppr.app.R.string.notification_organizing_title),
+            getApplicationContext().getString(R.string.notification_organizing_title),
             done,
             total,
             false);
@@ -162,11 +164,11 @@ public class OrganizeListWorker extends Worker {
       // Handle Walmart items
       if (!walmartItems.isEmpty() && !blocked) {
         boolean permOk = true;
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
           permOk =
-              androidx.core.content.ContextCompat.checkSelfPermission(
-                      getApplicationContext(), android.Manifest.permission.POST_NOTIFICATIONS)
-                  == android.content.pm.PackageManager.PERMISSION_GRANTED;
+              ContextCompat.checkSelfPermission(
+                      getApplicationContext(), Manifest.permission.POST_NOTIFICATIONS)
+                  == PackageManager.PERMISSION_GRANTED;
         }
         if (!permOk) {
           // queue for foreground; keep Walmart items queued and inform user in-app via progress
@@ -175,8 +177,7 @@ public class OrganizeListWorker extends Worker {
                   listId,
                   done,
                   total,
-                  getApplicationContext()
-                      .getString(com.fastshoppr.app.R.string.lookup_walmart_queued_foreground),
+                  getApplicationContext().getString(R.string.lookup_walmart_queued_foreground),
                   false,
                   true));
           notifications.cancel(listId);
@@ -185,7 +186,7 @@ public class OrganizeListWorker extends Worker {
           try {
             Intent svc = new Intent(getApplicationContext(), WalmartLookupForegroundService.class);
             svc.putExtra(OrganizingContracts.EXTRA_LIST_ID, listId);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
               getApplicationContext().startForegroundService(svc);
             } else {
               getApplicationContext().startService(svc);
@@ -200,8 +201,7 @@ public class OrganizeListWorker extends Worker {
                     listId,
                     done,
                     total,
-                    getApplicationContext()
-                        .getString(com.fastshoppr.app.R.string.lookup_walmart_queued_foreground),
+                    getApplicationContext().getString(R.string.lookup_walmart_queued_foreground),
                     false,
                     true));
             notifications.cancel(listId);

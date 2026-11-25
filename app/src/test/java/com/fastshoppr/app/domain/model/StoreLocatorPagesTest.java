@@ -49,8 +49,7 @@ public final class StoreLocatorPagesTest {
     assertEquals(
         "https://www.homedepot.com/l/store-locator",
         StoreLocatorPages.locatorUrl(StoreBrand.HOME_DEPOT));
-    assertEquals(
-        "https://www.lowes.com/store", StoreLocatorPages.locatorUrl(StoreBrand.LOWES));
+    assertEquals("https://www.lowes.com/store", StoreLocatorPages.locatorUrl(StoreBrand.LOWES));
     assertEquals(
         "https://www.target.com/store-locator", StoreLocatorPages.locatorUrl(StoreBrand.TARGET));
     assertEquals(

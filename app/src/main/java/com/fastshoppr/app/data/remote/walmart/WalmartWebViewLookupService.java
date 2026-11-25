@@ -12,9 +12,11 @@ import android.os.Looper;
 import android.webkit.CookieManager;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.lookup.StoreLookupRequest;
 import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.lookup.StoreLookupService;
@@ -22,7 +24,11 @@ import com.fastshoppr.app.domain.model.StoreBrand;
 import com.google.gson.JsonParser;
 import dagger.hilt.android.qualifiers.ApplicationContext;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -123,8 +129,9 @@ public class WalmartWebViewLookupService implements StoreLookupService {
             webView.clearFormData();
             webView.removeAllViews();
             webView.destroy();
-            // cookies are intentionally kept so a user-picked store context (D-022 assisted
-            // session) survives between lookups; use "Forget store" in the store picker to wipe it
+            // Cookies are intentionally kept so a user-picked store context (D-022) survives
+            // between lookups. "Forget store" wipes them through the shared
+            // ForgetSelectedStoreUseCase -> WebViewStateClearer path.
           } catch (Exception ignored) {
             // best-effort teardown
           }
@@ -145,8 +152,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
             if (!future.isDone()) {
               future.complete(
                   new StoreLookupResult.Error(
-                      new com.fastshoppr.app.domain.error.AppError.UnknownError(
-                          "Navigation outside Walmart is not allowed.")));
+                      new AppError.UnknownError("Navigation outside Walmart is not allowed.")));
             }
             return true;
           }
@@ -177,9 +183,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
 
           @Override
           public void onReceivedHttpError(
-              WebView view,
-              WebResourceRequest navRequest,
-              android.webkit.WebResourceResponse errorResponse) {
+              WebView view, WebResourceRequest navRequest, WebResourceResponse errorResponse) {
             if (errorResponse != null
                 && errorResponse.getStatusCode() >= 400
                 && navRequest != null
@@ -207,9 +211,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
               String description =
                   error == null ? "WebView error" : String.valueOf(error.getDescription());
               future.complete(
-                  new StoreLookupResult.Error(
-                      new com.fastshoppr.app.domain.error.AppError.NetworkUnavailable(
-                          description)));
+                  new StoreLookupResult.Error(new AppError.NetworkUnavailable(description)));
             }
             cleanup.run();
           }
@@ -231,8 +233,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
           if (!future.isDone()) {
             future.complete(
                 new StoreLookupResult.Error(
-                    new com.fastshoppr.app.domain.error.AppError.NetworkUnavailable(
-                        "Walmart lookup timed out.")));
+                    new AppError.NetworkUnavailable("Walmart lookup timed out.")));
             cleanup.run();
           }
         };
@@ -249,7 +250,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
       return true;
     }
     try {
-      java.net.URI uri = new java.net.URI(url);
+      URI uri = new URI(url);
       if (!"https".equalsIgnoreCase(uri.getScheme())) {
         return false;
       }
@@ -257,7 +258,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
       if (host == null) {
         return false;
       }
-      host = host.toLowerCase(java.util.Locale.US);
+      host = host.toLowerCase(Locale.US);
       return host.equals("www.walmart.com") || host.equals("walmart.com");
     } catch (Exception e) {
       return false;
@@ -297,8 +298,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
                   } catch (Exception e) {
                     future.complete(
                         new StoreLookupResult.Error(
-                            new com.fastshoppr.app.domain.error.AppError.ParserFailed(
-                                "Could not read Walmart page.")));
+                            new AppError.ParserFailed("Could not read Walmart page.")));
                   } finally {
                     mainHandler.post(cleanup);
                   }
@@ -307,9 +307,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
     } catch (Exception e) {
       if (!future.isDone()) {
         future.complete(
-            new StoreLookupResult.Error(
-                new com.fastshoppr.app.domain.error.AppError.UnknownError(
-                    "Walmart lookup failed.")));
+            new StoreLookupResult.Error(new AppError.UnknownError("Walmart lookup failed.")));
       }
       cleanup.run();
     }
@@ -327,7 +325,7 @@ public class WalmartWebViewLookupService implements StoreLookupService {
           found.getSource());
     }
     if (result instanceof StoreLookupResult.Multiple multiple) {
-      java.util.List<StoreLookupResult.Found> candidates = new java.util.ArrayList<>();
+      List<StoreLookupResult.Found> candidates = new ArrayList<>();
       for (StoreLookupResult.Found c : multiple.getCandidates()) {
         candidates.add(
             new StoreLookupResult.Found(

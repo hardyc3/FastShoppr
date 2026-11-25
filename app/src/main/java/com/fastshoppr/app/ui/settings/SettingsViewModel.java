@@ -10,8 +10,11 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.model.AiAvailability;
+import com.fastshoppr.app.domain.model.InkData;
 import com.fastshoppr.app.domain.model.NearbyStore;
+import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.repository.InkRecognitionRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase;
 import com.fastshoppr.app.domain.usecase.ForgetSelectedStoreUseCase;
@@ -19,7 +22,9 @@ import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 @HiltViewModel
@@ -36,24 +41,51 @@ public final class SettingsViewModel extends ViewModel {
   }
 
   public enum StoreMessage {
-    STORE_REMOVED
+    STORE_REMOVED,
+    STORE_CLEAR_FAILED
   }
+
+  public enum InkModelDeleteStatus {
+    IDLE,
+    DELETING,
+    DELETED,
+    FAILED
+  }
+
+  private static final InkRecognitionRepository NO_OP_INK_REPOSITORY =
+      new InkRecognitionRepository() {
+        @Override
+        public void prepareModel(ModelListener listener) {
+          listener.onReady();
+        }
+
+        @Override
+        public CompletableFuture<List<RecognizedLine>> recognize(InkData ink) {
+          return CompletableFuture.completedFuture(List.of());
+        }
+
+        @Override
+        public void close() {}
+      };
 
   public static final class SettingsUiState {
     private final boolean aiCleanupEnabled;
     private final AiStatus aiStatus;
     private final long downloadedBytes;
     private final Map<StoreBrand, NearbyStore> selectedStores;
+    private final InkModelDeleteStatus inkModelDeleteStatus;
 
     SettingsUiState(
         boolean aiCleanupEnabled,
         AiStatus aiStatus,
         long downloadedBytes,
-        Map<StoreBrand, NearbyStore> selectedStores) {
+        Map<StoreBrand, NearbyStore> selectedStores,
+        InkModelDeleteStatus inkModelDeleteStatus) {
       this.aiCleanupEnabled = aiCleanupEnabled;
       this.aiStatus = aiStatus;
       this.downloadedBytes = downloadedBytes;
       this.selectedStores = selectedStores;
+      this.inkModelDeleteStatus = inkModelDeleteStatus;
     }
 
     public boolean isAiCleanupEnabled() {
@@ -71,6 +103,10 @@ public final class SettingsViewModel extends ViewModel {
     public Map<StoreBrand, NearbyStore> getSelectedStores() {
       return selectedStores;
     }
+
+    public InkModelDeleteStatus getInkModelDeleteStatus() {
+      return inkModelDeleteStatus;
+    }
   }
 
   private final SettingsRepository settingsRepository;
@@ -78,16 +114,19 @@ public final class SettingsViewModel extends ViewModel {
   private final DeleteAllDataUseCase deleteAllDataUseCase;
   private final ForgetSelectedStoreUseCase forgetSelectedStore;
   private final GetSelectedStoresUseCase getSelectedStores;
+  private final InkRecognitionRepository inkRecognitionRepository;
 
   private final MutableLiveData<SettingsUiState> state = new MutableLiveData<>();
   private final MutableLiveData<SingleEvent<Boolean>> deleteEvent = new MutableLiveData<>();
   private final MutableLiveData<SingleEvent<StoreMessage>> storeMessageEvent =
       new MutableLiveData<>();
+  private final MutableLiveData<SingleEvent<Boolean>> inkModelDeleteEvent = new MutableLiveData<>();
 
   private boolean aiCleanupEnabled;
   private AiStatus aiStatus = AiStatus.CHECKING;
   private long downloadedBytes;
   private Map<StoreBrand, NearbyStore> selectedStores = Collections.emptyMap();
+  private InkModelDeleteStatus inkModelDeleteStatus = InkModelDeleteStatus.IDLE;
   private int generation;
 
   @Inject
@@ -96,15 +135,33 @@ public final class SettingsViewModel extends ViewModel {
       ItemNameCleanerCoordinator cleanerCoordinator,
       DeleteAllDataUseCase deleteAllDataUseCase,
       ForgetSelectedStoreUseCase forgetSelectedStore,
-      GetSelectedStoresUseCase getSelectedStores) {
+      GetSelectedStoresUseCase getSelectedStores,
+      InkRecognitionRepository inkRecognitionRepository) {
     this.settingsRepository = settingsRepository;
     this.cleanerCoordinator = cleanerCoordinator;
     this.deleteAllDataUseCase = deleteAllDataUseCase;
     this.forgetSelectedStore = forgetSelectedStore;
     this.getSelectedStores = getSelectedStores;
+    this.inkRecognitionRepository = inkRecognitionRepository;
     this.aiCleanupEnabled = settingsRepository.isAiCleanupEnabled();
     refreshStoreState();
     state.setValue(currentState());
+  }
+
+  /** Kept for callers that do not manage ink models; Hilt uses the six-argument constructor. */
+  public SettingsViewModel(
+      SettingsRepository settingsRepository,
+      ItemNameCleanerCoordinator cleanerCoordinator,
+      DeleteAllDataUseCase deleteAllDataUseCase,
+      ForgetSelectedStoreUseCase forgetSelectedStore,
+      GetSelectedStoresUseCase getSelectedStores) {
+    this(
+        settingsRepository,
+        cleanerCoordinator,
+        deleteAllDataUseCase,
+        forgetSelectedStore,
+        getSelectedStores,
+        NO_OP_INK_REPOSITORY);
   }
 
   public LiveData<SettingsUiState> getState() {
@@ -117,6 +174,34 @@ public final class SettingsViewModel extends ViewModel {
 
   public LiveData<SingleEvent<StoreMessage>> getStoreMessageEvent() {
     return storeMessageEvent;
+  }
+
+  public LiveData<SingleEvent<Boolean>> getInkModelDeleteEvent() {
+    return inkModelDeleteEvent;
+  }
+
+  /** Deletes the downloaded handwriting model asynchronously; other settings stay usable. */
+  public void deleteInkModel() {
+    if (inkModelDeleteStatus == InkModelDeleteStatus.DELETING) {
+      return;
+    }
+    inkModelDeleteStatus = InkModelDeleteStatus.DELETING;
+    publish();
+    try {
+      inkRecognitionRepository
+          .deleteDownloadedModel()
+          .whenComplete(
+              (ignored, error) -> {
+                inkModelDeleteStatus =
+                    error == null ? InkModelDeleteStatus.DELETED : InkModelDeleteStatus.FAILED;
+                publish();
+                inkModelDeleteEvent.postValue(new SingleEvent<>(error == null));
+              });
+    } catch (RuntimeException error) {
+      inkModelDeleteStatus = InkModelDeleteStatus.FAILED;
+      publish();
+      inkModelDeleteEvent.postValue(new SingleEvent<>(false));
+    }
   }
 
   /** Refreshes saved branches after returning from the branch-picker screen. */
@@ -194,10 +279,18 @@ public final class SettingsViewModel extends ViewModel {
   }
 
   public void forgetStore(StoreBrand brand) {
-    forgetSelectedStore.execute(brand);
-    refreshStoreState();
-    publish();
-    storeMessageEvent.postValue(new SingleEvent<>(StoreMessage.STORE_REMOVED));
+    forgetSelectedStore
+        .execute(brand)
+        .whenComplete(
+            (ignored, error) -> {
+              if (error != null) {
+                storeMessageEvent.postValue(new SingleEvent<>(StoreMessage.STORE_CLEAR_FAILED));
+                return;
+              }
+              refreshStoreState();
+              publish();
+              storeMessageEvent.postValue(new SingleEvent<>(StoreMessage.STORE_REMOVED));
+            });
   }
 
   private void refreshStoreState() {
@@ -228,7 +321,8 @@ public final class SettingsViewModel extends ViewModel {
   }
 
   private SettingsUiState currentState() {
-    return new SettingsUiState(aiCleanupEnabled, aiStatus, downloadedBytes, selectedStores);
+    return new SettingsUiState(
+        aiCleanupEnabled, aiStatus, downloadedBytes, selectedStores, inkModelDeleteStatus);
   }
 
   @Override

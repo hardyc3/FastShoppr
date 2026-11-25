@@ -21,7 +21,6 @@ import com.fastshoppr.app.databinding.FragmentReviewBinding;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
-import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StorePickerDialog;
 import com.fastshoppr.app.ui.common.UiErrorText;
@@ -29,7 +28,6 @@ import com.fastshoppr.app.ui.common.UiMessageText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
-import java.time.LocalDate;
 import java.util.List;
 
 @AndroidEntryPoint
@@ -169,7 +167,7 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
     ItemSource source = viewModel.getSource();
     boolean photoSource = source == ItemSource.CAMERA_OCR || source == ItemSource.GALLERY_OCR;
     binding.reviewNote.setVisibility(photoSource ? View.VISIBLE : View.GONE);
-    binding.btnAddLine.setVisibility(source == ItemSource.DIGITAL_INK ? View.VISIBLE : View.GONE);
+    binding.btnAddLine.setVisibility(viewModel.isAddLineAvailable() ? View.VISIBLE : View.GONE);
   }
 
   private void syncSelectAll() {
@@ -237,7 +235,9 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
       return;
     }
     DatePickerUtil.showDatePicker(
-        this, parseDate(line.getTargetDate()), date -> viewModel.setLineDate(position, date));
+        this,
+        viewModel.initialDateFor(line.getTargetDate()),
+        date -> viewModel.setLineDate(position, date));
   }
 
   @Override
@@ -252,18 +252,12 @@ public final class ReviewFragment extends Fragment implements ReviewAdapter.List
 
   @Override
   public String dateLabel(@Nullable String value) {
-    LocalDate date = DateText.parseIsoOrNull(value);
-    return date == null ? getString(R.string.field_target_date) : DateText.formatMedium(date);
+    return viewModel.dateLabel(value, getString(R.string.field_target_date));
   }
 
   @Override
   public boolean isLowConfidence(ReviewViewModel.ReviewLine line) {
     return viewModel.isLowConfidence(line);
-  }
-
-  private LocalDate parseDate(@Nullable String value) {
-    LocalDate parsed = DateText.parseIsoOrNull(value);
-    return parsed == null ? LocalDate.now() : parsed;
   }
 
   @Override

@@ -5,14 +5,14 @@
  */
 package com.fastshoppr.app.domain.repository;
 
-import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.observation.Observable;
 import java.util.List;
 
 public interface StoreRepository {
 
-  LiveData<List<Store>> observeActive();
+  Observable<List<Store>> observeActive();
 
   List<Store> getActive();
 

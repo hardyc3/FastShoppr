@@ -33,7 +33,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import javax.inject.Inject;
@@ -132,7 +131,7 @@ public final class ListsFragment extends Fragment implements ShoppingListAdapter
   }
 
   private void showCreateListPicker() {
-    LocalDate initialDate = LocalDate.now(ZoneId.systemDefault());
+    LocalDate initialDate = viewModel.initialCreateDate();
     DatePickerUtil.showDatePicker(
         this,
         initialDate,

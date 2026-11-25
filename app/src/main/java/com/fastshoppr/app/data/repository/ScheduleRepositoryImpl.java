@@ -5,13 +5,13 @@
  */
 package com.fastshoppr.app.data.repository;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.fastshoppr.app.data.local.dao.ShoppingScheduleDao;
 import com.fastshoppr.app.data.local.entity.ShoppingScheduleEntity;
 import com.fastshoppr.app.data.repository.mappers.ShoppingScheduleMapper;
 import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.model.ShoppingSchedule;
+import com.fastshoppr.app.domain.observation.Observable;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import java.util.List;
@@ -31,10 +31,11 @@ public final class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @Override
-  public LiveData<List<ShoppingSchedule>> observeAll() {
-    return Transformations.map(
-        scheduleDao.observeAll(),
-        entities -> entities.stream().map(ShoppingScheduleMapper::toDomain).toList());
+  public Observable<List<ShoppingSchedule>> observeAll() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            scheduleDao.observeAll(),
+            entities -> entities.stream().map(ShoppingScheduleMapper::toDomain).toList()));
   }
 
   @Override

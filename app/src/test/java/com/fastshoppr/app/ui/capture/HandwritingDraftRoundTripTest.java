@@ -13,8 +13,6 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.data.capture.CapturedLinesCodec;
@@ -196,6 +194,7 @@ public final class HandwritingDraftRoundTripTest {
             mock(OrganizingScheduler.class),
             executor,
             Runnable::run,
+            (Clock) () -> 1000L,
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, captureId)));
     viewModel
         .getEvents()
@@ -210,6 +209,49 @@ public final class HandwritingDraftRoundTripTest {
       }
     }
     return null;
+  }
+
+  @Test
+  public void inkModelDeletionReportsResultAndLeavesSettingsUsable() {
+    com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase deleteAllData =
+        mock(com.fastshoppr.app.domain.usecase.DeleteAllDataUseCase.class);
+    com.fastshoppr.app.domain.usecase.ForgetSelectedStoreUseCase forgetStore =
+        mock(com.fastshoppr.app.domain.usecase.ForgetSelectedStoreUseCase.class);
+    com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase getStores =
+        mock(com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase.class);
+    org.mockito.Mockito.when(getStores.execute()).thenReturn(java.util.Collections.emptyMap());
+    FakeInkRecognitionRepository ink = new FakeInkRecognitionRepository();
+    ink.deferDeletion();
+    com.fastshoppr.app.ui.settings.SettingsViewModel viewModel =
+        new com.fastshoppr.app.ui.settings.SettingsViewModel(
+            settingsRepository,
+            mock(com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator.class),
+            deleteAllData,
+            forgetStore,
+            getStores,
+            ink);
+
+    List<Boolean> results = new ArrayList<>();
+    viewModel
+        .getInkModelDeleteEvent()
+        .observeForever(event -> results.add(event.getContentIfNotHandled()));
+
+    viewModel.deleteInkModel();
+
+    assertTrue(ink.deleteCalled);
+    assertEquals(
+        com.fastshoppr.app.ui.settings.SettingsViewModel.InkModelDeleteStatus.DELETING,
+        viewModel.getState().getValue().getInkModelDeleteStatus());
+
+    ink.finishDeletion();
+
+    assertEquals(List.of(Boolean.TRUE), results);
+    assertEquals(
+        com.fastshoppr.app.ui.settings.SettingsViewModel.InkModelDeleteStatus.DELETED,
+        viewModel.getState().getValue().getInkModelDeleteStatus());
+
+    viewModel.setAiCleanupEnabled(true);
+    assertTrue(viewModel.getState().getValue().isAiCleanupEnabled());
   }
 
   private static Store store(String id, StoreBrand brand) {
@@ -243,6 +285,22 @@ public final class HandwritingDraftRoundTripTest {
   private static final class FakeInkRecognitionRepository implements InkRecognitionRepository {
 
     private List<RecognizedLine> result = List.of();
+    private boolean deleteCalled;
+    private CompletableFuture<Void> deletion = CompletableFuture.completedFuture(null);
+
+    void deferDeletion() {
+      deletion = new CompletableFuture<>();
+    }
+
+    void finishDeletion() {
+      deletion.complete(null);
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteDownloadedModel() {
+      deleteCalled = true;
+      return deletion;
+    }
 
     @Override
     public void prepareModel(ModelListener listener) {
@@ -268,8 +326,12 @@ public final class HandwritingDraftRoundTripTest {
     }
 
     @Override
-    public LiveData<List<CaptureSession>> observeByList(String listId) {
-      return new MutableLiveData<>(List.of());
+    public com.fastshoppr.app.domain.observation.Observable<List<CaptureSession>> observeByList(
+        String listId) {
+      return observer -> {
+        observer.accept(List.of());
+        return () -> {};
+      };
     }
 
     @Override

@@ -6,11 +6,11 @@
 package com.fastshoppr.app.ui.calendar;
 
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MediatorLiveData;
-import androidx.lifecycle.Observer;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
@@ -34,19 +34,9 @@ public final class CalendarViewModel extends ViewModel {
   private final CreateListUseCase createListUseCase;
   private final Clock clock;
 
-  private final MediatorLiveData<CalendarUiState> state = new MediatorLiveData<>();
-  private LiveData<List<ShoppingListSummary>> monthSource;
-  private LiveData<List<ShoppingListSummary>> upcomingSource;
-  private final Observer<List<ShoppingListSummary>> monthObserver =
-      s -> {
-        monthSummaries = s == null ? List.of() : s;
-        rebuild();
-      };
-  private final Observer<List<ShoppingListSummary>> upcomingObserver =
-      s -> {
-        upcomingSummaries = s == null ? List.of() : s;
-        rebuild();
-      };
+  private final MutableLiveData<CalendarUiState> state = new MutableLiveData<>();
+  private Registration monthRegistration;
+  private Registration upcomingRegistration;
 
   private YearMonth month;
   private List<ShoppingListSummary> monthSummaries = List.of();
@@ -91,20 +81,34 @@ public final class CalendarViewModel extends ViewModel {
   private void setMonth(YearMonth ym) {
     this.month = ym;
     settingsRepository.setLastCalendarMonth(ym.toString());
-    if (monthSource != null) state.removeSource(monthSource);
+    if (monthRegistration != null) {
+      monthRegistration.close();
+    }
     LocalDate start = ym.atDay(1);
     LocalDate end = ym.atEndOfMonth();
-    monthSource = listRepository.observeActiveSummariesInRange(start, end);
-    state.addSource(monthSource, monthObserver);
+    monthRegistration =
+        listRepository
+            .observeActiveSummariesInRange(start, end)
+            .subscribe(
+                summaries -> {
+                  monthSummaries = summaries == null ? List.of() : summaries;
+                  rebuild();
+                });
     rebuild();
   }
 
   private void observeUpcoming() {
-    if (upcomingSource != null) return;
+    if (upcomingRegistration != null) return;
     LocalDate start = today();
     LocalDate end = start.plusYears(2);
-    upcomingSource = listRepository.observeActiveSummariesInRange(start, end);
-    state.addSource(upcomingSource, upcomingObserver);
+    upcomingRegistration =
+        listRepository
+            .observeActiveSummariesInRange(start, end)
+            .subscribe(
+                summaries -> {
+                  upcomingSummaries = summaries == null ? List.of() : summaries;
+                  rebuild();
+                });
   }
 
   private void rebuild() {
@@ -137,7 +141,13 @@ public final class CalendarViewModel extends ViewModel {
 
   @Override
   protected void onCleared() {
-    if (monthSource != null) state.removeSource(monthSource);
-    if (upcomingSource != null) state.removeSource(upcomingSource);
+    if (monthRegistration != null) {
+      monthRegistration.close();
+      monthRegistration = null;
+    }
+    if (upcomingRegistration != null) {
+      upcomingRegistration.close();
+      upcomingRegistration = null;
+    }
   }
 }

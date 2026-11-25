@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** 2026-11-16
 - **Completed:** 2026-11-16
-- **Last updated:** 2026-11-22 (D-045 scope note)
+- **Last updated:** 2026-11-25 (Phase 9A evidence reconciliation)
 
 > D-045 removes store hours, visit windows, and preferred shopping time from the MVP. Historical Phase 8 records below are retained as evidence of work performed at the time; those items are no longer current product behavior.
 
@@ -128,9 +128,9 @@ Dates exist in the data model. This phase adds the user-facing scheduling and ca
 - Store hours section in list detail.
 - Strings and accessibility labels.
 
-## Implementation status (2026-11-16)
+## Implementation status (verified 2026-11-16; full suite re-verified 2026-11-25)
 
-**Implemented and verified (build, unit, lint, formatting, and 32/32 device tests passing):**
+**Implemented and verified (build, unit, lint, formatting, and device tests passing: 32/32 in Phase 8, 47/47 in the Phase 9A full suite):**
 
 - Preferred shopping time stored in settings/preferences/repository.
 - List/item data/query support for range, nearest future, past unchecked, and unchecked-item move/target-date alignment.
@@ -222,13 +222,14 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| 2026-11-16 | Implementation (partial) | in-progress | Implemented core Phase 8 data/domain/work/UI flows and initial unit tests (schedule settings/calendar/deferral-in-list-detail/overdue/store-hours/auto-create wiring; see "Implementation status"). Spec clarifications recorded in `docs/specs/06-scheduling-dates-calendar.md` and "Spec-gap resolution". Required build/lint/unit/instrumented verification and full plan coverage (incl. `connectedDebugAndroidTest` on emulator/device), demos 1–7, and acceptance evidence not yet completed; phase remains `in-progress`. |
-| 2026-11-16 | Phase spec update | in-progress | Updated this document to reflect current implementation status, spec-gap resolutions, and remaining work/evidence needed. |
-| 2026-11-16 | `./gradlew testDebugUnitTest`, `./gradlew spotlessApply`, `./gradlew assembleDebug`, `./gradlew lintDebug spotlessCheck` | pass (unit/build/lint/format); `connectedDebugAndroidTest` not run | Fixed compile issues blocking Phase 8 verification (`app/src/main/java/.../DeferItemUseCase.java`, `.../ui/listdetail/ListDetailViewModel.java`, `.../ui/settings/ScheduleViewModel.java`), updated `app/src/test/java/com/fastshoppr/app/data/repository/AisleLookupRepositoryImplTest.java` fake for new `ListItemRepository.moveUncheckedItemsToList`, and added `RoomDataLayerTest.moveUncheckedItemsToListMovesOnlyUncheckedAndUpdatesTargetDate` (`app/src/androidTest/.../RoomDataLayerTest.java`). Lint completed successfully (dependency Kotlin metadata warnings observed from transitive ML Kit libs; no lint task failure). No emulator/device available in this session, so `connectedDebugAndroidTest` remains unrun; per completion gate phase stays `in-progress`. Manual demos 1–7 and full plan/UI/WorkManager evidence still pending. |
+| 2026-11-16 | Implementation (partial, historical snapshot) | in-progress at the time | Implemented core Phase 8 data/domain/work/UI flows and initial unit tests (schedule settings/calendar/deferral-in-list-detail/overdue/store-hours/auto-create wiring; see "Implementation status"). Spec clarifications recorded in `docs/specs/06-scheduling-dates-calendar.md` and "Spec-gap resolution". Later rows in this log supersede the incomplete-verification text. |
+| 2026-11-16 | Phase spec update (historical snapshot) | in-progress at the time | Updated this document to reflect implementation status, spec-gap resolutions, and then-remaining work/evidence. Later rows supersede this status. |
+| 2026-11-16 | `./gradlew testDebugUnitTest`, `./gradlew spotlessApply`, `./gradlew assembleDebug`, `./gradlew lintDebug spotlessCheck` (historical snapshot) | pass (unit/build/lint/format); instrumentation pending at the time | Fixed compile issues blocking Phase 8 verification (`app/src/main/java/.../DeferItemUseCase.java`, `.../ui/listdetail/ListDetailViewModel.java`, `.../ui/settings/ScheduleViewModel.java`), updated `app/src/test/java/com/fastshoppr/app/data/repository/AisleLookupRepositoryImplTest.java` fake for new `ListItemRepository.moveUncheckedItemsToList`, and added `RoomDataLayerTest.moveUncheckedItemsToListMovesOnlyUncheckedAndUpdatesTargetDate` (`app/src/androidTest/.../RoomDataLayerTest.java`). Lint completed successfully (dependency Kotlin metadata warnings observed from transitive ML Kit libs; no lint task failure). No emulator/device was available in that session; later rows record the emulator run. |
 | 2026-11-16 | Added DST/time-zone and worker/UI coverage | pass | Added `domain/date/LocalDateTimesTest` (DST and time-zone date boundaries), DST cases in `AdvanceScheduleUseCaseTest`, `work/ScheduleCheckWorkerTest` (WorkManager auto-create/advance and duplicate prevention), `CalendarFlowTest` (badges/open/create/month navigation), and `OverdueDialogTest` (move/keep/missed, move-only-unchecked). Fixed worker tests to pin UTC and the overdue dialog test to wait for dismissal. |
 | 2026-11-16 | `./gradlew assembleDebug testDebugUnitTest lintDebug spotlessCheck` | pass | Full build, unit tests, lint, and formatting pass. Lint has no Phase 8 warnings; remaining warnings are pre-existing unused resources from earlier phases. Removed Phase 8 `notifyDataSetChanged`, obsolete SDK checks, hardcoded weekday/interval text, and dead Phase 8 strings. |
 | 2026-11-16 | `./gradlew connectedDebugAndroidTest` on `emulator-5554` (API 36) | pass | **32 tests, 32 passed, 0 failed, 0 errored, 0 skipped.** Includes `CalendarFlowTest`, `OverdueDialogTest`, `ScheduleCheckWorkerTest`, and `RoomDataLayerTest.moveUncheckedItemsToListMovesOnlyUncheckedAndUpdatesTargetDate`. |
 | 2026-11-16 | Manual demo (demos 1–7) | pass (evidenced) | Demo steps exercised/evidenced on the emulator and by implementation/tests: every-2-weeks schedule save/enable/disable and conflict handling; worker auto-create + notification (with notify disabled still auto-creating); calendar badge tap opens list and empty-date create; list-detail typed add "toilet paper wait a week" resolves and confirms the future target; overdue prompt move/keep/missed with checked items never moved; store hours/visit section renders for the selected date without busyness data. |
+| 2026-11-25 | Phase 9A full-suite re-verification | pass | Full `connectedDebugAndroidTest` passed 47/47 on `emulator-5554` (0 skipped/failed), including `CalendarFlowTest`, `OverdueDialogTest`, and `ScheduleCheckWorkerTest`. The 32/32 count above remains the Phase 8 historical result; 47/47 is the current suite count. D-045 scope note still applies to store-hours/preferred-time behavior. |
 
 **Test plan coverage (evidence):**
 - Interval advancement (Unit, month-end/DST): `AdvanceScheduleUseCaseTest` (month-end, spring-forward, fall-back).

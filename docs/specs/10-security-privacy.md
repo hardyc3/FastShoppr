@@ -17,6 +17,8 @@
 | Capture images | App-private cache, deleted after review | No |
 | Handwriting strokes | Memory/session only | No |
 | Aisle cache | Room | No |
+| Aisle sign text (OCR-confirmed, no photo) | Room (`aisle_signs`) | No |
+| Soft-deleted store and aisle-sign metadata | Room | No |
 | Saved branch (name and address) | SharedPreferences, one per brand | No |
 | Price quotes | Room | No |
 | Preferences | SharedPreferences | No |
@@ -42,7 +44,7 @@ Mitigations:
 
 | Permission | Purpose | Timing | Denial behavior |
 |---|---|---|---|
-| `CAMERA` | Photograph a handwritten list | When the user opens camera capture | Keep gallery and typed entry |
+| `CAMERA` | Photograph a handwritten list or in-store aisle sign | When the user opens camera capture | Keep gallery, typed entry, and manual aisle entry |
 | `POST_NOTIFICATIONS` | Background organizing and schedule alerts | When the user enables those features | Create lists silently; queue Walmart lookups |
 | `FOREGROUND_SERVICE` / `FOREGROUND_SERVICE_DATA_SYNC` | Walmart WebView lookup | Declared in manifest, started by user action | Queue for foreground |
 | `INTERNET` | Store lookup (Walmart WebView; Home Depot HTTP when enabled) and ML Kit model download | When the user starts a lookup or the model downloads | Fall back to cached results and manual aisle entry |
@@ -97,7 +99,7 @@ Allowed:
 
 Not allowed:
 
-- Item text, list names, images, image URIs, saved branch addresses, cookies, or AI prompts. No ZIP or coordinates exist to log.
+- Item text, list names, images, image URIs, aisle-sign OCR text, aisle-sign AI prompts, other AI prompts, saved branch addresses, or cookies. No ZIP or coordinates exist to log.
 - Full URLs containing personal parameters.
 - Stack traces containing user data.
 
@@ -106,9 +108,13 @@ Use a debug-only logger that is disabled in release builds.
 ## Data retention
 
 - Delete cached capture images after review.
+- Delete sign photo temp files after confirm or discard; keep only OCR-confirmed text in `aisle_signs`.
+- Keep aisle-sign rows until the user edits, replaces, or deletes them.
+- Keep soft-deleted stores and aisle-sign rows restorable for 30 days, then purge them; restoring a store restores its signs.
 - Delete expired aisle and price cache entries periodically.
 - Keep lists until the user deletes or archives them.
 - Keep manual aisle and price entries until the user edits or deletes them.
+- "Delete all data" also clears aisle-sign rows and aisle-sign settings.
 - Provide a "Delete all data" action in settings.
 
 ## Backups

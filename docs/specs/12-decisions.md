@@ -386,3 +386,35 @@ Format:
 - Rationale: Product feedback (2026-11-22): "Walmart seems to be good but we need to do the rest and verify with some manual tests that they work." Multi-store routing is the core product promise; claiming coverage for five brands without verified lookups for four of them is misleading.
 - Consequences: No price feature is pulled forward; Phase 11 still depends on a completed Phase 10 and Phase 12 on Phase 11. The existing store data access policy, explicit-branch-context rule, and `rawText` invariant are unchanged. No Room migration is expected; any new cache field requires its own migration and test. No new dependency is authorized by this decision. No implementation begins while Phase 10 is `not-started`.
 
+## D-047 — Phase 9A inserted after Phase 9
+
+- Date: 2026-11-24
+- Status: accepted (inserts Phase 9A; amends `AGENTS.md` and `docs/specs/README.md`)
+- Decision: Add **Phase 9A — Review Remediation** between Phase 9 and Phase 10. It covers review findings only: framework-free domain, MVVM boundaries, spec'd input/cleanup paths, security behavior, and test/spec evidence reconciliation. Phase 9A is `not-started` and Phase 10 remains `not-started`; Phase 10 must not be started until explicitly instructed.
+- Rationale: The Phase 9 review found gaps between the shipped code/evidence and the specs that are remediation work, not new product scope. A dedicated phase keeps that work reviewable without opening Phase 10, which D-046 already blocks.
+- Consequences: Phase 9A depends on Phase 9 and must be the only active phase once explicitly started. No Phase 10 brand coverage, pricing, new dependency, or Room migration is authorized here. Phase 11 still depends on Phase 10 and Phase 12 on Phase 11.
+
+## D-048 — Domain layer Android-free boundary restored
+
+- Date: 2026-11-24
+- Status: accepted (amends D-002; resolves the `01-architecture.md:85` conflict with `AGENTS.md` and D-002; implementation deferred to Phase 9A)
+- Decision: The `domain` package must stay free of Android framework and AndroidX imports, including `androidx.lifecycle.LiveData` in repository interfaces and Android/Hilt/`work` dependencies in use cases such as `CreateScheduledListUseCase`. Observation, notification capability/dispatch, and permission status move behind domain-owned ports whose implementations live in `data`/`work` and are bound through Hilt. `01-architecture.md:85` must be corrected to match this rule.
+- Rationale: `AGENTS.md` and D-002 require an Android-free domain, but `01-architecture.md:85` currently permits "Java and Android imports" and the code follows that contradiction. A single explicit rule keeps use cases JVM-testable and prevents UI/framework concerns from leaking inward.
+- Consequences: Repository signatures, Hilt bindings, fakes, and tests change in one coordinated step. No new dependency is required. Because Phase 9A is `not-started`, this decision records the required boundary; removal of the imports is implemented and verified only in Phase 9A, with no Phase 10 work.
+
+## D-049 — Forget-store wipes retailer WebView cookies and DOM storage
+
+- Date: 2026-11-24
+- Status: accepted (amends D-032 and D-043; implementation deferred to Phase 9A)
+- Decision: The **Forget store** action must clear saved branch context and wipe the associated retailer WebView state — `CookieManager` cookies and `WebStorage` DOM storage — so a forgotten store cannot silently persist in a later WebView session. This applies to the generic branch picker for all supported brands, superseding the Walmart-only wording in D-032 and carried forward under D-043.
+- Rationale: Persisting store context is only honest if the explicit forget action fully reverses it; leaving cookies or DOM storage behind makes the wipe cosmetic and can silently restore the wrong store.
+- Consequences: The forget path must call both cookie and DOM-storage clearing and be covered by a test. No location, ZIP, or new dependency is introduced. Because Phase 9A is `not-started`, this decision records the required behavior; implementation and verification occur in Phase 9A only.
+
+## D-050 — Aisle sign lookup added as Phase 13
+
+- Date: 2026-11-25
+- Status: accepted (inserts Phase 13; amends `docs/specs/README.md` and `docs/specs/10-security-privacy.md`; supersedes the aisle-generation prohibition in `docs/specs/05-on-device-ai.md` only for bounded Phase 13 inference; implementation deferred to Phase 13)
+- Decision: Add **Phase 13 — Aisle Sign Lookup** after Phase 12 by numbering, with no feature dependency on Phases 10–12. The user photographs in-store aisle signs from store management; ML Kit OCR reads aisle numbers and category text; the user reviews and confirms rows stored per `storeId`. Item resolution uses manual entry first, then confirmed signs, then the existing cache, then retailer websites. On-device AI may infer an aisle only from confirmed sign text, only while in the foreground, and only when opted in; deterministic token matching is always available. Sign photos are discarded after confirm/discard and only sanitized text is retained. `StoreEntity.deletedAt` and a soft-deleted sign corpus get a 30-day restore window before purge; restoring a store restores its signs.
+- Rationale: Product feedback (2026-11-25): users can capture physical aisle signs once per store instead of relying on fragile retailer pages for every item. Bounding AI to user-confirmed signs prevents free-form product-location invention while still using available on-device inference. Reusing the existing 30-day soft-delete rule makes accidental store deletion recoverable without keeping photos.
+- Consequences: `05-on-device-ai.md` is intentionally not edited; `docs/specs/phases/phase-13-aisle-sign-lookup.md` is the authoritative override for this narrow AI use. Room schema moves 6→7 with migrations and tests for `aisle_signs` and `stores.deletedAt`. `10-security-privacy.md` gains aisle-sign text, camera-purpose, and retention entries. No new dependency, location permission, cloud model, image retention, Kotlin app source, or Compose. Phase 13 remains `not-started`; no implementation begins until explicitly instructed.
+

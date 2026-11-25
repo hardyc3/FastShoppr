@@ -12,16 +12,47 @@ import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.ItemReviewLineBinding;
+import com.google.android.material.button.MaterialButton;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 /** Renders editable review lines and forwards row actions to the Fragment. */
-final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder> {
+final class ReviewAdapter
+    extends ListAdapter<ReviewViewModel.ReviewLine, ReviewAdapter.ViewHolder> {
+
+  static final DiffUtil.ItemCallback<ReviewViewModel.ReviewLine> DIFF =
+      new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(
+            @NonNull ReviewViewModel.ReviewLine oldItem,
+            @NonNull ReviewViewModel.ReviewLine newItem) {
+          return oldItem.getLineId() == newItem.getLineId();
+        }
+
+        @Override
+        public boolean areContentsTheSame(
+            @NonNull ReviewViewModel.ReviewLine oldItem,
+            @NonNull ReviewViewModel.ReviewLine newItem) {
+          return Objects.equals(oldItem.getText(), newItem.getText())
+              && oldItem.isSelected() == newItem.isSelected()
+              && oldItem.getConfidence() == newItem.getConfidence()
+              && oldItem.isManual() == newItem.isManual()
+              && Objects.equals(oldItem.getDisplayName(), newItem.getDisplayName())
+              && Objects.equals(oldItem.getStoreId(), newItem.getStoreId())
+              && Objects.equals(oldItem.getTargetDate(), newItem.getTargetDate());
+        }
+      };
 
   interface Listener {
     void onLineSelected(int position, boolean selected);
@@ -40,15 +71,14 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
   }
 
   private final Listener listener;
-  private List<ReviewViewModel.ReviewLine> lines = List.of();
 
   ReviewAdapter(Listener listener) {
+    super(DIFF);
     this.listener = listener;
   }
 
   void submitLines(List<ReviewViewModel.ReviewLine> updatedLines) {
-    lines = List.copyOf(updatedLines);
-    notifyDataSetChanged();
+    submitList(List.copyOf(updatedLines));
   }
 
   @NonNull
@@ -61,23 +91,18 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
 
   @Override
   public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-    holder.bind(lines.get(position));
-  }
-
-  @Override
-  public int getItemCount() {
-    return lines.size();
+    holder.bind(getItem(position));
   }
 
   final class ViewHolder extends RecyclerView.ViewHolder {
 
     final ItemReviewLineBinding binding;
-    final android.widget.CheckBox checkBox;
-    final android.widget.EditText textField;
-    private final android.widget.TextView displayNameText;
-    private final android.widget.TextView confidenceText;
-    private final com.google.android.material.button.MaterialButton storeButton;
-    private final com.google.android.material.button.MaterialButton dateButton;
+    final CheckBox checkBox;
+    final EditText textField;
+    private final TextView displayNameText;
+    private final TextView confidenceText;
+    private final MaterialButton storeButton;
+    private final MaterialButton dateButton;
     @Nullable private TextWatcher watcher;
 
     private ViewHolder(ItemReviewLineBinding binding) {
@@ -143,7 +168,9 @@ final class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder>
       if (watcher != null) {
         textField.removeTextChangedListener(watcher);
       }
-      textField.setText(line.getText());
+      if (!line.getText().equals(textField.getText().toString())) {
+        textField.setText(line.getText());
+      }
       watcher =
           new TextWatcher() {
             @Override

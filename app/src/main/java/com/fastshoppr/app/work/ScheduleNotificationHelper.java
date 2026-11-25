@@ -11,22 +11,60 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import com.fastshoppr.app.MainActivity;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.notification.ListCreationNotifier;
+import com.fastshoppr.app.domain.notification.NotificationPermissionStatus;
+import dagger.hilt.android.qualifiers.ApplicationContext;
 import java.time.format.DateTimeFormatter;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 @Singleton
-public final class ScheduleNotificationHelper {
+public final class ScheduleNotificationHelper implements ListCreationNotifier {
+
+  /** Android-backed implementation of the notification capability port. */
+  @Singleton
+  public static final class SystemPermissionStatus implements NotificationPermissionStatus {
+    private final Context context;
+
+    @Inject
+    public SystemPermissionStatus(@ApplicationContext Context context) {
+      this.context = context;
+    }
+
+    @Override
+    public boolean isSystemPermissionGranted() {
+      try {
+        return NotificationManagerCompat.from(context).areNotificationsEnabled();
+      } catch (Exception e) {
+        return false;
+      }
+    }
+
+    @Override
+    public boolean isRuntimePermissionRequired() {
+      return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU;
+    }
+  }
+
+  private final Context context;
 
   @Inject
-  public ScheduleNotificationHelper() {}
+  public ScheduleNotificationHelper(@ApplicationContext Context context) {
+    this.context = context;
+  }
 
-  public void ensureChannel(Context context) {
+  @Override
+  public boolean notify(ShoppingList list) {
+    return notifyListCreated(context, list);
+  }
+
+  public void ensureChannel() {
     NotificationChannel channel =
         new NotificationChannel(
             ScheduleContracts.CHANNEL_SCHEDULE,
@@ -43,7 +81,7 @@ public final class ScheduleNotificationHelper {
     if (list == null) {
       return false;
     }
-    ensureChannel(context);
+    ensureChannel();
     String date = list.getShoppingDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
     Intent intent = new Intent(context, MainActivity.class);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

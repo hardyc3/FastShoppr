@@ -184,6 +184,8 @@ public final class SettingsViewModelTest {
     NearbyStore walmart = store(StoreBrand.WALMART);
     when(getSelectedStores.execute())
         .thenReturn(Map.of(StoreBrand.WALMART, walmart), Collections.emptyMap());
+    when(forgetSelectedStore.execute(StoreBrand.WALMART))
+        .thenReturn(CompletableFuture.completedFuture(null));
     viewModel = newViewModel();
     assertEquals(
         walmart, viewModel.getState().getValue().getSelectedStores().get(StoreBrand.WALMART));
@@ -196,6 +198,23 @@ public final class SettingsViewModelTest {
         SettingsViewModel.StoreMessage.STORE_REMOVED,
         viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
     assertNull(viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
+  }
+
+  @Test
+  public void forgetStoreKeepsBranchWhenWebViewWipeFails() {
+    NearbyStore walmart = store(StoreBrand.WALMART);
+    when(getSelectedStores.execute()).thenReturn(Map.of(StoreBrand.WALMART, walmart));
+    when(forgetSelectedStore.execute(StoreBrand.WALMART))
+        .thenReturn(failedFuture(new IllegalStateException("wipe failed")));
+    viewModel = newViewModel();
+
+    viewModel.forgetStore(StoreBrand.WALMART);
+
+    assertEquals(
+        walmart, viewModel.getState().getValue().getSelectedStores().get(StoreBrand.WALMART));
+    assertEquals(
+        SettingsViewModel.StoreMessage.STORE_CLEAR_FAILED,
+        viewModel.getStoreMessageEvent().getValue().getContentIfNotHandled());
   }
 
   @Test

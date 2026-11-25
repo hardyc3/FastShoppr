@@ -21,48 +21,56 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.SystemClock;
 import android.view.View;
 import android.widget.CheckBox;
-import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
+import com.fastshoppr.app.di.PermissionModule;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.port.PermissionRequester;
+import com.fastshoppr.app.domain.port.PermissionStatus;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
+import com.fastshoppr.app.ui.common.PermissionLauncherBinder;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import dagger.Binds;
+import dagger.Module;
+import dagger.hilt.InstallIn;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
+import dagger.hilt.android.testing.UninstallModules;
+import dagger.hilt.components.SingletonComponent;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @HiltAndroidTest
+@UninstallModules(PermissionModule.class)
 @RunWith(AndroidJUnit4.class)
 public final class CaptureFlowsTest {
 
@@ -72,12 +80,14 @@ public final class CaptureFlowsTest {
   @Inject ShoppingListRepository listRepository;
   @Inject CaptureRepository captureRepository;
   @Inject ListItemRepository listItemRepository;
+  @Inject FakePermissionState permissionState;
 
   private String listId;
 
   @Before
   public void setUp() {
     hiltRule.inject();
+    permissionState.setCameraGranted(true);
     SupportSQLiteDatabase sqlite = database.getOpenHelper().getWritableDatabase();
     sqlite.execSQL("DELETE FROM list_items");
     sqlite.execSQL("DELETE FROM capture_sessions");
@@ -108,7 +118,7 @@ public final class CaptureFlowsTest {
               onFocusedView(withId(R.id.recyclerView))
                   .check(matches(hasDescendant(withText("Walmart")))));
       onFocusedView(withId(R.id.reviewNote)).check(matches(isDisplayed()));
-      onFocusedView(withId(R.id.btnAddLine)).check(matches(not(isDisplayed())));
+      onFocusedView(withId(R.id.btnAddLine)).check(matches(isDisplayed()));
 
       onFocusedView(withId(R.id.btnMergeSelected)).perform(click());
       waitForText("milk eggs");
@@ -174,12 +184,8 @@ public final class CaptureFlowsTest {
   }
 
   @Test
-  public void cameraPermissionDeniedKeepsGalleryAndTypedEntryAvailable() {
-    Assume.assumeFalse(
-        "camera permission already granted on this device",
-        ContextCompat.checkSelfPermission(
-                ApplicationProvider.getApplicationContext(), android.Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED);
+  public void cameraPermissionDeniedShowsRequestWithoutBlockingManualEntry() {
+    permissionState.setCameraGranted(false);
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
@@ -187,14 +193,99 @@ public final class CaptureFlowsTest {
 
       navigate(scenario, R.id.capture_camera, NavArguments.forList(listId));
 
+      // These views render the permission state/events owned by the camera capture slice.
       waitForText(R.string.camera_permission_message);
+      onFocusedView(withId(R.id.permissionPanel)).check(matches(isDisplayed()));
       onFocusedView(withId(R.id.btnAllowCamera)).check(matches(isDisplayed()));
-      // gallery button removed in current UI; capture availability depends on permission state
       onFocusedView(withId(R.id.btnCapture)).check(matches(isDisplayed()));
 
       pressBackUnconditionally();
       waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
     }
+  }
+
+  @Test
+  public void cameraPermissionGrantedHidesPermissionRequest() {
+    permissionState.setCameraGranted(true);
+
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
+      waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
+
+      navigate(scenario, R.id.capture_camera, NavArguments.forList(listId));
+
+      // Granted state hides the request panel and keeps the capture action visible.
+      waitFor(() -> onFocusedView(withId(R.id.permissionPanel)).check(matches(not(isDisplayed()))));
+      onFocusedView(withId(R.id.btnAllowCamera)).check(matches(not(isDisplayed())));
+      onFocusedView(withId(R.id.btnCapture)).check(matches(isDisplayed()));
+
+      pressBackUnconditionally();
+      waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
+    }
+  }
+
+  @Module
+  @InstallIn(SingletonComponent.class)
+  abstract static class FakePermissionModule {
+
+    @Binds
+    @Singleton
+    abstract PermissionStatus bindPermissionStatus(FakePermissionState implementation);
+
+    @Binds
+    @Singleton
+    abstract PermissionRequester bindPermissionRequester(FakePermissionRequester implementation);
+
+    @Binds
+    @Singleton
+    abstract PermissionLauncherBinder bindPermissionLauncherBinder(
+        FakePermissionRequester implementation);
+  }
+
+  @Singleton
+  public static final class FakePermissionState implements PermissionStatus {
+
+    private volatile boolean cameraGranted = true;
+
+    @Inject
+    FakePermissionState() {}
+
+    void setCameraGranted(boolean granted) {
+      cameraGranted = granted;
+    }
+
+    @Override
+    public boolean isGranted(PlatformPermission permission) {
+      return permission == PlatformPermission.CAMERA ? cameraGranted : true;
+    }
+
+    @Override
+    public boolean shouldShowRationale(PlatformPermission permission) {
+      return false;
+    }
+  }
+
+  @Singleton
+  public static final class FakePermissionRequester
+      implements PermissionRequester, PermissionLauncherBinder {
+
+    private final FakePermissionState state;
+
+    @Inject
+    FakePermissionRequester(FakePermissionState state) {
+      this.state = state;
+    }
+
+    @Override
+    public void request(PlatformPermission permission, Consumer<Boolean> result) {
+      result.accept(state.isGranted(permission));
+    }
+
+    @Override
+    public void bind(PlatformPermission permission, androidx.fragment.app.Fragment fragment) {}
+
+    @Override
+    public void unbind(PlatformPermission permission, androidx.fragment.app.Fragment fragment) {}
   }
 
   private static ViewAction clickRowCheckBox() {
@@ -265,15 +356,6 @@ public final class CaptureFlowsTest {
   }
 
   private static void waitFor(Runnable assertion) {
-    long deadline = SystemClock.uptimeMillis() + 5_000L;
-    while (SystemClock.uptimeMillis() < deadline) {
-      try {
-        assertion.run();
-        return;
-      } catch (AssertionError | RuntimeException exception) {
-        SystemClock.sleep(50L);
-      }
-    }
-    assertion.run();
+    TestWait.waitFor(assertion);
   }
 }

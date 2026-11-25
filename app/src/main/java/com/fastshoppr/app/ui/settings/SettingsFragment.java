@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RadioGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -18,13 +19,14 @@ import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentSettingsBinding;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.StoreBrand;
-import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StoreBrandLabel;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.radiobutton.MaterialRadioButton;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -57,6 +59,7 @@ public final class SettingsFragment extends Fragment {
     binding.switchAiCleanup.setOnCheckedChangeListener(
         (buttonView, isChecked) -> viewModel.setAiCleanupEnabled(isChecked));
     binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
+    binding.btnDeleteInkModel.setOnClickListener(v -> viewModel.deleteInkModel());
     binding.btnOpenSchedule.setOnClickListener(
         v -> Navigation.findNavController(v).navigate(R.id.action_settings_to_schedule));
     binding.btnDeleteAllData.setOnClickListener(v -> confirmDeleteAllData());
@@ -74,14 +77,32 @@ public final class SettingsFragment extends Fragment {
         .observe(
             getViewLifecycleOwner(),
             event -> {
-              SingleEvent<SettingsViewModel.StoreMessage> message = event;
-              if (message.getContentIfNotHandled() != null && binding != null) {
-                Snackbar.make(
-                        binding.getRoot(),
-                        R.string.settings_store_removed_message,
-                        Snackbar.LENGTH_LONG)
-                    .show();
+              SettingsViewModel.StoreMessage message = event.getContentIfNotHandled();
+              if (message == null || binding == null) {
+                return;
               }
+              int messageRes =
+                  message == SettingsViewModel.StoreMessage.STORE_CLEAR_FAILED
+                      ? R.string.settings_store_clear_failed_message
+                      : R.string.settings_store_removed_message;
+              Snackbar.make(binding.getRoot(), messageRes, Snackbar.LENGTH_LONG).show();
+            });
+    viewModel
+        .getInkModelDeleteEvent()
+        .observe(
+            getViewLifecycleOwner(),
+            event -> {
+              Boolean success = event.getContentIfNotHandled();
+              if (success == null || binding == null) {
+                return;
+              }
+              Snackbar.make(
+                      binding.getRoot(),
+                      success
+                          ? R.string.settings_ink_model_delete_success
+                          : R.string.settings_ink_model_delete_failed,
+                      Snackbar.LENGTH_LONG)
+                  .show();
             });
     viewModel
         .getDeleteEvent()
@@ -135,17 +156,27 @@ public final class SettingsFragment extends Fragment {
         labels.add(getString(StoreBrandLabel.labelRes(brand)) + ": " + store.getLabel());
       }
     }
-    int[] selection = {-1};
+    View dialogView =
+        LayoutInflater.from(requireContext()).inflate(R.layout.dialog_forget_store, null);
+    RadioGroup options = dialogView.findViewById(R.id.forgetStoreOptions);
+    Map<Integer, StoreBrand> brandByOption = new HashMap<>();
+    for (int index = 0; index < brands.size(); index++) {
+      MaterialRadioButton option = new MaterialRadioButton(requireContext());
+      option.setId(View.generateViewId());
+      option.setText(labels.get(index));
+      options.addView(option);
+      brandByOption.put(option.getId(), brands.get(index));
+    }
     new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.settings_store_forget_title)
-        .setSingleChoiceItems(
-            labels.toArray(new String[0]), -1, (dialog, which) -> selection[0] = which)
+        .setView(dialogView)
         .setNegativeButton(R.string.cancel, null)
         .setPositiveButton(
             R.string.settings_store_remove,
             (dialog, which) -> {
-              if (selection[0] >= 0 && selection[0] < brands.size()) {
-                viewModel.forgetStore(brands.get(selection[0]));
+              StoreBrand brand = brandByOption.get(options.getCheckedRadioButtonId());
+              if (brand != null) {
+                viewModel.forgetStore(brand);
               }
             })
         .show();
@@ -180,6 +211,9 @@ public final class SettingsFragment extends Fragment {
     }
     binding.btnDownloadModel.setVisibility(
         state.getAiStatus() == SettingsViewModel.AiStatus.DOWNLOADABLE ? View.VISIBLE : View.GONE);
+    binding.inkModelStatus.setText(inkModelStatusTextRes(state));
+    binding.btnDeleteInkModel.setEnabled(
+        state.getInkModelDeleteStatus() != SettingsViewModel.InkModelDeleteStatus.DELETING);
     binding.storeSummary.setText(formatStoreSummary(state));
   }
 
@@ -199,6 +233,15 @@ public final class SettingsFragment extends Fragment {
       }
     }
     return String.join("\n", lines);
+  }
+
+  private int inkModelStatusTextRes(SettingsViewModel.SettingsUiState state) {
+    return switch (state.getInkModelDeleteStatus()) {
+      case IDLE -> R.string.settings_ink_model_idle;
+      case DELETING -> R.string.settings_ink_model_deleting;
+      case DELETED -> R.string.settings_ink_model_deleted;
+      case FAILED -> R.string.settings_ink_model_failed;
+    };
   }
 
   private int statusTextRes(SettingsViewModel.SettingsUiState state) {

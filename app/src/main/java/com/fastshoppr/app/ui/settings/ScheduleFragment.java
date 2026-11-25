@@ -5,31 +5,31 @@
  */
 package com.fastshoppr.app.ui.settings;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentScheduleBinding;
 import com.fastshoppr.app.domain.model.IntervalUnit;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.usecase.CreateScheduleUseCase;
+import com.fastshoppr.app.ui.common.AppSettingsOpener;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
+import com.fastshoppr.app.ui.common.PermissionLauncherBinder;
+import com.fastshoppr.app.ui.common.SingleEvent;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import javax.inject.Inject;
 
 @AndroidEntryPoint
 public final class ScheduleFragment extends Fragment {
@@ -37,7 +37,14 @@ public final class ScheduleFragment extends Fragment {
   private FragmentScheduleBinding binding;
   private ScheduleViewModel viewModel;
   private LocalDate nextDate;
-  private ActivityResultLauncher<String> notificationPermissionLauncher;
+
+  @Inject PermissionLauncherBinder permissionRequester;
+
+  @Override
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    permissionRequester.bind(PlatformPermission.POST_NOTIFICATIONS, this);
+  }
 
   @Nullable
   @Override
@@ -52,12 +59,6 @@ public final class ScheduleFragment extends Fragment {
   @Override
   public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
     super.onViewCreated(view, savedInstanceState);
-    notificationPermissionLauncher =
-        registerForActivityResult(
-            new ActivityResultContracts.RequestPermission(),
-            granted -> {
-              /* create silently if denied */
-            });
     viewModel = new ViewModelProvider(this).get(ScheduleViewModel.class);
     binding.toolbar.setTitle(R.string.schedule_title);
     binding.toolbar.setNavigationOnClickListener(
@@ -66,7 +67,7 @@ public final class ScheduleFragment extends Fragment {
         v ->
             DatePickerUtil.showDatePicker(
                 this,
-                nextDate == null ? LocalDate.now() : nextDate,
+                nextDate == null ? viewModel.today() : nextDate,
                 date -> {
                   nextDate = date;
                   renderDate();
@@ -74,6 +75,7 @@ public final class ScheduleFragment extends Fragment {
     binding.btnSave.setOnClickListener(v -> save(CreateScheduleUseCase.ConflictAction.ASK));
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::onEvent);
+    viewModel.getPermissionActions().observe(getViewLifecycleOwner(), this::handlePermissionAction);
     viewModel.load();
   }
 
@@ -126,6 +128,29 @@ public final class ScheduleFragment extends Fragment {
     }
   }
 
+  private void handlePermissionAction(SingleEvent<PermissionAction> event) {
+    PermissionAction action = event == null ? null : event.getContentIfNotHandled();
+    if (action == null || binding == null) {
+      return;
+    }
+    switch (action) {
+      case NONE -> {
+        // The ViewModel already committed the pending save for this action.
+      }
+      case RATIONALE ->
+          new MaterialAlertDialogBuilder(requireContext())
+              .setMessage(R.string.schedule_permission_rationale)
+              .setNegativeButton(
+                  android.R.string.cancel, (d, w) -> viewModel.permissionRationaleDeclined())
+              .setPositiveButton(R.string.ok, (d, w) -> viewModel.rationaleAccepted())
+              .show();
+      case REQUEST -> {
+        // The ViewModel consumes REQUEST by calling PermissionRequester directly.
+      }
+      case SETTINGS -> AppSettingsOpener.open(this);
+    }
+  }
+
   private void save(CreateScheduleUseCase.ConflictAction action) {
     int value = 1;
     try {
@@ -133,22 +158,25 @@ public final class ScheduleFragment extends Fragment {
     } catch (Exception ignored) {
     }
     IntervalUnit unit = binding.radioWeeks.isChecked() ? IntervalUnit.WEEKS : IntervalUnit.DAYS;
-    LocalDate date = nextDate == null ? LocalDate.now().plusWeeks(1) : nextDate;
-    boolean enabled = binding.switchEnabled.isChecked();
-    boolean notify = binding.switchNotify.isChecked();
-    if (enabled && notify && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (ContextCompat.checkSelfPermission(
-              requireContext(), Manifest.permission.POST_NOTIFICATIONS)
-          != PackageManager.PERMISSION_GRANTED) {
-        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
-      }
-    }
-    viewModel.save(enabled, value, unit, date, notify, action);
+    LocalDate date = nextDate == null ? viewModel.defaultNextDate() : nextDate;
+    viewModel.requestSave(
+        binding.switchEnabled.isChecked(),
+        value,
+        unit,
+        date,
+        binding.switchNotify.isChecked(),
+        action);
   }
 
   @Override
   public void onDestroyView() {
     super.onDestroyView();
     binding = null;
+  }
+
+  @Override
+  public void onDestroy() {
+    permissionRequester.unbind(PlatformPermission.POST_NOTIFICATIONS, this);
+    super.onDestroy();
   }
 }

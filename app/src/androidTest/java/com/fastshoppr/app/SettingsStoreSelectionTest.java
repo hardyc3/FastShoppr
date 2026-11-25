@@ -17,7 +17,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import android.os.SystemClock;
 import android.view.View;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.ViewInteraction;
@@ -109,7 +108,11 @@ public final class SettingsStoreSelectionTest {
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
-      waitFor(() -> onFocusedView(withId(R.id.btnForgetSavedStore)).check(matches(isDisplayed())));
+      waitFor(
+          () ->
+              onFocusedView(withId(R.id.storeSummary))
+                  .check(matches(withText(containsString("Walmart #123")))));
+      onFocusedView(withId(R.id.btnForgetSavedStore)).check(matches(isDisplayed()));
 
       onFocusedView(withId(R.id.btnForgetSavedStore)).perform(click());
       waitFor(
@@ -172,15 +175,6 @@ public final class SettingsStoreSelectionTest {
   }
 
   private static void waitFor(Runnable assertion) {
-    long deadline = SystemClock.uptimeMillis() + 10_000L;
-    while (SystemClock.uptimeMillis() < deadline) {
-      try {
-        assertion.run();
-        return;
-      } catch (AssertionError | RuntimeException exception) {
-        SystemClock.sleep(50L);
-      }
-    }
-    assertion.run();
+    TestWait.waitFor(assertion, 10_000L);
   }
 }

@@ -22,11 +22,14 @@ import com.google.mlkit.genai.prompt.SystemInstruction;
 import com.google.mlkit.genai.prompt.TextPart;
 import com.google.mlkit.genai.prompt.java.GenerativeModelFutures;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.inject.Inject;
@@ -46,6 +49,7 @@ public final class GeminiNanoItemNameCleaner implements ItemNameCleaner {
   private final ExecutorService executor;
   private final ItemNameOutputValidator validator;
   private final AtomicReference<GenerativeModelFutures> model = new AtomicReference<>();
+  private final Set<CompletableFuture<?>> inFlight = ConcurrentHashMap.newKeySet();
 
   @Inject
   public GeminiNanoItemNameCleaner(ExecutorService executor, ItemNameOutputValidator validator) {
@@ -55,27 +59,34 @@ public final class GeminiNanoItemNameCleaner implements ItemNameCleaner {
 
   @Override
   public CompletableFuture<AiAvailability> availability() {
-    return CompletableFuture.supplyAsync(
-        () -> {
-          try {
-            int status = model().checkStatus().get(STATUS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            return mapStatus(status);
-          } catch (ExecutionException exception) {
-            return mapError(exception.getCause());
-          } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            return new AiAvailability.Unavailable();
-          } catch (Exception exception) {
-            return new AiAvailability.Unavailable();
-          }
-        },
-        executor);
+    return track(
+        CompletableFuture.supplyAsync(
+            () -> {
+              try {
+                int status = model().checkStatus().get(STATUS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                return mapStatus(status);
+              } catch (ExecutionException exception) {
+                return mapError(exception.getCause());
+              } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                return new AiAvailability.Unavailable();
+              } catch (Exception exception) {
+                return new AiAvailability.Unavailable();
+              }
+            },
+            executor));
   }
 
+  /** Cancellation drops the result; an already started ML Kit call is bounded by its timeout. */
   @Override
   public CompletableFuture<CleanItemResult> clean(CleanItemRequest request) {
-    return CompletableFuture.supplyAsync(
+    CompletableFuture<CleanItemResult> result = new CompletableFuture<>();
+    track(result);
+    executor.execute(
         () -> {
+          if (result.isCancelled()) {
+            return;
+          }
           try {
             GenerateContentRequest.Builder requestBuilder =
                 new GenerateContentRequest.Builder(
@@ -87,47 +98,56 @@ public final class GeminiNanoItemNameCleaner implements ItemNameCleaner {
                 model()
                     .generateContent(requestBuilder.build())
                     .get(GENERATE_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (result.isCancelled()) {
+              return;
+            }
             List<Candidate> candidates = response.getCandidates();
             if (candidates.isEmpty() || candidates.get(0).getText() == null) {
-              return new CleanItemResult.Unavailable();
+              result.complete(new CleanItemResult.Unavailable());
+              return;
             }
-            return validator.validate(request.getRawText(), candidates.get(0).getText());
+            result.complete(validator.validate(request.getRawText(), candidates.get(0).getText()));
           } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            return new CleanItemResult.Unavailable();
-          } catch (ExecutionException exception) {
-            return new CleanItemResult.Unavailable();
-          } catch (Exception exception) {
-            return new CleanItemResult.Unavailable();
+            result.complete(new CleanItemResult.Unavailable());
+          } catch (ExecutionException | TimeoutException | RuntimeException exception) {
+            result.complete(new CleanItemResult.Unavailable());
           }
-        },
-        executor);
+        });
+    return result;
   }
 
   @Override
   public CompletableFuture<Void> downloadModel(Consumer<Long> progressBytes) {
-    return CompletableFuture.runAsync(
-        () -> {
-          try {
-            DownloadCallback callback =
-                new DownloadCallback() {
-                  @Override
-                  public void onDownloadProgress(long totalBytesDownloaded) {
-                    if (progressBytes != null) {
-                      progressBytes.accept(totalBytesDownloaded);
-                    }
-                  }
-                };
-            model().download(callback).get();
-          } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new CompletionException(exception);
-          } catch (ExecutionException exception) {
-            throw new CompletionException(
-                exception.getCause() == null ? exception : exception.getCause());
-          }
-        },
-        executor);
+    return track(
+        CompletableFuture.runAsync(
+            () -> {
+              try {
+                DownloadCallback callback =
+                    new DownloadCallback() {
+                      @Override
+                      public void onDownloadProgress(long totalBytesDownloaded) {
+                        if (progressBytes != null) {
+                          progressBytes.accept(totalBytesDownloaded);
+                        }
+                      }
+                    };
+                model().download(callback).get();
+              } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+                throw new CompletionException(exception);
+              } catch (ExecutionException exception) {
+                throw new CompletionException(
+                    exception.getCause() == null ? exception : exception.getCause());
+              }
+            },
+            executor));
+  }
+
+  private <T> CompletableFuture<T> track(CompletableFuture<T> future) {
+    inFlight.add(future);
+    future.whenComplete((result, error) -> inFlight.remove(future));
+    return future;
   }
 
   private GenerativeModelFutures model() {
@@ -166,9 +186,13 @@ public final class GeminiNanoItemNameCleaner implements ItemNameCleaner {
     return new AiAvailability.Unavailable();
   }
 
-  /** Drops the cached model reference so the next screen re-checks availability. */
+  /** Cancels in-flight inference and drops the cached model reference. */
   @Override
   public void close() {
+    for (CompletableFuture<?> future : inFlight) {
+      future.cancel(true);
+    }
+    inFlight.clear();
     model.set(null);
   }
 }

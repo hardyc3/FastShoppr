@@ -11,7 +11,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-import androidx.lifecycle.LiveData;
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
 import com.fastshoppr.app.domain.error.AppError;
@@ -25,6 +25,8 @@ import com.fastshoppr.app.domain.model.LookupSource;
 import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.observation.Observable;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.AisleCacheRepository;
 import com.fastshoppr.app.domain.repository.AisleLookupRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
@@ -40,9 +42,13 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 
 public class AisleLookupRepositoryImplTest {
+
+  @Rule
+  public final InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
   private FixedClock clock;
   private FakeItemRepository itemRepo;
@@ -85,6 +91,22 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             Set.of(walmartService));
+  }
+
+  @Test
+  public void observableDeliversCurrentValueAndStopsAfterClose() {
+    MutableLiveData<String> source = new MutableLiveData<>("initial");
+    Observable<String> observable = new LiveDataObservable<>(source);
+    List<String> values = new ArrayList<>();
+
+    Registration registration = observable.subscribe(values::add);
+    assertEquals(List.of("initial"), values);
+    source.setValue("next");
+    assertEquals(List.of("initial", "next"), values);
+
+    registration.close();
+    source.setValue("after-close");
+    assertEquals(2, values.size());
   }
 
   @Test
@@ -425,18 +447,27 @@ public class AisleLookupRepositoryImplTest {
     final Map<String, ListItem> items = new HashMap<>();
 
     @Override
-    public LiveData<List<ListItem>> observeByList(String listId) {
-      return new MutableLiveData<>(new ArrayList<>(items.values()));
+    public Observable<List<ListItem>> observeByList(String listId) {
+      return observer -> {
+        observer.accept(new ArrayList<>(items.values()));
+        return () -> {};
+      };
     }
 
     @Override
-    public LiveData<List<ListItem>> observeByListAndStore(String listId, String storeId) {
-      return new MutableLiveData<>(List.of());
+    public Observable<List<ListItem>> observeByListAndStore(String listId, String storeId) {
+      return observer -> {
+        observer.accept(List.of());
+        return () -> {};
+      };
     }
 
     @Override
-    public LiveData<ListItem> observeById(String id) {
-      return new MutableLiveData<>(items.get(id));
+    public Observable<ListItem> observeById(String id) {
+      return observer -> {
+        observer.accept(items.get(id));
+        return () -> {};
+      };
     }
 
     @Override
@@ -524,8 +555,11 @@ public class AisleLookupRepositoryImplTest {
     }
 
     @Override
-    public LiveData<List<Store>> observeActive() {
-      return new MutableLiveData<>(new ArrayList<>(stores.values()));
+    public Observable<List<Store>> observeActive() {
+      return observer -> {
+        observer.accept(new ArrayList<>(stores.values()));
+        return () -> {};
+      };
     }
 
     @Override

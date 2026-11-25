@@ -17,7 +17,7 @@ public final class CalendarUiState {
   public CalendarUiState(
       YearMonth month, List<CalendarDay> days, List<ShoppingListSummary> upcoming) {
     this.month = month;
-    this.days = days;
-    this.upcoming = upcoming;
+    this.days = List.copyOf(days == null ? List.of() : days);
+    this.upcoming = List.copyOf(upcoming == null ? List.of() : upcoming);
   }
 }

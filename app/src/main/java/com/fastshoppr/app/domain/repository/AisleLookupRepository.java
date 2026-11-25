@@ -44,5 +44,28 @@ public interface AisleLookupRepository {
       this.blocked = blocked;
       this.result = result;
     }
+
+    public static LookupOutcome fromCache(
+        ListItem item, AisleCache cacheEntry, StoreLookupResult result) {
+      return new LookupOutcome(item, cacheEntry, true, false, false, result);
+    }
+
+    public static LookupOutcome fromStaleCache(
+        ListItem item, AisleCache cacheEntry, StoreLookupResult result) {
+      return new LookupOutcome(item, cacheEntry, true, true, false, result);
+    }
+
+    public static LookupOutcome fromNetwork(
+        ListItem item, AisleCache cacheEntry, StoreLookupResult result) {
+      return new LookupOutcome(item, cacheEntry, false, false, false, result);
+    }
+
+    public static LookupOutcome blocked(ListItem item, StoreLookupResult result) {
+      return new LookupOutcome(item, null, false, false, true, result);
+    }
+
+    public static LookupOutcome unchanged(ListItem item, StoreLookupResult result) {
+      return new LookupOutcome(item, null, false, false, false, result);
+    }
   }
 }

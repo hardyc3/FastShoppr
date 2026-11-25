@@ -5,13 +5,13 @@
  */
 package com.fastshoppr.app.domain.repository;
 
-import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.ShoppingSchedule;
+import com.fastshoppr.app.domain.observation.Observable;
 import java.util.List;
 
 public interface ScheduleRepository {
 
-  LiveData<List<ShoppingSchedule>> observeAll();
+  Observable<List<ShoppingSchedule>> observeAll();
 
   List<ShoppingSchedule> getAll();
 

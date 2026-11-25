@@ -12,7 +12,8 @@
     <string name="list_detail_title">List detail</string>
 
     <string name="capture_typed_title">Typed items</string>
-    <string name="capture_typed_body">Typed entry lives on the list detail screen. Use the "Add item" field in each store section, then continue here. In a later phase this screen will open the review step directly.</string>
+    <string name="capture_typed_body">Type one item per line. You can review and edit every line before saving.</string>
+    <string name="capture_typed_hint">One item per line</string>
     <string name="capture_ink_title">Handwritten items</string>
     <string name="capture_camera_title">Photo items</string>
     <string name="capture_ink_toolbar_title">Handwriting</string>
@@ -25,7 +26,9 @@
     <string name="camera_permission_title">Camera permission</string>
     <string name="camera_permission_message">FastShoppr needs camera access to capture photos for handwriting recognition.</string>
     <string name="camera_permission_denied">Camera permission denied</string>
+    <string name="camera_permission_import_gallery">Import gallery image</string>
     <string name="camera_permission_always_deny">Always deny</string>
+    <string name="capture_manual_entry">Enter items manually</string>
 
     <string name="review_title">Review captured items</string>
     <string name="select_all">Select all</string>
@@ -58,6 +61,13 @@
     <string name="settings_ai_download_failed">Could not download the model. Try again later.</string>
     <string name="settings_ai_download_action">Download model</string>
     <string name="settings_ai_privacy_note">AI cleanup runs only while the app is open. Nothing is sent to a cloud service, and prompts are never stored.</string>
+    <string name="settings_ink_model_delete">Delete handwriting model</string>
+    <string name="settings_ink_model_idle">The handwriting model is stored on this device until you delete it.</string>
+    <string name="settings_ink_model_deleting">Deleting handwriting model…</string>
+    <string name="settings_ink_model_deleted">Handwriting model deleted.</string>
+    <string name="settings_ink_model_failed">Could not delete the handwriting model. Try again later.</string>
+    <string name="settings_ink_model_delete_success">Handwriting model deleted. Typed and manual entry still work.</string>
+    <string name="settings_ink_model_delete_failed">Could not delete the handwriting model. Typed and manual entry still work.</string>
 
     <string name="settings_privacy_section">Privacy</string>
     <string name="settings_privacy_body">Lists, items, handwriting, photos, aisle results, and settings stay on this device. FastShoppr has no account, backend, analytics, or cloud sync. Device backup and transfer are off. Uninstalling removes app data; nothing is restored.</string>
@@ -122,6 +132,7 @@
     <string name="branch_picker_no_branch">Open a store detail page first, then try again.</string>
     <string name="branch_picker_extract_failed">Could not read the branch from this page.</string>
     <string name="branch_picker_unsupported">This store has no public locator page.</string>
+    <string name="branch_picker_clear_failed">Stored WebView data could not be cleared. The saved branch was kept; try again before shopping.</string>
     <string name="forget_store">Forget store</string>
     <string name="store_session_forgotten">Walmart session forgotten.</string>
     <string name="action_back_to_list">Back to list</string>
@@ -281,6 +292,7 @@
     <string name="lookup_walmart_queued_foreground">Walmart items are queued. Allow notifications for background organizing, or keep the app open to continue.</string>
     <string name="lookup_walmart_queued_permission">Notification permission is off. Walmart items are queued until the app is in the foreground.</string>
     <string name="lookup_permission_rationale">Allow notifications to organize Walmart items in the background and see progress.</string>
+    <string name="schedule_permission_rationale">Allow notifications to remind you about recurring shopping lists and show schedule updates.</string>
     <string name="lookup_permission_denied_message">Notifications are off. Walmart lookups will run when the app is open.</string>
     <string name="lookup_completed_counts">Organizing finished: %1$s</string>
 
@@ -356,8 +368,10 @@
     <string name="settings_store_find">Pick branch</string>
     <string name="settings_store_forget">Remove a saved branch</string>
     <string name="settings_store_forget_title">Remove saved branch</string>
+    <string name="settings_store_forget_message">This removes the saved branch and clears WebView data for all retailers on this device.</string>
     <string name="settings_store_remove">Remove</string>
     <string name="settings_store_removed_message">Branch removed.</string>
+    <string name="settings_store_clear_failed_message">Could not clear WebView data. The saved branch was kept; try again.</string>
     <string name="settings_store_privacy_note">FastShoppr opens the retailer\'s public store locator in a WebView. You choose the branch; the app saves only its name and street/city/state. No ZIP code or device location is stored.</string>
     <string name="brand_walmart">Walmart</string>
     <string name="brand_home_depot">Home Depot</string>

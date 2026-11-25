@@ -10,6 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
@@ -19,16 +20,22 @@ import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.notification.NotificationPermissionStatus;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
+import com.fastshoppr.app.domain.usecase.RequestPermissionUseCase;
+import com.fastshoppr.app.testing.FakePermissionPorts;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.fastshoppr.app.work.OrganizingProgressStore;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.AbstractExecutorService;
@@ -48,6 +55,8 @@ public final class LookupViewModelTest {
   private final GetSelectedStoresUseCase getSelectedStores = mock(GetSelectedStoresUseCase.class);
   private final OrganizingScheduler scheduler = mock(OrganizingScheduler.class);
   private final OrganizingProgressStore progressStore = new OrganizingProgressStore();
+  private final NotificationPermissionStatus notificationPermissionStatus =
+      mock(NotificationPermissionStatus.class);
   private final StoreContextFormatter formatter =
       new StoreContextFormatter() {
         @Override
@@ -62,6 +71,10 @@ public final class LookupViewModelTest {
       };
 
   private LookupViewModel viewModel;
+  private final FakePermissionPorts.Status permissionStatus =
+      new FakePermissionPorts.Status(false, false);
+  private final FakePermissionPorts.Requester permissionRequester =
+      new FakePermissionPorts.Requester();
 
   @Before
   public void setUp() {
@@ -70,6 +83,7 @@ public final class LookupViewModelTest {
     when(storeRepository.getById("store-1")).thenReturn(store());
     when(storeRepository.getById("store-2")).thenReturn(targetStore());
     when(getSelectedStores.execute()).thenReturn(Map.of());
+    when(notificationPermissionStatus.isRuntimePermissionRequired()).thenReturn(true);
     viewModel =
         new LookupViewModel(
             itemRepository,
@@ -80,7 +94,65 @@ public final class LookupViewModelTest {
             scheduler,
             progressStore,
             DIRECT_EXECUTOR,
+            notificationPermissionStatus,
+            permissionStatus,
+            permissionRequester,
+            new RequestPermissionUseCase(),
             new SavedStateHandle(Map.of(NavArguments.LIST_ID, "list-1")));
+  }
+
+  @Test
+  public void permissionCheckShowsRationaleThenRequestsAndRoutesPermanentDenialToSettings() {
+    List<PermissionAction> actions = new ArrayList<>();
+    viewModel
+        .getPermissionActions()
+        .observeForever(
+            event -> {
+              PermissionAction action = event == null ? null : event.getContentIfNotHandled();
+              if (action != null) {
+                actions.add(action);
+              }
+            });
+
+    permissionStatus.set(false, false);
+    viewModel.checkNotificationPermission();
+    assertEquals(List.of(PermissionAction.RATIONALE), actions);
+
+    viewModel.rationaleAccepted();
+    assertEquals(List.of(PlatformPermission.POST_NOTIFICATIONS), permissionRequester.requests);
+
+    permissionRequester.result(false);
+    assertEquals(List.of(PermissionAction.RATIONALE, PermissionAction.SETTINGS), actions);
+    verify(scheduler).organizeNow("list-1");
+  }
+
+  @Test
+  public void rationaleAcceptedRequestsPermissionEvenWhenRationaleFlagRemainsTrue() {
+    List<PermissionAction> actions = new ArrayList<>();
+    viewModel
+        .getPermissionActions()
+        .observeForever(
+            event -> {
+              PermissionAction action = event == null ? null : event.getContentIfNotHandled();
+              if (action != null) {
+                actions.add(action);
+              }
+            });
+
+    permissionStatus.set(false, true);
+    viewModel.checkNotificationPermission();
+    viewModel.rationaleAccepted();
+
+    assertEquals(List.of(PermissionAction.RATIONALE), actions);
+    assertEquals(List.of(PlatformPermission.POST_NOTIFICATIONS), permissionRequester.requests);
+  }
+
+  @Test
+  public void notificationPermissionCheckUsesDomainPortAndSkipsRequestOnOlderDevices() {
+    when(notificationPermissionStatus.isRuntimePermissionRequired()).thenReturn(false);
+    viewModel.checkNotificationPermission();
+
+    verify(scheduler).organizeNow("list-1");
   }
 
   @Test

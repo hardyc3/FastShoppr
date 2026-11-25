@@ -10,6 +10,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.data.remote.storelocator.BranchPageExtractor;
+import com.fastshoppr.app.domain.concurrent.MainThreadExecutor;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.BranchPage;
 import com.fastshoppr.app.domain.model.NearbyStore;
@@ -33,7 +34,8 @@ public final class BranchPickerViewModel extends ViewModel {
     NO_BRANCH_ON_PAGE,
     CHALLENGE_PAGE,
     EXTRACTION_FAILED,
-    UNSUPPORTED_BRAND
+    UNSUPPORTED_BRAND,
+    WEB_VIEW_CLEAR_FAILED
   }
 
   public sealed interface PickerEvent
@@ -80,6 +82,7 @@ public final class BranchPickerViewModel extends ViewModel {
   private final ForgetSelectedStoreUseCase forgetSelectedStore;
   private final GetSelectedStoresUseCase getSelectedStores;
   private final IdGenerator idGenerator;
+  private final MainThreadExecutor mainThread;
   private final MutableLiveData<PickerState> state = new MutableLiveData<>();
   private final MutableLiveData<SingleEvent<PickerEvent>> events = new MutableLiveData<>();
 
@@ -93,12 +96,14 @@ public final class BranchPickerViewModel extends ViewModel {
       ForgetSelectedStoreUseCase forgetSelectedStore,
       GetSelectedStoresUseCase getSelectedStores,
       IdGenerator idGenerator,
+      MainThreadExecutor mainThread,
       SavedStateHandle savedStateHandle) {
     this.extractor = extractor;
     this.saveSelectedStore = saveSelectedStore;
     this.forgetSelectedStore = forgetSelectedStore;
     this.getSelectedStores = getSelectedStores;
     this.idGenerator = idGenerator;
+    this.mainThread = mainThread;
     String requested = savedStateHandle.get(NavArguments.BRAND);
     this.brand = parseBrand(requested);
     publish();
@@ -176,9 +181,20 @@ public final class BranchPickerViewModel extends ViewModel {
   }
 
   public void forgetSelectedBranch() {
-    forgetSelectedStore.execute(brand);
-    publish();
-    postEvent(new PickerEvent.BranchRemoved(brand));
+    pendingPageJson = null;
+    forgetSelectedStore
+        .execute(brand)
+        .whenComplete(
+            (ignored, error) ->
+                mainThread.execute(
+                    () -> {
+                      publish();
+                      if (error != null) {
+                        postEvent(new PickerEvent.ShowMessage(PickerMessage.WEB_VIEW_CLEAR_FAILED));
+                        return;
+                      }
+                      postEvent(new PickerEvent.BranchRemoved(brand));
+                    }));
   }
 
   public static String describe(BranchPage page) {

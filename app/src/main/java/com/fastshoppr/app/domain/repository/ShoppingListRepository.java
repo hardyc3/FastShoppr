@@ -5,26 +5,26 @@
  */
 package com.fastshoppr.app.domain.repository;
 
-import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
+import com.fastshoppr.app.domain.observation.Observable;
 import java.time.LocalDate;
 import java.util.List;
 
 public interface ShoppingListRepository {
 
-  LiveData<List<ShoppingList>> observeActive();
+  Observable<List<ShoppingList>> observeActive();
 
-  LiveData<List<ShoppingListSummary>> observeActiveSummaries();
+  Observable<List<ShoppingListSummary>> observeActiveSummaries();
 
-  LiveData<List<ShoppingList>> observeArchived();
+  Observable<List<ShoppingList>> observeArchived();
 
-  LiveData<List<ShoppingListSummary>> observeArchivedSummaries();
+  Observable<List<ShoppingListSummary>> observeArchivedSummaries();
 
-  LiveData<List<ShoppingListSummary>> observeActiveSummariesInRange(
+  Observable<List<ShoppingListSummary>> observeActiveSummariesInRange(
       LocalDate startInclusive, LocalDate endInclusive);
 
-  LiveData<ShoppingList> observeById(String id);
+  Observable<ShoppingList> observeById(String id);
 
   List<ShoppingList> getActive();
 
