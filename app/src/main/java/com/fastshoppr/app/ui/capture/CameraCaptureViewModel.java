@@ -14,10 +14,15 @@ import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.ItemSource;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.RecognizedLine;
+import com.fastshoppr.app.domain.port.PermissionRequester;
+import com.fastshoppr.app.domain.port.PermissionStatus;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ImageTextRecognitionRepository;
 import com.fastshoppr.app.domain.time.Clock;
+import com.fastshoppr.app.domain.usecase.RequestPermissionUseCase;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.navigation.NavArguments;
@@ -32,18 +37,25 @@ import javax.inject.Inject;
 @HiltViewModel
 public final class CameraCaptureViewModel extends ViewModel {
 
-  public record CameraCaptureUiState(boolean recognizing, boolean canRetake) {}
+  private static final PlatformPermission PERMISSION = PlatformPermission.CAMERA;
+  private static final String KEY_PERMISSION_PREVIOUSLY_REQUESTED = "cameraPermissionRequested";
+  private static final String KEY_RATIONALE_ACKNOWLEDGED = "cameraRationaleAcknowledged";
+
+  public record CameraCaptureUiState(boolean recognizing, boolean canRetake, boolean granted) {}
 
   public sealed interface CameraUiEvent
       permits CameraUiEvent.NavigateToReview,
           CameraUiEvent.ShowError,
-          CameraUiEvent.EmptyRecognition {
+          CameraUiEvent.EmptyRecognition,
+          CameraUiEvent.PermissionActionEvent {
 
     record NavigateToReview(String captureId) implements CameraUiEvent {}
 
     record ShowError(UiError error) implements CameraUiEvent {}
 
     record EmptyRecognition() implements CameraUiEvent {}
+
+    record PermissionActionEvent(PermissionAction action) implements CameraUiEvent {}
   }
 
   private final CaptureRepository captureRepository;
@@ -52,16 +64,24 @@ public final class CameraCaptureViewModel extends ViewModel {
   private final IdGenerator idGenerator;
   private final Clock clock;
   private final ExecutorService executor;
+  private final PermissionStatus permissionStatus;
+  private final PermissionRequester permissionRequester;
+  private final RequestPermissionUseCase permissionResolver;
+  private final SavedStateHandle savedStateHandle;
   private final String listId;
 
   private final MutableLiveData<CameraCaptureUiState> state =
-      new MutableLiveData<>(new CameraCaptureUiState(false, false));
+      new MutableLiveData<>(new CameraCaptureUiState(false, false, false));
   private final MutableLiveData<SingleEvent<CameraUiEvent>> events = new MutableLiveData<>();
 
   private String pendingImagePath;
   private ItemSource pendingSource;
   private boolean sessionCreated;
   private long recognitionGeneration;
+  private boolean permissionPreviouslyRequested;
+  private boolean rationaleAcknowledged;
+  private boolean lastPermissionGranted;
+  private boolean lastShouldShowRationale;
 
   @Inject
   public CameraCaptureViewModel(
@@ -71,6 +91,9 @@ public final class CameraCaptureViewModel extends ViewModel {
       IdGenerator idGenerator,
       Clock clock,
       ExecutorService executor,
+      PermissionStatus permissionStatus,
+      PermissionRequester permissionRequester,
+      RequestPermissionUseCase permissionResolver,
       SavedStateHandle savedStateHandle) {
     this.captureRepository = captureRepository;
     this.textRecognitionRepository = textRecognitionRepository;
@@ -78,7 +101,15 @@ public final class CameraCaptureViewModel extends ViewModel {
     this.idGenerator = idGenerator;
     this.clock = clock;
     this.executor = executor;
+    this.permissionStatus = permissionStatus;
+    this.permissionRequester = permissionRequester;
+    this.permissionResolver = permissionResolver;
+    this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
+    permissionPreviouslyRequested =
+        Boolean.TRUE.equals(savedStateHandle.get(KEY_PERMISSION_PREVIOUSLY_REQUESTED));
+    rationaleAcknowledged = Boolean.TRUE.equals(savedStateHandle.get(KEY_RATIONALE_ACKNOWLEDGED));
+    state.setValue(new CameraCaptureUiState(false, false, permissionStatus.isGranted(PERMISSION)));
   }
 
   public LiveData<CameraCaptureUiState> getState() {
@@ -87,6 +118,62 @@ public final class CameraCaptureViewModel extends ViewModel {
 
   public LiveData<SingleEvent<CameraUiEvent>> getEvents() {
     return events;
+  }
+
+  /** Checks camera availability through the domain port when the screen starts. */
+  public void onScreenStarted() {
+    boolean granted = permissionStatus.isGranted(PERMISSION);
+    publishGranted(granted);
+    if (granted) {
+      checkPermission(granted, false);
+    }
+  }
+
+  /** Reads permission state through the domain port and performs the decided action. */
+  public void checkPermission() {
+    checkPermission(
+        permissionStatus.isGranted(PERMISSION), permissionStatus.shouldShowRationale(PERMISSION));
+  }
+
+  private void checkPermission(boolean granted, boolean shouldShowRationale) {
+    lastPermissionGranted = granted;
+    lastShouldShowRationale = shouldShowRationale;
+    publishGranted(granted);
+    boolean permanentlyDenied = !granted && permissionPreviouslyRequested && !shouldShowRationale;
+    boolean rationaleDone = rationaleAcknowledged;
+    PermissionAction action = permissionResolver.resolve(granted, rationaleDone, permanentlyDenied);
+    if (action == PermissionAction.REQUEST) {
+      permissionRequester.request(PERMISSION, this::permissionResult);
+      return;
+    }
+    postEvent(new CameraUiEvent.PermissionActionEvent(action));
+  }
+
+  public void rationaleAccepted() {
+    rationaleAcknowledged = true;
+    savedStateHandle.set(KEY_RATIONALE_ACKNOWLEDGED, true);
+    checkPermission(lastPermissionGranted, lastShouldShowRationale);
+  }
+
+  public void permissionResult(boolean granted) {
+    permissionPreviouslyRequested = true;
+    savedStateHandle.set(KEY_PERMISSION_PREVIOUSLY_REQUESTED, true);
+    rationaleAcknowledged = false;
+    savedStateHandle.set(KEY_RATIONALE_ACKNOWLEDGED, false);
+    checkPermission(granted, permissionStatus.shouldShowRationale(PERMISSION));
+  }
+
+  private void publishGranted(boolean granted) {
+    CameraCaptureUiState current = state.getValue();
+    boolean recognizing = current != null && current.recognizing();
+    boolean canRetake = current != null && current.canRetake();
+    state.setValue(new CameraCaptureUiState(recognizing, canRetake, granted));
+  }
+
+  private void postState(boolean recognizing, boolean canRetake) {
+    CameraCaptureUiState current = state.getValue();
+    boolean granted = current != null && current.granted();
+    state.postValue(new CameraCaptureUiState(recognizing, canRetake, granted));
   }
 
   /** Called when CameraX saved a captured still to the given app-private path. */
@@ -122,7 +209,7 @@ public final class CameraCaptureViewModel extends ViewModel {
                 return;
               }
               if (error != null) {
-                state.postValue(new CameraCaptureUiState(false, canRetake()));
+                postState(false, canRetake());
                 postEvent(new CameraUiEvent.ShowError(UiError.RECOGNITION_FAILED));
                 return;
               }
@@ -137,7 +224,7 @@ public final class CameraCaptureViewModel extends ViewModel {
   public void retake() {
     recognitionGeneration++;
     replacePendingImage();
-    state.postValue(new CameraCaptureUiState(false, false));
+    postState(false, false);
   }
 
   private void recognizePending() {
@@ -154,12 +241,12 @@ public final class CameraCaptureViewModel extends ViewModel {
                 return;
               }
               if (error != null) {
-                state.postValue(new CameraCaptureUiState(false, canRetake()));
+                postState(false, canRetake());
                 postEvent(new CameraUiEvent.ShowError(UiError.RECOGNITION_FAILED));
                 return;
               }
               if (lines == null || lines.isEmpty()) {
-                state.postValue(new CameraCaptureUiState(false, canRetake()));
+                postState(false, canRetake());
                 postEvent(new CameraUiEvent.EmptyRecognition());
                 return;
               }
@@ -169,7 +256,7 @@ public final class CameraCaptureViewModel extends ViewModel {
 
   private long beginRecognition() {
     recognitionGeneration++;
-    state.postValue(new CameraCaptureUiState(true, canRetake()));
+    postState(true, canRetake());
     return recognitionGeneration;
   }
 
@@ -200,12 +287,12 @@ public final class CameraCaptureViewModel extends ViewModel {
               }
               if (error != null) {
                 replacePendingImage();
-                state.postValue(new CameraCaptureUiState(false, false));
+                postState(false, false);
                 postEvent(new CameraUiEvent.ShowError(UiError.SAVE_FAILED));
                 return;
               }
               sessionCreated = true;
-              state.postValue(new CameraCaptureUiState(false, false));
+              postState(false, false);
               postEvent(new CameraUiEvent.NavigateToReview(captureId));
             });
   }

@@ -5,7 +5,6 @@
  */
 package com.fastshoppr.app.data.repository;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.ListItemDao;
@@ -18,6 +17,7 @@ import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.observation.Observable;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import java.time.LocalDate;
@@ -52,23 +52,27 @@ public final class ListItemRepositoryImpl implements ListItemRepository {
   }
 
   @Override
-  public LiveData<List<ListItem>> observeByList(String listId) {
-    return Transformations.map(
-        itemDao.observeByList(listId),
-        entities -> entities.stream().map(ListItemMapper::toDomain).toList());
+  public Observable<List<ListItem>> observeByList(String listId) {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            itemDao.observeByList(listId),
+            entities -> entities.stream().map(ListItemMapper::toDomain).toList()));
   }
 
   @Override
-  public LiveData<List<ListItem>> observeByListAndStore(String listId, String storeId) {
-    return Transformations.map(
-        itemDao.observeByListAndStore(listId, storeId),
-        entities -> entities.stream().map(ListItemMapper::toDomain).toList());
+  public Observable<List<ListItem>> observeByListAndStore(String listId, String storeId) {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            itemDao.observeByListAndStore(listId, storeId),
+            entities -> entities.stream().map(ListItemMapper::toDomain).toList()));
   }
 
   @Override
-  public LiveData<ListItem> observeById(String id) {
-    return Transformations.map(
-        itemDao.observeById(id), entity -> entity == null ? null : ListItemMapper.toDomain(entity));
+  public Observable<ListItem> observeById(String id) {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            itemDao.observeById(id),
+            entity -> entity == null ? null : ListItemMapper.toDomain(entity)));
   }
 
   @Override

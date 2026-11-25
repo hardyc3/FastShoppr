@@ -11,33 +11,43 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
-import java.util.ArrayList;
-import java.util.List;
+import com.fastshoppr.app.domain.model.ShoppingListSummary;
+import java.util.Objects;
 
-public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAdapter.Holder> {
+public final class CalendarDayAdapter extends ListAdapter<CalendarDay, CalendarDayAdapter.Holder> {
+
+  static final DiffUtil.ItemCallback<CalendarDay> DIFF_CALLBACK =
+      new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull CalendarDay oldItem, @NonNull CalendarDay newItem) {
+          if (oldItem.date == null || newItem.date == null) {
+            return oldItem == newItem;
+          }
+          return oldItem.date.equals(newItem.date);
+        }
+
+        @Override
+        public boolean areContentsTheSame(
+            @NonNull CalendarDay oldItem, @NonNull CalendarDay newItem) {
+          return oldItem.inMonth == newItem.inMonth
+              && oldItem.isToday == newItem.isToday
+              && sameSummary(oldItem.summary, newItem.summary);
+        }
+      };
 
   public interface Listener {
     void onDayClick(CalendarDay day);
   }
 
   private final Listener listener;
-  private List<CalendarDay> days = new ArrayList<>();
 
   public CalendarDayAdapter(Listener listener) {
+    super(DIFF_CALLBACK);
     this.listener = listener;
-  }
-
-  public void submit(List<CalendarDay> days) {
-    int previous = this.days.size();
-    this.days = days == null ? new ArrayList<>() : days;
-    if (previous > 0) {
-      notifyItemRangeRemoved(0, previous);
-    }
-    if (!this.days.isEmpty()) {
-      notifyItemRangeInserted(0, this.days.size());
-    }
   }
 
   @NonNull
@@ -50,7 +60,7 @@ public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAd
 
   @Override
   public void onBindViewHolder(@NonNull Holder h, int position) {
-    CalendarDay d = days.get(position);
+    CalendarDay d = getItem(position);
     if (d.date == null || !d.inMonth) {
       h.text.setText("");
       h.dot.setVisibility(View.GONE);
@@ -76,9 +86,20 @@ public final class CalendarDayAdapter extends RecyclerView.Adapter<CalendarDayAd
     h.itemView.setOnClickListener(v -> listener.onDayClick(d));
   }
 
-  @Override
-  public int getItemCount() {
-    return days.size();
+  private static boolean sameSummary(
+      ShoppingListSummary oldSummary, ShoppingListSummary newSummary) {
+    if (oldSummary == newSummary) {
+      return true;
+    }
+    if (oldSummary == null || newSummary == null) {
+      return false;
+    }
+    return oldSummary.getItemCount() == newSummary.getItemCount()
+        && oldSummary.getStoreCount() == newSummary.getStoreCount()
+        && Objects.equals(oldSummary.getList().getId(), newSummary.getList().getId())
+        && Objects.equals(oldSummary.getList().getName(), newSummary.getList().getName())
+        && Objects.equals(
+            oldSummary.getList().getShoppingDate(), newSummary.getList().getShoppingDate());
   }
 
   static final class Holder extends RecyclerView.ViewHolder {

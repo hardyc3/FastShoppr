@@ -50,7 +50,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 7 | Background routing | `done` | 5, 6, 6b |
 | 8 | Schedule & calendar | `done` | 3, 7 |
 | 9 | MVP release | `done` | 8 |
-| 9A | Review remediation | `not-started` | 9 |
+| 9A | Review remediation | `in-progress` | 9 |
 | 10 | Store integration coverage | `not-started` | 9 |
 | 11 | Pricing spike | `not-started` | 10 |
 | 12 | Price comparison | `not-started` | 11 |

@@ -70,8 +70,8 @@ public final class CalendarFragment extends Fragment
             + " "
             + state.month.getYear();
     binding.textMonth.setText(monthName);
-    dayAdapter.submit(state.days);
-    upcomingAdapter.submit(state.upcoming);
+    dayAdapter.submitList(state.days);
+    upcomingAdapter.submitList(state.upcoming);
     binding.textNoUpcoming.setVisibility(state.upcoming.isEmpty() ? View.VISIBLE : View.GONE);
     binding.recyclerUpcoming.setVisibility(state.upcoming.isEmpty() ? View.GONE : View.VISIBLE);
   }

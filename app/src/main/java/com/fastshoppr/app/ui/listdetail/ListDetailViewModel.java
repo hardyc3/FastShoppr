@@ -9,7 +9,6 @@ import android.os.Handler;
 import android.os.Looper;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.date.LocalDateTimes;
@@ -21,6 +20,7 @@ import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.domain.model.StoreLocatorPages;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
@@ -34,6 +34,9 @@ import com.fastshoppr.app.domain.usecase.GetSelectedStoresUseCase;
 import com.fastshoppr.app.domain.usecase.LookupItemUseCase;
 import com.fastshoppr.app.domain.usecase.MoveItemToDateUseCase;
 import com.fastshoppr.app.domain.usecase.ResolveDatePhraseUseCase;
+import com.fastshoppr.app.domain.usecase.ReviewLookupCandidatesUseCase;
+import com.fastshoppr.app.domain.usecase.ReviewLookupCandidatesUseCase.LabeledCandidate;
+import com.fastshoppr.app.domain.usecase.ReviewLookupCandidatesUseCase.Labels;
 import com.fastshoppr.app.domain.usecase.SetItemAisleUseCase;
 import com.fastshoppr.app.domain.usecase.SortItemsUseCase;
 import com.fastshoppr.app.domain.usecase.ToggleItemCheckedUseCase;
@@ -57,6 +60,15 @@ import javax.inject.Inject;
 @HiltViewModel
 public final class ListDetailViewModel extends ViewModel {
 
+  /** One-off UI actions derived from an item row; the Fragment only renders them. */
+  public sealed interface ItemActionEvent
+      permits ItemActionEvent.ShowCandidates, ItemActionEvent.ShowSetAisle {
+    record ShowCandidates(ListItem item, List<LabeledCandidate> candidates)
+        implements ItemActionEvent {}
+
+    record ShowSetAisle(ListItem item) implements ItemActionEvent {}
+  }
+
   private static final String KEY_DRAFT_PREFIX = "draft:";
   private static final int MAX_TEXT_LENGTH = 200;
 
@@ -76,23 +88,22 @@ public final class ListDetailViewModel extends ViewModel {
   private final SetItemAisleUseCase setItemAisleUseCase;
   private final LookupItemUseCase lookupItemUseCase;
   private final ApplyLookupCandidateUseCase applyLookupCandidateUseCase;
+  private final ReviewLookupCandidatesUseCase reviewLookupCandidates;
   private final OrganizingScheduler organizingScheduler;
   private final ListDetailRowsBuilder rowsBuilder;
   private final SavedStateHandle savedStateHandle;
   private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
   private final String listId;
-  private final LiveData<ShoppingList> listLiveData;
-  private final LiveData<List<ListItem>> itemsLiveData;
-  private final LiveData<List<Store>> storesLiveData;
+  private final Registration listRegistration;
+  private final Registration itemsRegistration;
+  private final Registration storesRegistration;
   private final MutableLiveData<List<Store>> addableStores = new MutableLiveData<>(List.of());
   private final MutableLiveData<ListDetailUiState> state =
       new MutableLiveData<>(ListDetailUiState.loading());
   private final MutableLiveData<SingleEvent<ListDetailUiEvent>> events = new MutableLiveData<>();
-
-  private final Observer<ShoppingList> listObserver = this::onListChanged;
-  private final Observer<List<ListItem>> itemsObserver = this::onItemsChanged;
-  private final Observer<List<Store>> storesObserver = this::onStoresChanged;
+  private final MutableLiveData<SingleEvent<ItemActionEvent>> itemActionEvents =
+      new MutableLiveData<>();
 
   private ShoppingList list;
   private List<ListItem> items = List.of();
@@ -124,6 +135,7 @@ public final class ListDetailViewModel extends ViewModel {
       SetItemAisleUseCase setItemAisleUseCase,
       LookupItemUseCase lookupItemUseCase,
       ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
+      ReviewLookupCandidatesUseCase reviewLookupCandidates,
       OrganizingScheduler organizingScheduler,
       SortItemsUseCase sortItemsUseCase,
       SavedStateHandle savedStateHandle) {
@@ -143,18 +155,59 @@ public final class ListDetailViewModel extends ViewModel {
     this.setItemAisleUseCase = setItemAisleUseCase;
     this.lookupItemUseCase = lookupItemUseCase;
     this.applyLookupCandidateUseCase = applyLookupCandidateUseCase;
+    this.reviewLookupCandidates = reviewLookupCandidates;
     this.organizingScheduler = organizingScheduler;
     this.rowsBuilder = new ListDetailRowsBuilder(sortItemsUseCase);
     this.savedStateHandle = savedStateHandle;
     this.listId = Objects.requireNonNull(savedStateHandle.get(NavArguments.LIST_ID));
     this.sortDirection = settingsRepository.getSortDirection();
-    this.listLiveData = listRepository.observeById(listId);
-    this.itemsLiveData = itemRepository.observeByList(listId);
-    this.storesLiveData = storeRepository.observeActive();
+    this.listRegistration = listRepository.observeById(listId).subscribe(this::onListChanged);
+    this.itemsRegistration = itemRepository.observeByList(listId).subscribe(this::onItemsChanged);
+    this.storesRegistration = storeRepository.observeActive().subscribe(this::onStoresChanged);
+  }
 
-    listLiveData.observeForever(listObserver);
-    itemsLiveData.observeForever(itemsObserver);
-    storesLiveData.observeForever(storesObserver);
+  /** Convenience constructor for existing tests that do not supply a candidate decoder. */
+  public ListDetailViewModel(
+      ShoppingListRepository listRepository,
+      ListItemRepository itemRepository,
+      StoreRepository storeRepository,
+      SettingsRepository settingsRepository,
+      GetSelectedStoresUseCase getSelectedStores,
+      ExecutorService executor,
+      AddItemUseCase addItemUseCase,
+      ToggleItemCheckedUseCase toggleItemCheckedUseCase,
+      DeleteItemUseCase deleteItemUseCase,
+      MoveItemToDateUseCase moveItemToDateUseCase,
+      DeferItemUseCase deferItemUseCase,
+      ResolveDatePhraseUseCase resolveDatePhraseUseCase,
+      Clock clock,
+      SetItemAisleUseCase setItemAisleUseCase,
+      LookupItemUseCase lookupItemUseCase,
+      ApplyLookupCandidateUseCase applyLookupCandidateUseCase,
+      OrganizingScheduler organizingScheduler,
+      SortItemsUseCase sortItemsUseCase,
+      SavedStateHandle savedStateHandle) {
+    this(
+        listRepository,
+        itemRepository,
+        storeRepository,
+        settingsRepository,
+        getSelectedStores,
+        executor,
+        addItemUseCase,
+        toggleItemCheckedUseCase,
+        deleteItemUseCase,
+        moveItemToDateUseCase,
+        deferItemUseCase,
+        resolveDatePhraseUseCase,
+        clock,
+        setItemAisleUseCase,
+        lookupItemUseCase,
+        applyLookupCandidateUseCase,
+        new ReviewLookupCandidatesUseCase(),
+        organizingScheduler,
+        sortItemsUseCase,
+        savedStateHandle);
   }
 
   public LiveData<ListDetailUiState> getState() {
@@ -163,6 +216,30 @@ public final class ListDetailViewModel extends ViewModel {
 
   public LiveData<SingleEvent<ListDetailUiEvent>> getEvents() {
     return events;
+  }
+
+  public LiveData<SingleEvent<ItemActionEvent>> getItemActionEvents() {
+    return itemActionEvents;
+  }
+
+  /**
+   * Calendar date used by date pickers, derived from the injected clock (never the device clock).
+   */
+  public LocalDate today() {
+    return LocalDateTimes.today(clock);
+  }
+
+  /** Decides whether a row offers saved candidates or the manual aisle dialog. */
+  public void onItemNotRight(ListItem item, Labels labels) {
+    if (item == null) {
+      return;
+    }
+    var decoded = reviewLookupCandidates.decode(item, labels);
+    ItemActionEvent action =
+        decoded.showCandidates()
+            ? new ItemActionEvent.ShowCandidates(item, decoded.candidates())
+            : new ItemActionEvent.ShowSetAisle(item);
+    itemActionEvents.postValue(new SingleEvent<>(action));
   }
 
   /** Active stores ordered for the add-store dialog; the Fragment never queries or sorts. */
@@ -609,9 +686,9 @@ public final class ListDetailViewModel extends ViewModel {
 
   @Override
   protected void onCleared() {
-    listLiveData.removeObserver(listObserver);
-    itemsLiveData.removeObserver(itemsObserver);
-    storesLiveData.removeObserver(storesObserver);
+    listRegistration.close();
+    itemsRegistration.close();
+    storesRegistration.close();
     mainHandler.removeCallbacksAndMessages(null);
   }
 }

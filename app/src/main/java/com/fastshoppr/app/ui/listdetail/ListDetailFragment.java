@@ -27,12 +27,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.DialogSetAisleBinding;
 import com.fastshoppr.app.databinding.FragmentListDetailBinding;
-import com.fastshoppr.app.domain.lookup.LookupCandidatesCodec;
-import com.fastshoppr.app.domain.lookup.StoreLookupResult;
 import com.fastshoppr.app.domain.model.ListItem;
-import com.fastshoppr.app.domain.model.LookupStatus;
 import com.fastshoppr.app.domain.model.SortDirection;
 import com.fastshoppr.app.domain.model.Store;
+import com.fastshoppr.app.domain.usecase.ReviewLookupCandidatesUseCase;
+import com.fastshoppr.app.domain.usecase.ReviewLookupCandidatesUseCase.LabeledCandidate;
 import com.fastshoppr.app.ui.common.DatePickerUtil;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
@@ -48,7 +47,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @AndroidEntryPoint
-public final class ListDetailFragment extends Fragment implements ListDetailAdapter.Listener {
+public final class ListDetailFragment extends Fragment
+    implements ListDetailAdapter.Listener, ReviewLookupCandidatesUseCase.Labels {
 
   private FragmentListDetailBinding binding;
   private ListDetailViewModel viewModel;
@@ -86,6 +86,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
+    viewModel.getItemActionEvents().observe(getViewLifecycleOwner(), this::handleItemActionEvent);
     viewModel
         .getAddableStores()
         .observe(
@@ -158,6 +159,18 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
     }
   }
 
+  private void handleItemActionEvent(SingleEvent<ListDetailViewModel.ItemActionEvent> event) {
+    ListDetailViewModel.ItemActionEvent content = event.getContentIfNotHandled();
+    if (content == null) {
+      return;
+    }
+    if (content instanceof ListDetailViewModel.ItemActionEvent.ShowCandidates show) {
+      showCandidatePicker(show.item(), show.candidates());
+    } else if (content instanceof ListDetailViewModel.ItemActionEvent.ShowSetAisle show) {
+      showSetAisleDialog(show.item());
+    }
+  }
+
   private void showDeferralDialog(ListDetailUiEvent.RequestDeferral req) {
     String targetText = req.targetListDate().format(DateTimeFormatter.ISO_LOCAL_DATE);
     String msg = getString(R.string.defer_parsed_message, targetText);
@@ -205,7 +218,7 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             (d, w) ->
                 DatePickerUtil.showDatePicker(
                     this,
-                    LocalDate.now(),
+                    viewModel.today(),
                     date ->
                         viewModel.confirmDeferredAdd(
                             req.storeId(),
@@ -338,27 +351,13 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
 
   @Override
   public void onItemNotRight(ListItem item) {
-    List<StoreLookupResult.Found> candidates =
-        LookupCandidatesCodec.decode(item.getMatchCandidatesJson());
-    if (item.getLookupStatus() == LookupStatus.NEEDS_REVIEW && !candidates.isEmpty()) {
-      showCandidatePicker(item, candidates);
-      return;
-    }
-    showSetAisleDialog(item);
+    viewModel.onItemNotRight(item, this);
   }
 
-  private void showCandidatePicker(ListItem item, List<StoreLookupResult.Found> candidates) {
+  private void showCandidatePicker(ListItem item, List<LabeledCandidate> candidates) {
     List<String> labels = new ArrayList<>();
-    for (StoreLookupResult.Found c : candidates) {
-      String name = c.getProductName();
-      if (name == null || name.isBlank()) {
-        name = getString(R.string.lookup_candidate_unknown);
-      }
-      String loc = c.getAisle() == null ? getString(R.string.no_aisle) : c.getAisle();
-      if (c.getBay() != null && !c.getBay().isBlank()) {
-        loc = loc + getString(R.string.bay_suffix, c.getBay());
-      }
-      labels.add(name + " (" + loc + ")");
+    for (LabeledCandidate candidate : candidates) {
+      labels.add(candidate.label());
     }
     labels.add(getString(R.string.set_aisle));
     new MaterialAlertDialogBuilder(requireContext())
@@ -367,12 +366,27 @@ public final class ListDetailFragment extends Fragment implements ListDetailAdap
             labels.toArray(new String[0]),
             (dialog, which) -> {
               if (which >= 0 && which < candidates.size()) {
-                viewModel.applyLookupCandidate(item.getId(), candidates.get(which));
+                viewModel.applyLookupCandidate(item.getId(), candidates.get(which).candidate());
               } else {
                 showSetAisleDialog(item);
               }
             })
         .show();
+  }
+
+  @Override
+  public String unknownProduct() {
+    return getString(R.string.lookup_candidate_unknown);
+  }
+
+  @Override
+  public String noAisle() {
+    return getString(R.string.no_aisle);
+  }
+
+  @Override
+  public String baySuffix(String bay) {
+    return getString(R.string.bay_suffix, bay);
   }
 
   @Override

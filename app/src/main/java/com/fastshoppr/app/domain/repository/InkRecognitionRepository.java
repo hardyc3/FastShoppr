@@ -31,6 +31,14 @@ public interface InkRecognitionRepository {
   /** Recognizes ink on device. Completes with an empty list when nothing is recognized. */
   CompletableFuture<List<RecognizedLine>> recognize(InkData ink);
 
+  /**
+   * Removes the downloaded handwriting model from this device. Completes when deletion finishes.
+   * Implementations that cannot manage models may leave the default behavior.
+   */
+  default CompletableFuture<Void> deleteDownloadedModel() {
+    throw new UnsupportedOperationException("Ink model deletion is not supported");
+  }
+
   /** Releases the cached recognizer. Safe to call more than once. */
   void close();
 }

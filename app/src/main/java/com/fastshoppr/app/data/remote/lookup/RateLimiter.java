@@ -18,12 +18,23 @@ public class RateLimiter {
 
   private static final long MIN_INTERVAL_MILLIS = 1_000L;
 
+  /** Injectable wait mechanism so slot reservation can be tested with a fake clock. */
+  interface Sleeper {
+    void sleep(long millis) throws InterruptedException;
+  }
+
   private final Clock clock;
+  private final Sleeper sleeper;
   private final Map<StoreBrand, Long> nextSlotByBrand = new EnumMap<>(StoreBrand.class);
 
   @Inject
   public RateLimiter(Clock clock) {
+    this(clock, Thread::sleep);
+  }
+
+  RateLimiter(Clock clock, Sleeper sleeper) {
     this.clock = clock;
+    this.sleeper = sleeper;
   }
 
   /**
@@ -42,7 +53,7 @@ public class RateLimiter {
     }
     if (waitMs > 0) {
       try {
-        Thread.sleep(waitMs);
+        sleeper.sleep(waitMs);
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException("Interrupted while rate limiting", e);

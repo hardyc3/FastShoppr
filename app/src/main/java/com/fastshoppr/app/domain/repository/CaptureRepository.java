@@ -5,16 +5,16 @@
  */
 package com.fastshoppr.app.domain.repository;
 
-import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
+import com.fastshoppr.app.domain.observation.Observable;
 import java.util.List;
 
 public interface CaptureRepository {
 
-  LiveData<List<CaptureSession>> observeByList(String listId);
+  Observable<List<CaptureSession>> observeByList(String listId);
 
   List<CaptureSession> getByList(String listId);
 

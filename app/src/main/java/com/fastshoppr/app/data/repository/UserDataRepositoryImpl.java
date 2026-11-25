@@ -7,10 +7,6 @@ package com.fastshoppr.app.data.repository;
 
 import android.content.Context;
 import android.content.Intent;
-import android.os.Handler;
-import android.os.Looper;
-import android.webkit.CookieManager;
-import android.webkit.WebStorage;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
@@ -47,6 +43,7 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
   private final CaptureImageStore captureImageStore;
   private final NotificationHelper notificationHelper;
   private final OrganizingProgressStore progressStore;
+  private final WebViewStateClearerImpl webViewStateClearer;
   private final Clock clock;
   private final ExecutorService executor;
 
@@ -58,6 +55,7 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
       CaptureImageStore captureImageStore,
       NotificationHelper notificationHelper,
       OrganizingProgressStore progressStore,
+      WebViewStateClearerImpl webViewStateClearer,
       Clock clock,
       ExecutorService executor) {
     this.context = context;
@@ -66,6 +64,7 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
     this.captureImageStore = captureImageStore;
     this.notificationHelper = notificationHelper;
     this.progressStore = progressStore;
+    this.webViewStateClearer = webViewStateClearer;
     this.clock = clock;
     this.executor = executor;
   }
@@ -97,7 +96,7 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
             userDataDao.clearUserDataAndReseedStores(seedStores(clock.nowMillis()));
             settingsRepository.clearAll();
             captureImageStore.deleteAll();
-            await(clearWebViewData());
+            await(webViewStateClearer.clearAll());
             deleted.complete(null);
           } catch (Throwable error) {
             deleted.completeExceptionally(error);
@@ -121,25 +120,6 @@ public final class UserDataRepositoryImpl implements UserDataRepository {
     }
     notificationHelper.cancelAll();
     progressStore.clearAll();
-  }
-
-  private CompletableFuture<Void> clearWebViewData() {
-    CompletableFuture<Void> cleared = new CompletableFuture<>();
-    if (Looper.myLooper() == Looper.getMainLooper()) {
-      clearWebViewDataOnMain(cleared);
-    } else {
-      new Handler(Looper.getMainLooper()).post(() -> clearWebViewDataOnMain(cleared));
-    }
-    return cleared;
-  }
-
-  private static void clearWebViewDataOnMain(CompletableFuture<Void> cleared) {
-    try {
-      WebStorage.getInstance().deleteAllData();
-      CookieManager.getInstance().removeAllCookies(ignored -> cleared.complete(null));
-    } catch (RuntimeException error) {
-      cleared.completeExceptionally(error);
-    }
   }
 
   private static void await(CompletableFuture<Void> future) {

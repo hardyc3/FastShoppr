@@ -53,6 +53,7 @@ import com.fastshoppr.app.domain.usecase.SaveReviewedItemsUseCase;
 import com.fastshoppr.app.testing.DirectExecutorService;
 import com.fastshoppr.app.testing.FixedClock;
 import com.fastshoppr.app.testing.FixedIdGenerator;
+import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.common.UiMessage;
 import com.fastshoppr.app.ui.navigation.NavArguments;
@@ -180,6 +181,7 @@ public final class ReviewViewModelTest {
             scheduler,
             executor,
             Runnable::run,
+            new FixedClock(1000L),
             new SavedStateHandle(Map.of(NavArguments.CAPTURE_ID, "cap-1")));
     target.getEvents().observeForever(event -> record(event.getContentIfNotHandled()));
     viewModel = target;
@@ -213,6 +215,18 @@ public final class ReviewViewModelTest {
     assertEquals("2026-11-08", viewModel.getLines().get(0).getTargetDate());
     assertEquals(ItemSource.CAMERA_OCR, viewModel.getSource());
     assertTrue(hasEvent(ReviewViewModel.ReviewUiEvent.CaptureLoaded.class));
+  }
+
+  @Test
+  public void dateHelpersParseAndFormatWithoutFragmentLogic() {
+    assertEquals(LocalDate.of(2026, 11, 8), viewModel.initialDateFor("2026-11-08"));
+    assertEquals("fallback", viewModel.dateLabel(null, "fallback"));
+    assertEquals(
+        DateText.formatMedium(LocalDate.of(2026, 11, 8)),
+        viewModel.dateLabel("2026-11-08", "fallback"));
+
+    viewModel.loadCapture();
+    assertEquals(LocalDate.of(2026, 11, 8), viewModel.initialDateFor(null));
   }
 
   @Test
@@ -493,11 +507,59 @@ public final class ReviewViewModelTest {
   }
 
   @Test
+  public void cancelCleanupCancelsInFlightAvailabilityFuture() {
+    CompletableFuture<AiAvailability> pending = new CompletableFuture<>();
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    lenient().when(cleaner.availability()).thenReturn(pending);
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+
+    viewModel.onScreenStarted();
+    viewModel.startCleanup();
+
+    CompletableFuture<?> inFlight = viewModel.inFlightAvailabilityFuture();
+    assertNotNull(inFlight);
+    viewModel.cancelCleanup();
+    assertTrue(inFlight.isCancelled());
+    pending.complete(new AiAvailability.Available());
+    verify(cleaner, never()).clean(any());
+    assertEquals(ReviewViewModel.CleanupStatus.FINISHED, cleanupState().getStatus());
+  }
+
+  @Test
+  public void onScreenStoppedCancelsInFlightCleanFutureAndStopsSequentialInference() {
+    CompletableFuture<CleanItemResult> pending = new CompletableFuture<>();
+    ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
+    when(cleaner.availability())
+        .thenReturn(CompletableFuture.completedFuture(new AiAvailability.Available()));
+    when(cleaner.clean(any(CleanItemRequest.class))).thenReturn(pending);
+    when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
+    createViewModel(cleaner);
+    viewModel.loadCapture();
+
+    viewModel.onScreenStarted();
+    viewModel.startCleanup();
+
+    CompletableFuture<?> inFlight = viewModel.inFlightCleanFuture();
+    assertNotNull(inFlight);
+    verify(cleaner, times(1)).clean(any(CleanItemRequest.class));
+
+    viewModel.onScreenStopped();
+
+    assertTrue(inFlight.isCancelled());
+    pending.complete(new CleanItemResult.Suggested("Milk", 0.9f, "test"));
+    verify(cleaner, times(1)).clean(any(CleanItemRequest.class));
+    assertTrue(cleanupState().getSuggestions().isEmpty());
+  }
+
+  @Test
   public void cleanupStaysIdleWhenDisabled() {
     ItemNameCleaner cleaner = mock(ItemNameCleaner.class);
     createViewModel(cleaner);
     viewModel.loadCapture();
 
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     assertEquals(ReviewViewModel.CleanupStatus.IDLE, cleanupState().getStatus());
@@ -512,6 +574,7 @@ public final class ReviewViewModelTest {
     createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
     viewModel.loadCapture();
 
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     assertEquals(ReviewViewModel.CleanupStatus.FINISHED, cleanupState().getStatus());
@@ -535,6 +598,7 @@ public final class ReviewViewModelTest {
     when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
     createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
     viewModel.loadCapture();
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     viewModel.acceptSuggestion(suggestionFor("milk"));
@@ -562,6 +626,7 @@ public final class ReviewViewModelTest {
             });
     createViewModel(cleaner);
     viewModel.loadCapture();
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     viewModel.acceptAllSuggestions();
@@ -577,6 +642,7 @@ public final class ReviewViewModelTest {
     when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
     createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Capitalized")));
     viewModel.loadCapture();
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     viewModel.acceptSuggestionAs(suggestionFor("milk"), "Organic milk");
@@ -590,10 +656,12 @@ public final class ReviewViewModelTest {
     when(settingsRepository.isAiCleanupEnabled()).thenReturn(true);
     createViewModel(availableCleaner(new CleanItemResult.Suggested("Milk", 0.9f, "Cleaned")));
     viewModel.loadCapture();
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     viewModel.dismissSuggestion(suggestionFor("milk"));
     viewModel.acceptAllSuggestions();
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     assertTrue(cleanupState().getSuggestions().isEmpty());
@@ -615,6 +683,7 @@ public final class ReviewViewModelTest {
       viewModel.addLine("item-" + index);
     }
 
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     assertEquals(5, cleanupState().getSuggestions().size());
@@ -631,6 +700,7 @@ public final class ReviewViewModelTest {
     viewModel.loadCapture();
     viewModel.addLine("tp");
 
+    viewModel.onScreenStarted();
     viewModel.startCleanup();
 
     ReviewViewModel.CleanupSuggestion suggestion = suggestionFor("tp");
@@ -638,6 +708,33 @@ public final class ReviewViewModelTest {
     assertEquals("Toilet paper", suggestion.getSuggestedName());
     assertEquals(AiCleanupSource.RULES, suggestion.getSource());
     verify(cleaner, never()).clean(any());
+  }
+
+  @Test
+  public void addLineIsAvailableForTypedCaptureAndPreservesPendingEdits() {
+    when(captureRepository.getById("cap-1"))
+        .thenReturn(
+            new CaptureSession(
+                "cap-1", "list-1", ItemSource.TYPED, null, "json", 1000L, null, null));
+    assertFalse(viewModel.isAddLineAvailable());
+
+    viewModel.loadCapture();
+
+    assertTrue(viewModel.isAddLineAvailable());
+    viewModel.setLineText(0, "edited milk");
+    viewModel.addLine("bread");
+
+    assertEquals(3, viewModel.getLineCount());
+    assertEquals("edited milk", viewModel.getLine(0).getText());
+    assertEquals("bread", viewModel.getLine(2).getText());
+    assertTrue(viewModel.getLine(2).isManual());
+    assertNull(findEvent(ReviewViewModel.ReviewUiEvent.NavigateToInk.class));
+    ArgumentCaptor<String> json = ArgumentCaptor.forClass(String.class);
+    verify(captureRepository, atLeastOnce()).updateDraft(eq("cap-1"), json.capture(), any());
+    List<CapturedLine> draft =
+        draftCodec.decode(json.getAllValues().get(json.getAllValues().size() - 1));
+    assertEquals("edited milk", draft.get(0).getText());
+    assertEquals("bread", draft.get(2).getText());
   }
 
   @Test

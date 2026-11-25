@@ -18,7 +18,6 @@ import com.fastshoppr.app.R;
 import com.fastshoppr.app.databinding.FragmentSettingsBinding;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.StoreBrand;
-import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.StoreBrandLabel;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -57,6 +56,7 @@ public final class SettingsFragment extends Fragment {
     binding.switchAiCleanup.setOnCheckedChangeListener(
         (buttonView, isChecked) -> viewModel.setAiCleanupEnabled(isChecked));
     binding.btnDownloadModel.setOnClickListener(v -> viewModel.downloadModel());
+    binding.btnDeleteInkModel.setOnClickListener(v -> viewModel.deleteInkModel());
     binding.btnOpenSchedule.setOnClickListener(
         v -> Navigation.findNavController(v).navigate(R.id.action_settings_to_schedule));
     binding.btnDeleteAllData.setOnClickListener(v -> confirmDeleteAllData());
@@ -74,14 +74,32 @@ public final class SettingsFragment extends Fragment {
         .observe(
             getViewLifecycleOwner(),
             event -> {
-              SingleEvent<SettingsViewModel.StoreMessage> message = event;
-              if (message.getContentIfNotHandled() != null && binding != null) {
-                Snackbar.make(
-                        binding.getRoot(),
-                        R.string.settings_store_removed_message,
-                        Snackbar.LENGTH_LONG)
-                    .show();
+              SettingsViewModel.StoreMessage message = event.getContentIfNotHandled();
+              if (message == null || binding == null) {
+                return;
               }
+              int messageRes =
+                  message == SettingsViewModel.StoreMessage.STORE_CLEAR_FAILED
+                      ? R.string.settings_store_clear_failed_message
+                      : R.string.settings_store_removed_message;
+              Snackbar.make(binding.getRoot(), messageRes, Snackbar.LENGTH_LONG).show();
+            });
+    viewModel
+        .getInkModelDeleteEvent()
+        .observe(
+            getViewLifecycleOwner(),
+            event -> {
+              Boolean success = event.getContentIfNotHandled();
+              if (success == null || binding == null) {
+                return;
+              }
+              Snackbar.make(
+                      binding.getRoot(),
+                      success
+                          ? R.string.settings_ink_model_delete_success
+                          : R.string.settings_ink_model_delete_failed,
+                      Snackbar.LENGTH_LONG)
+                  .show();
             });
     viewModel
         .getDeleteEvent()
@@ -138,6 +156,7 @@ public final class SettingsFragment extends Fragment {
     int[] selection = {-1};
     new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.settings_store_forget_title)
+        .setMessage(R.string.settings_store_forget_message)
         .setSingleChoiceItems(
             labels.toArray(new String[0]), -1, (dialog, which) -> selection[0] = which)
         .setNegativeButton(R.string.cancel, null)
@@ -180,6 +199,9 @@ public final class SettingsFragment extends Fragment {
     }
     binding.btnDownloadModel.setVisibility(
         state.getAiStatus() == SettingsViewModel.AiStatus.DOWNLOADABLE ? View.VISIBLE : View.GONE);
+    binding.inkModelStatus.setText(inkModelStatusTextRes(state));
+    binding.btnDeleteInkModel.setEnabled(
+        state.getInkModelDeleteStatus() != SettingsViewModel.InkModelDeleteStatus.DELETING);
     binding.storeSummary.setText(formatStoreSummary(state));
   }
 
@@ -199,6 +221,15 @@ public final class SettingsFragment extends Fragment {
       }
     }
     return String.join("\n", lines);
+  }
+
+  private int inkModelStatusTextRes(SettingsViewModel.SettingsUiState state) {
+    return switch (state.getInkModelDeleteStatus()) {
+      case IDLE -> R.string.settings_ink_model_idle;
+      case DELETING -> R.string.settings_ink_model_deleting;
+      case DELETED -> R.string.settings_ink_model_deleted;
+      case FAILED -> R.string.settings_ink_model_failed;
+    };
   }
 
   private int statusTextRes(SettingsViewModel.SettingsUiState state) {

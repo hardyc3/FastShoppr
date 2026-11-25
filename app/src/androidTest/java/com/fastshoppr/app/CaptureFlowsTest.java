@@ -21,8 +21,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.widget.CheckBox;
 import androidx.core.content.ContextCompat;
@@ -36,6 +38,7 @@ import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.CapturedLine;
@@ -49,13 +52,14 @@ import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.List;
 import javax.inject.Inject;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Assume;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -73,10 +77,12 @@ public final class CaptureFlowsTest {
   @Inject ListItemRepository listItemRepository;
 
   private String listId;
+  private int initialCameraPermission;
 
   @Before
   public void setUp() {
     hiltRule.inject();
+    initialCameraPermission = currentCameraPermission();
     SupportSQLiteDatabase sqlite = database.getOpenHelper().getWritableDatabase();
     sqlite.execSQL("DELETE FROM list_items");
     sqlite.execSQL("DELETE FROM capture_sessions");
@@ -91,6 +97,11 @@ public final class CaptureFlowsTest {
             List.of(new RecognizedLine("milk", 0.95f), new RecognizedLine("eggs", 0.2f)));
     captureRepository.insert(
         new CaptureSession("cap-1", listId, ItemSource.CAMERA_OCR, null, json, 1L, null, null));
+  }
+
+  @After
+  public void restoreCameraPermission() {
+    setCameraPermission(initialCameraPermission == PackageManager.PERMISSION_GRANTED);
   }
 
   @Test
@@ -173,12 +184,9 @@ public final class CaptureFlowsTest {
   }
 
   @Test
-  public void cameraPermissionDeniedKeepsGalleryAndTypedEntryAvailable() {
-    Assume.assumeFalse(
-        "camera permission already granted on this device",
-        ContextCompat.checkSelfPermission(
-                ApplicationProvider.getApplicationContext(), android.Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED);
+  public void cameraPermissionDeniedShowsRequestWithoutBlockingManualEntry() {
+    setCameraPermission(false);
+    waitFor(() -> assertEquals(PackageManager.PERMISSION_DENIED, currentCameraPermission()));
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
@@ -186,13 +194,60 @@ public final class CaptureFlowsTest {
 
       navigate(scenario, R.id.capture_camera, NavArguments.forList(listId));
 
+      // These views render the permission state/events owned by the camera capture slice.
       waitForText(R.string.camera_permission_message);
+      onFocusedView(withId(R.id.permissionPanel)).check(matches(isDisplayed()));
       onFocusedView(withId(R.id.btnAllowCamera)).check(matches(isDisplayed()));
-      // gallery button removed in current UI; capture availability depends on permission state
       onFocusedView(withId(R.id.btnCapture)).check(matches(isDisplayed()));
 
       pressBackUnconditionally();
       waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
+    }
+  }
+
+  @Test
+  public void cameraPermissionGrantedHidesPermissionRequest() {
+    setCameraPermission(true);
+    waitFor(() -> assertEquals(PackageManager.PERMISSION_GRANTED, currentCameraPermission()));
+
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
+      waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
+
+      navigate(scenario, R.id.capture_camera, NavArguments.forList(listId));
+
+      // Granted state hides the request panel and keeps the capture action visible.
+      waitFor(() -> onFocusedView(withId(R.id.permissionPanel)).check(matches(not(isDisplayed()))));
+      onFocusedView(withId(R.id.btnAllowCamera)).check(matches(not(isDisplayed())));
+      onFocusedView(withId(R.id.btnCapture)).check(matches(isDisplayed()));
+
+      pressBackUnconditionally();
+      waitFor(() -> onFocusedView(withId(R.id.organize_button)).check(matches(isDisplayed())));
+    }
+  }
+
+  private static int currentCameraPermission() {
+    return ContextCompat.checkSelfPermission(
+        ApplicationProvider.getApplicationContext(), Manifest.permission.CAMERA);
+  }
+
+  /**
+   * Sets CAMERA through the platform shell command available to {@link android.app.UiAutomation};
+   * no runtime-permission dependency or test-only app hook is needed.
+   */
+  private static void setCameraPermission(boolean granted) {
+    String packageName = ApplicationProvider.getApplicationContext().getPackageName();
+    String action = granted ? "grant" : "revoke";
+    String command = "pm " + action + " " + packageName + " " + Manifest.permission.CAMERA;
+    ParcelFileDescriptor result =
+        InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
+    if (result == null) {
+      throw new AssertionError("UiAutomation could not change CAMERA permission: " + command);
+    }
+    try (ParcelFileDescriptor ignored = result) {
+      // pm grant/revoke produce no output worth reading; closing the pipe completes the command.
+    } catch (IOException error) {
+      throw new AssertionError("Could not finish CAMERA permission command: " + command, error);
     }
   }
 

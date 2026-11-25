@@ -20,10 +20,9 @@ public final class ScheduleCheckWorker extends Worker {
   @Override
   public Result doWork() {
     try {
-      ScheduleWorkerDeps.get(getApplicationContext())
-          .createScheduledListUseCase()
-          .runIfDue()
-          .join();
+      ScheduleWorkerDeps.Deps deps = ScheduleWorkerDeps.get(getApplicationContext());
+      deps.cleanUpExpiredDataUseCase().run().join();
+      deps.createScheduledListUseCase().runIfDue().join();
       return Result.success();
     } catch (Exception e) {
       return Result.retry();

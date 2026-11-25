@@ -129,8 +129,9 @@ public class WalmartWebViewLookupService implements StoreLookupService {
             webView.clearFormData();
             webView.removeAllViews();
             webView.destroy();
-            // cookies are intentionally kept so a user-picked store context (D-022 assisted
-            // session) survives between lookups; use "Forget store" in the store picker to wipe it
+            // Cookies are intentionally kept so a user-picked store context (D-022) survives
+            // between lookups. "Forget store" wipes them through the shared
+            // ForgetSelectedStoreUseCase -> WebViewStateClearer path.
           } catch (Exception ignored) {
             // best-effort teardown
           }

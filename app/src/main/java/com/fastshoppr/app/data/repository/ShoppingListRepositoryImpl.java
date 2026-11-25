@@ -6,6 +6,7 @@
 package com.fastshoppr.app.data.repository;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.Transformations;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.CaptureSessionDao;
@@ -18,12 +19,15 @@ import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
+import com.fastshoppr.app.domain.observation.Observable;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.work.OrganizingScheduler;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -59,47 +63,53 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
   }
 
   @Override
-  public LiveData<List<ShoppingList>> observeActive() {
-    return Transformations.map(
-        listDao.observeActive(),
-        entities -> entities.stream().map(ShoppingListMapper::toDomain).toList());
+  public Observable<List<ShoppingList>> observeActive() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeActive(),
+            entities -> entities.stream().map(ShoppingListMapper::toDomain).toList()));
   }
 
   @Override
-  public LiveData<List<ShoppingListSummary>> observeActiveSummaries() {
-    return Transformations.map(
-        listDao.observeActiveSummaries(),
-        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+  public Observable<List<ShoppingListSummary>> observeActiveSummaries() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeActiveSummaries(),
+            entities -> entities.stream().map(ShoppingListMapper::toSummary).toList()));
   }
 
   @Override
-  public LiveData<List<ShoppingList>> observeArchived() {
-    return Transformations.map(
-        listDao.observeArchived(),
-        entities -> entities.stream().map(ShoppingListMapper::toDomain).toList());
+  public Observable<List<ShoppingList>> observeArchived() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeArchived(),
+            entities -> entities.stream().map(ShoppingListMapper::toDomain).toList()));
   }
 
   @Override
-  public LiveData<List<ShoppingListSummary>> observeArchivedSummaries() {
-    return Transformations.map(
-        listDao.observeArchivedSummaries(),
-        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+  public Observable<List<ShoppingListSummary>> observeArchivedSummaries() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeArchivedSummaries(),
+            entities -> entities.stream().map(ShoppingListMapper::toSummary).toList()));
   }
 
   @Override
-  public LiveData<List<ShoppingListSummary>> observeActiveSummariesInRange(
+  public Observable<List<ShoppingListSummary>> observeActiveSummariesInRange(
       LocalDate startInclusive, LocalDate endInclusive) {
-    return Transformations.map(
-        listDao.observeActiveSummariesInRange(
-            startInclusive.format(DATE_FORMAT), endInclusive.format(DATE_FORMAT)),
-        entities -> entities.stream().map(ShoppingListMapper::toSummary).toList());
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeActiveSummariesInRange(
+                startInclusive.format(DATE_FORMAT), endInclusive.format(DATE_FORMAT)),
+            entities -> entities.stream().map(ShoppingListMapper::toSummary).toList()));
   }
 
   @Override
-  public LiveData<ShoppingList> observeById(String id) {
-    return Transformations.map(
-        listDao.observeById(id),
-        entity -> entity == null ? null : ShoppingListMapper.toDomain(entity));
+  public Observable<ShoppingList> observeById(String id) {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            listDao.observeById(id),
+            entity -> entity == null ? null : ShoppingListMapper.toDomain(entity)));
   }
 
   @Override
@@ -236,5 +246,23 @@ public final class ShoppingListRepositoryImpl implements ShoppingListRepository 
           int captures = captureDao.purgeDeletedBefore(cutoffMillis);
           return lists + items + captures;
         });
+  }
+}
+
+/** Adapts Room's LiveData streams to the framework-free domain observation contract. */
+final class LiveDataObservable<T> implements Observable<T> {
+
+  private final LiveData<T> source;
+
+  LiveDataObservable(LiveData<T> source) {
+    this.source = Objects.requireNonNull(source, "source");
+  }
+
+  @Override
+  public Registration subscribe(java.util.function.Consumer<T> observer) {
+    Objects.requireNonNull(observer, "observer");
+    Observer<T> bridge = observer::accept;
+    source.observeForever(bridge);
+    return () -> source.removeObserver(bridge);
   }
 }

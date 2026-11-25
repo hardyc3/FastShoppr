@@ -5,7 +5,6 @@
  */
 package com.fastshoppr.app.data.repository;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
 import com.fastshoppr.app.data.local.dao.StoreDao;
@@ -15,6 +14,7 @@ import com.fastshoppr.app.domain.error.NotFoundException;
 import com.fastshoppr.app.domain.error.StoreInUseException;
 import com.fastshoppr.app.domain.model.Store;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.observation.Observable;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import java.util.List;
@@ -36,10 +36,11 @@ public final class StoreRepositoryImpl implements StoreRepository {
   }
 
   @Override
-  public LiveData<List<Store>> observeActive() {
-    return Transformations.map(
-        storeDao.observeActive(),
-        entities -> entities.stream().map(StoreMapper::toDomain).toList());
+  public Observable<List<Store>> observeActive() {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            storeDao.observeActive(),
+            entities -> entities.stream().map(StoreMapper::toDomain).toList()));
   }
 
   @Override

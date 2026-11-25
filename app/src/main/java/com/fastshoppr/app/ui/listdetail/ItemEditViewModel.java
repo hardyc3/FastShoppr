@@ -7,11 +7,11 @@ package com.fastshoppr.app.ui.listdetail;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.Store;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
@@ -44,14 +44,11 @@ public final class ItemEditViewModel extends ViewModel {
   private final SavedStateHandle savedStateHandle;
 
   private final String itemId;
-  private final LiveData<ListItem> itemLiveData;
-  private final LiveData<List<Store>> storesLiveData;
   private final MutableLiveData<ItemEditUiState> state =
       new MutableLiveData<>(ItemEditUiState.loading());
   private final MutableLiveData<SingleEvent<ItemEditUiEvent>> events = new MutableLiveData<>();
-
-  private final Observer<ListItem> itemObserver = this::onItemChanged;
-  private final Observer<List<Store>> storesObserver = this::onStoresChanged;
+  private final Registration itemRegistration;
+  private final Registration storesRegistration;
 
   private ListItem item;
   private List<Store> stores = List.of();
@@ -79,10 +76,8 @@ public final class ItemEditViewModel extends ViewModel {
     this.executor = executor;
     this.savedStateHandle = savedStateHandle;
     this.itemId = Objects.requireNonNull(savedStateHandle.get(NavArguments.ITEM_ID));
-    this.itemLiveData = itemRepository.observeById(itemId);
-    this.storesLiveData = storeRepository.observeActive();
-    itemLiveData.observeForever(itemObserver);
-    storesLiveData.observeForever(storesObserver);
+    this.itemRegistration = itemRepository.observeById(itemId).subscribe(this::onItemChanged);
+    this.storesRegistration = storeRepository.observeActive().subscribe(this::onStoresChanged);
   }
 
   public LiveData<ItemEditUiState> getState() {
@@ -218,7 +213,7 @@ public final class ItemEditViewModel extends ViewModel {
 
   @Override
   protected void onCleared() {
-    itemLiveData.removeObserver(itemObserver);
-    storesLiveData.removeObserver(storesObserver);
+    itemRegistration.close();
+    storesRegistration.close();
   }
 }

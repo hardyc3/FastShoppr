@@ -13,6 +13,7 @@ import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.domain.ai.CleanupOutcome;
 import com.fastshoppr.app.domain.ai.ItemNameCleanerCoordinator;
 import com.fastshoppr.app.domain.concurrent.MainThreadExecutor;
+import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.AiAvailability;
 import com.fastshoppr.app.domain.model.AiCleanupSource;
 import com.fastshoppr.app.domain.model.CaptureSession;
@@ -29,6 +30,7 @@ import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
+import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.SaveReviewedItemsUseCase;
 import com.fastshoppr.app.ui.common.DateText;
 import com.fastshoppr.app.ui.common.SingleEvent;
@@ -86,6 +88,7 @@ public final class ReviewViewModel extends ViewModel {
   }
 
   public static final class ReviewLine {
+    private final long lineId;
     private final String text;
     private final String displayName;
     private final boolean selected;
@@ -101,7 +104,7 @@ public final class ReviewViewModel extends ViewModel {
         boolean manual,
         String storeId,
         String targetDate) {
-      this(text, null, selected, confidence, manual, storeId, targetDate);
+      this(0L, text, null, selected, confidence, manual, storeId, targetDate);
     }
 
     public ReviewLine(
@@ -112,6 +115,19 @@ public final class ReviewViewModel extends ViewModel {
         boolean manual,
         String storeId,
         String targetDate) {
+      this(0L, text, displayName, selected, confidence, manual, storeId, targetDate);
+    }
+
+    ReviewLine(
+        long lineId,
+        String text,
+        String displayName,
+        boolean selected,
+        float confidence,
+        boolean manual,
+        String storeId,
+        String targetDate) {
+      this.lineId = lineId;
       this.text = text;
       this.displayName = displayName;
       this.selected = selected;
@@ -119,6 +135,10 @@ public final class ReviewViewModel extends ViewModel {
       this.manual = manual;
       this.storeId = storeId;
       this.targetDate = targetDate;
+    }
+
+    public long getLineId() {
+      return lineId;
     }
 
     public String getText() {
@@ -151,23 +171,26 @@ public final class ReviewViewModel extends ViewModel {
     }
 
     ReviewLine withText(String value) {
-      return new ReviewLine(value, null, selected, confidence, manual, storeId, targetDate);
+      return new ReviewLine(lineId, value, null, selected, confidence, manual, storeId, targetDate);
     }
 
     ReviewLine withSelected(boolean value) {
-      return new ReviewLine(text, displayName, value, confidence, manual, storeId, targetDate);
+      return new ReviewLine(
+          lineId, text, displayName, value, confidence, manual, storeId, targetDate);
     }
 
     ReviewLine withStoreId(String value) {
-      return new ReviewLine(text, displayName, selected, confidence, manual, value, targetDate);
+      return new ReviewLine(
+          lineId, text, displayName, selected, confidence, manual, value, targetDate);
     }
 
     ReviewLine withTargetDate(String value) {
-      return new ReviewLine(text, displayName, selected, confidence, manual, storeId, value);
+      return new ReviewLine(
+          lineId, text, displayName, selected, confidence, manual, storeId, value);
     }
 
     ReviewLine withDisplayName(String value) {
-      return new ReviewLine(text, value, selected, confidence, manual, storeId, targetDate);
+      return new ReviewLine(lineId, text, value, selected, confidence, manual, storeId, targetDate);
     }
   }
 
@@ -280,12 +303,14 @@ public final class ReviewViewModel extends ViewModel {
   private final OrganizingScheduler organizingScheduler;
   private final ExecutorService executor;
   private final MainThreadExecutor mainThread;
+  private final Clock clock;
 
   private final MutableLiveData<SingleEvent<ReviewUiEvent>> events = new MutableLiveData<>();
   private final MutableLiveData<CleanupState> cleanupState = new MutableLiveData<>();
 
   private final String captureId;
   private final List<ReviewLine> lines = new ArrayList<>();
+  private long nextLineId = 1L;
   private final List<CleanupSuggestion> cleanupSuggestions = new ArrayList<>();
   private final Set<String> dismissedCleanupTexts = new HashSet<>();
 
@@ -305,6 +330,8 @@ public final class ReviewViewModel extends ViewModel {
   private boolean screenStarted;
   private volatile CleanupStatus cleanupStatus = CleanupStatus.IDLE;
   private volatile AiAvailability cleanupAvailability;
+  private volatile CompletableFuture<AiAvailability> availabilityFuture;
+  private volatile CompletableFuture<CleanupOutcome> cleanFuture;
   private volatile int cleanupGeneration;
   private volatile int availabilityGeneration;
 
@@ -320,6 +347,7 @@ public final class ReviewViewModel extends ViewModel {
       OrganizingScheduler organizingScheduler,
       ExecutorService executor,
       MainThreadExecutor mainThread,
+      Clock clock,
       SavedStateHandle savedStateHandle) {
     this.captureRepository = captureRepository;
     this.storeRepository = storeRepository;
@@ -331,6 +359,7 @@ public final class ReviewViewModel extends ViewModel {
     this.organizingScheduler = organizingScheduler;
     this.executor = executor;
     this.mainThread = mainThread;
+    this.clock = clock;
     this.captureId = savedStateHandle.get(NavArguments.CAPTURE_ID);
     cleanupState.setValue(currentCleanupState());
   }
@@ -371,12 +400,39 @@ public final class ReviewViewModel extends ViewModel {
     return source;
   }
 
+  /** Date-picker initial value; uses the loaded list date or the injected clock as fallback. */
+  public LocalDate initialDateFor(String value) {
+    LocalDate parsed = DateText.parseIsoOrNull(value);
+    if (parsed != null) {
+      return parsed;
+    }
+    return defaultDate != null ? defaultDate : LocalDateTimes.today(clock);
+  }
+
+  public String dateLabel(String value, String fallback) {
+    LocalDate parsed = DateText.parseIsoOrNull(value);
+    return parsed == null ? fallback : DateText.formatMedium(parsed);
+  }
+
   public int getSelectedCount() {
     return selectedCount;
   }
 
   public boolean isSaving() {
     return isSaving;
+  }
+
+  /** Add line is available in review for every capture source once its capture has loaded. */
+  public boolean isAddLineAvailable() {
+    return loaded && currentCapture != null;
+  }
+
+  CompletableFuture<?> inFlightAvailabilityFuture() {
+    return availabilityFuture;
+  }
+
+  CompletableFuture<?> inFlightCleanFuture() {
+    return cleanFuture;
   }
 
   public boolean isLowConfidence(ReviewLine line) {
@@ -473,7 +529,14 @@ public final class ReviewViewModel extends ViewModel {
   public void addLine(String text) {
     lines.add(
         new ReviewLine(
-            text == null ? "" : text, false, 0.0f, true, defaultStoreId(), defaultTargetDate()));
+            nextLineId++,
+            text == null ? "" : text,
+            null,
+            false,
+            0.0f,
+            true,
+            defaultStoreId(),
+            defaultTargetDate()));
     recountSelection();
     persistDraft();
     postEvent(new ReviewUiEvent.LinesChanged());
@@ -577,7 +640,9 @@ public final class ReviewViewModel extends ViewModel {
     }
     ReviewLine second =
         new ReviewLine(
+            nextLineId++,
             tail,
+            null,
             line.isSelected(),
             line.getConfidence(),
             line.isManual(),
@@ -624,15 +689,23 @@ public final class ReviewViewModel extends ViewModel {
     cleanupStatus = CleanupStatus.CHECKING;
     refreshCleanupState();
     final int generation = ++cleanupGeneration;
-    CompletableFuture<AiAvailability> availability =
-        cleanupAvailability == null
-            ? cleanerCoordinator.availability()
-            : CompletableFuture.completedFuture(cleanupAvailability);
+    CompletableFuture<AiAvailability> availability;
+    if (cleanupAvailability != null) {
+      availability = CompletableFuture.completedFuture(cleanupAvailability);
+    } else if (availabilityFuture != null && !availabilityFuture.isDone()) {
+      availability = availabilityFuture;
+    } else {
+      availability = cleanerCoordinator.availability();
+    }
+    if (availability == null) {
+      availability = CompletableFuture.completedFuture(new AiAvailability.Unavailable());
+    }
+    availabilityFuture = availability;
     availability.whenComplete(
         (result, error) ->
             postToMain(
                 () -> {
-                  if (generation != cleanupGeneration) {
+                  if (generation != cleanupGeneration || !screenStarted) {
                     return;
                   }
                   cleanupAvailability =
@@ -647,6 +720,10 @@ public final class ReviewViewModel extends ViewModel {
   public void cancelCleanup() {
     cleanupGeneration++;
     availabilityGeneration++;
+    cancelFuture(availabilityFuture);
+    cancelFuture(cleanFuture);
+    availabilityFuture = null;
+    cleanFuture = null;
     if (cleanupStatus == CleanupStatus.CHECKING || cleanupStatus == CleanupStatus.RUNNING) {
       cleanupStatus = CleanupStatus.FINISHED;
     }
@@ -747,7 +824,7 @@ public final class ReviewViewModel extends ViewModel {
 
   private void cleanSequentially(
       List<Integer> candidates, int position, AiAvailability availability, int generation) {
-    if (generation != cleanupGeneration) {
+    if (generation != cleanupGeneration || !screenStarted) {
       return;
     }
     if (position >= candidates.size()) {
@@ -767,20 +844,23 @@ public final class ReviewViewModel extends ViewModel {
     }
     String rawText = line.getText();
     CleanItemRequest request = new CleanItemRequest(rawText.trim(), contextFor(index));
-    cleanerCoordinator
-        .clean(request, availability)
-        .whenComplete(
-            (outcome, error) ->
-                postToMain(
-                    () -> {
-                      if (generation == cleanupGeneration && error == null && outcome != null) {
-                        ReviewLine current = getLine(index);
-                        if (current != null && Objects.equals(current.getText(), rawText)) {
-                          addSuggestion(index, rawText, outcome);
-                        }
-                      }
-                      cleanSequentially(candidates, position + 1, availability, generation);
-                    }));
+    CompletableFuture<CleanupOutcome> future = cleanerCoordinator.clean(request, availability);
+    cleanFuture = future;
+    future.whenComplete(
+        (outcome, error) ->
+            postToMain(
+                () -> {
+                  if (generation == cleanupGeneration
+                      && screenStarted
+                      && error == null
+                      && outcome != null) {
+                    ReviewLine current = getLine(index);
+                    if (current != null && Objects.equals(current.getText(), rawText)) {
+                      addSuggestion(index, rawText, outcome);
+                    }
+                  }
+                  cleanSequentially(candidates, position + 1, availability, generation);
+                }));
   }
 
   private void addSuggestion(int index, String rawText, CleanupOutcome outcome) {
@@ -818,22 +898,34 @@ public final class ReviewViewModel extends ViewModel {
     if (!screenStarted) {
       return;
     }
+    if (availabilityFuture != null && !availabilityFuture.isDone()) {
+      return;
+    }
     final int generation = ++availabilityGeneration;
-    cleanerCoordinator
-        .availability()
-        .whenComplete(
-            (result, error) ->
-                postToMain(
-                    () -> {
-                      if (generation != availabilityGeneration) {
-                        return;
-                      }
-                      cleanupAvailability =
-                          error == null && result != null
-                              ? result
-                              : new AiAvailability.Unavailable();
-                      refreshCleanupState();
-                    }));
+    CompletableFuture<AiAvailability> future = cleanerCoordinator.availability();
+    if (future == null) {
+      cleanupAvailability = new AiAvailability.Unavailable();
+      refreshCleanupState();
+      return;
+    }
+    availabilityFuture = future;
+    future.whenComplete(
+        (result, error) ->
+            postToMain(
+                () -> {
+                  if (generation != availabilityGeneration) {
+                    return;
+                  }
+                  cleanupAvailability =
+                      error == null && result != null ? result : new AiAvailability.Unavailable();
+                  refreshCleanupState();
+                }));
+  }
+
+  private static void cancelFuture(CompletableFuture<?> future) {
+    if (future != null && !future.isDone()) {
+      future.cancel(true);
+    }
   }
 
   private void postToMain(Runnable action) {
@@ -957,6 +1049,7 @@ public final class ReviewViewModel extends ViewModel {
         }
         lines.add(
             new ReviewLine(
+                nextLineId++,
                 line.getText(),
                 line.getDisplayName(),
                 line.isSelected(),
@@ -973,7 +1066,9 @@ public final class ReviewViewModel extends ViewModel {
         }
         lines.add(
             new ReviewLine(
+                nextLineId++,
                 recognizedLine.getText(),
+                null,
                 true,
                 recognizedLine.getConfidence(),
                 false,
@@ -982,7 +1077,9 @@ public final class ReviewViewModel extends ViewModel {
       }
     }
     if (lines.isEmpty()) {
-      lines.add(new ReviewLine("", true, 0.0f, true, defaultStoreId(), defaultTargetDate()));
+      lines.add(
+          new ReviewLine(
+              nextLineId++, "", null, true, 0.0f, true, defaultStoreId(), defaultTargetDate()));
     }
     recountSelection();
   }

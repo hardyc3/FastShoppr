@@ -145,6 +145,21 @@ public final class MlKitInkRecognitionRepository implements InkRecognitionReposi
   }
 
   @Override
+  public CompletableFuture<Void> deleteDownloadedModel() {
+    CompletableFuture<Void> result = new CompletableFuture<>();
+    try {
+      close();
+      RemoteModelManager.getInstance()
+          .deleteDownloadedModel(requireModel())
+          .addOnSuccessListener(ignored -> result.complete(null))
+          .addOnFailureListener(result::completeExceptionally);
+    } catch (Exception exception) {
+      result.completeExceptionally(exception);
+    }
+    return result;
+  }
+
+  @Override
   public void close() {
     synchronized (lock) {
       if (recognizer != null) {

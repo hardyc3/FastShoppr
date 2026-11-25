@@ -5,7 +5,6 @@
  */
 package com.fastshoppr.app.data.repository;
 
-import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Transformations;
 import com.fastshoppr.app.data.capture.CapturedLinesCodec;
 import com.fastshoppr.app.data.capture.RecognizedLinesCodec;
@@ -20,6 +19,7 @@ import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ListItem;
 import com.fastshoppr.app.domain.model.RecognizedLine;
+import com.fastshoppr.app.domain.observation.Observable;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import java.util.HashMap;
@@ -55,10 +55,11 @@ public final class CaptureRepositoryImpl implements CaptureRepository {
   }
 
   @Override
-  public LiveData<List<CaptureSession>> observeByList(String listId) {
-    return Transformations.map(
-        captureDao.observeByList(listId),
-        entities -> entities.stream().map(CaptureSessionMapper::toDomain).toList());
+  public Observable<List<CaptureSession>> observeByList(String listId) {
+    return new LiveDataObservable<>(
+        Transformations.map(
+            captureDao.observeByList(listId),
+            entities -> entities.stream().map(CaptureSessionMapper::toDomain).toList()));
   }
 
   @Override

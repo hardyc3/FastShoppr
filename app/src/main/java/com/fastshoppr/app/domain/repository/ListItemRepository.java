@@ -5,18 +5,18 @@
  */
 package com.fastshoppr.app.domain.repository;
 
-import androidx.lifecycle.LiveData;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.observation.Observable;
 import java.time.LocalDate;
 import java.util.List;
 
 public interface ListItemRepository {
 
-  LiveData<List<ListItem>> observeByList(String listId);
+  Observable<List<ListItem>> observeByList(String listId);
 
-  LiveData<List<ListItem>> observeByListAndStore(String listId, String storeId);
+  Observable<List<ListItem>> observeByListAndStore(String listId, String storeId);
 
-  LiveData<ListItem> observeById(String id);
+  Observable<ListItem> observeById(String id);
 
   List<ListItem> getByList(String listId);
 

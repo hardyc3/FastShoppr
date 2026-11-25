@@ -1,13 +1,13 @@
 # Phase 9A — Review Remediation
 
-- **Status:** `not-started`
+- **Status:** `in-progress`
 - **Depends on:** Phase 9
 - **Owner:** unassigned
-- **Started:** —
+- **Started:** 2026-11-24
 - **Completed:** —
-- **Last updated:** 2026-11-24
+- **Last updated:** 2026-11-25
 
-**Boundary note:** Phase 9A is planned, not implemented. No work in this file has been started, run, or verified. **Phase 10 — Store Integration Coverage stays `not-started`; do not start it.** Phase 10 must remain blocked until explicitly instructed (D-020, D-046, D-047). Phase 11 — Pricing Spike and Phase 12 — Price Comparison also remain `not-started`.
+**Boundary note:** Phase 9A is the only active phase. **Phase 10 — Store Integration Coverage stays `not-started`; do not start it.** Phase 10 must remain blocked until explicitly instructed (D-020, D-046, D-047). Phase 11 — Pricing Spike and Phase 12 — Price Comparison also remain `not-started`.
 
 ## Goal
 
@@ -24,7 +24,7 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 - **Framework-free domain.** Remove `androidx.lifecycle.LiveData` from `domain/repository/ShoppingListRepository.java`, `ListItemRepository.java`, `StoreRepository.java`, `CaptureRepository.java`, and `ScheduleRepository.java`. Remove Android/Hilt/`work` dependencies from `domain/usecase/CreateScheduledListUseCase.java` (`android.content.Context`, `androidx.core.app.NotificationManagerCompat`, `dagger.hilt.android.qualifiers.ApplicationContext`, `com.fastshoppr.app.work.ScheduleNotificationHelper`). Put notification capability/permission and notification dispatch behind domain-owned ports with data-layer implementations. Update all fakes, unit tests, and instrumentation tests that implement or inject the affected interfaces. Reconcile `01-architecture.md:85` with `AGENTS.md` and D-002 so the specs state one rule.
 - **MVVM boundaries.** Make `ui/calendar/CalendarUiState.java` immutable (public mutable fields at `:17-22`). Convert `CalendarDayAdapter`, `CalendarUpcomingAdapter`, and `ReviewAdapter` to `ListAdapter`/`DiffUtil`. Move Fragment-side date parsing and `LocalDate.now()` calls, permission requests/checks, and candidate decoding out of Fragments into ViewModels/use cases, leaving Fragments to render state and forward actions.
 - **Spec gaps.** Implement the real typed-capture input path (currently a placeholder at `ui/capture/TypedCaptureFragment.java:15-36` that navigates with a placeholder capture ID). Make **Add line** available in review per `04-ocr-and-input.md:107`. Add ink-model deletion in Settings per `04-ocr-and-input.md:46`. Wire scheduled cache purge and the 30-day soft-delete cleanup into startup/scheduling so the documented retention rule is actually executed.
-- **Security behavior.** Ensure **Forget store** wipes retailer WebView cookies and DOM storage (`CookieManager`/`WebStorage`) as required by D-032/D-043. Cancel in-flight Gemini Nano futures when the screen stops (per D-029 foreground-only rule). Add permission rationale and a settings deep link for permanent denial.
+- **Security behavior.** Ensure **Forget store** wipes retailer WebView cookies and DOM storage (`CookieManager`/`WebStorage`) as required by D-032/D-043. Cancel in-flight Gemini Nano futures when the screen stops and discard late results (per D-029 foreground-only rule). An already started ML Kit call is bounded by its timeout and cannot be forcibly interrupted; add permission rationale and a settings deep link for permanent denial.
 - **Quality/evidence.** Remove the skipped camera-permission test path (`CaptureFlowsTest.java:178-182` uses `Assume.assumeFalse` to skip when camera permission is already granted) and replace it with a deterministic test. Add a fake-clock rate-limiter test. Add a JVM test for `CreateScheduledListUseCase` using fakes for the new ports. Reconcile stale Phase 4/6/6b/6c/8 status text and the Phase 6 unchecked acceptance criteria at `phase-06-store-lookup.md:139`, `:148`, and `:149` **only with real evidence**; do not check boxes or rewrite status without it.
 
 ## Out of scope
@@ -58,7 +58,7 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 ### Security and privacy
 
 - **Forget store** clears retailer cookies and DOM storage so a forgotten branch cannot silently persist.
-- AI cleanup futures are cancelled when the review screen stops; no inference runs in the background.
+- AI cleanup futures are cancelled when the review screen stops; late results are discarded and no new inference starts in the background. An already started ML Kit call is bounded by its timeout.
 - Permission prompts show a rationale; permanent denial routes to the system settings screen via a deep link and does not block typed/manual entry.
 - No item text, images, saved branch addresses, or location coordinates in logs.
 
@@ -97,22 +97,22 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 
 ## Acceptance criteria
 
-- [ ] `domain` has no Android, AndroidX, Hilt, Room, or `work` imports; `LiveData` is removed from the five named repository interfaces and Android/`work` dependencies are removed from `CreateScheduledListUseCase`.
-- [ ] Notification and permission concerns are behind domain-owned ports with Hilt-bound data/work implementations; all fakes and tests are updated and compile.
-- [ ] `01-architecture.md:85` matches `AGENTS.md` and D-002: domain code is Java-only and Android-free.
-- [ ] `CalendarUiState` is immutable and `CalendarDayAdapter`, `CalendarUpcomingAdapter`, and `ReviewAdapter` use `ListAdapter`/`DiffUtil`.
-- [ ] Date parsing/`LocalDate.now()`, permission requests, and candidate decoding no longer occur in Fragments; they live in ViewModels/use cases.
+- [x] `domain` has no Android, AndroidX, Hilt, Room, or `work` imports; `LiveData` is removed from the five named repository interfaces and Android/`work` dependencies are removed from `CreateScheduledListUseCase`.
+- [x] Notification and permission concerns are behind domain-owned ports with Hilt-bound data/work implementations; all fakes and tests are updated and compile.
+- [x] `01-architecture.md:85` matches `AGENTS.md` and D-002: domain code is Java-only and Android-free.
+- [x] `CalendarUiState` is immutable and `CalendarDayAdapter`, `CalendarUpcomingAdapter`, and `ReviewAdapter` use `ListAdapter`/`DiffUtil`.
+- [x] Date parsing/`LocalDate.now()`, permission requests, and candidate decoding no longer occur in Fragments; they live in ViewModels/use cases.
 - [ ] Typed capture takes real text input and reaches review with that text; no placeholder capture ID is used.
 - [ ] Review **Add line** is available and preserves pending edits.
 - [ ] Settings can delete the ink model with visible progress/result.
-- [ ] Scheduled cache purge and 30-day soft-delete cleanup are wired into startup/scheduling and verified against the retention rule.
+- [ ] Scheduled cache purge and 30-day soft-delete cleanup are wired into startup/scheduling and have JVM fake-clock coverage; instrumentation evidence is still pending.
 - [ ] **Forget store** wipes `CookieManager` cookies and `WebStorage` DOM storage for retailer WebViews.
-- [ ] In-flight Gemini Nano futures are cancelled when the screen stops; no background inference.
+- [ ] JVM tests cover Gemini Nano future cancellation, late-result discard, and no further item started; manual confirmation on screen stop is still pending. An already started ML Kit call is bounded by its timeout.
 - [ ] Permission rationale and permanent-denial settings deep link are present and do not block typed/manual entry.
 - [ ] `CaptureFlowsTest.java:178-182` no longer skips via `Assume`; the replacement test runs deterministically with no skipped tests.
-- [ ] A fake-clock rate-limiter test and a JVM `CreateScheduledListUseCase` test with fakes exist and pass.
+- [x] A fake-clock rate-limiter test and a JVM `CreateScheduledListUseCase` test with fakes exist and pass.
 - [ ] Stale Phase 4/6/6b/6c/8 status text is reconciled only with cited evidence; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked unless real manual/live and full-suite evidence exists.
-- [ ] Phase 10 remains `not-started`; no Phase 10 brand, pricing, or new-dependency work is introduced.
+- [x] Phase 10 remains `not-started`; no Phase 10 brand, pricing, or new-dependency work is introduced.
 - [ ] `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, and `connectedDebugAndroidTest` pass with no new warnings or TODOs and evidence in the completion log.
 - [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
@@ -132,7 +132,7 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 | Ink-model deletion | Espresso/manual | Delete action, progress, result; rest of app unblocked |
 | Scheduled purge + 30-day cleanup | Unit + instrumentation | Fake clock; in-window rows retained, out-of-window rows purged |
 | Forget-store WebView wipe | Espresso/manual | Cookies and DOM storage cleared |
-| AI future cancellation | Unit | Future cancelled on screen stop; no background inference |
+| AI future cancellation | Unit | Future cancelled on screen stop; late result discarded; no further item started |
 | Permission rationale + permanent denial | Espresso/manual | Rationale shown; settings deep link on permanent denial |
 | Camera permission flows | Espresso | No `Assume`-based skip; deterministic granted/denied coverage |
 | Phase status evidence reconciliation | Docs review | Citations to real command/test records only |
@@ -150,7 +150,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 3. In Settings, delete the ink model and confirm visible progress/result and that typed capture still works.
 4. Pick a retailer branch, tap **Forget store**, and confirm the saved context and WebView cookies/DOM storage are cleared.
 5. Deny a permission, confirm the rationale, then permanently deny and confirm the settings deep link; typed/manual entry remains available.
-6. Enable AI cleanup, start a cleanup, leave the screen, and confirm the in-flight future is cancelled and no inference continues in the background.
+6. Enable AI cleanup, start a cleanup, leave the screen, and confirm the in-flight future is cancelled, its late result is discarded, and no further item is processed.
 7. Run the scheduled purge and 30-day cleanup checks with a fake clock; confirm in-window rows are retained.
 8. Reconcile stale phase text only after real evidence is recorded, then run the full static and instrumentation gates and record results.
 9. Expected result: domain is Android-free, MVVM boundaries hold, spec and evidence match reality, no tests skipped, Phase 10 untouched.
@@ -175,4 +175,16 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-24 | `./gradlew assembleDebug testDebugUnitTest lintDebug spotlessCheck assembleDebugAndroidTest --console=plain` | PASS | 298 JVM tests across 61 reports; 0 failures, 0 errors, 0 skipped. `lintDebug` passes despite dependency Kotlin-metadata `e:` lines from ML Kit GenAI artifacts. |
+| 2026-11-24 | Static scans: domain imports, Fragment date logic, `Assume`, `TODO`/`FIXME`, Phase 10 status | PASS | Domain has no Android/AndroidX/Hilt/Room/`work` imports; no Fragment `LocalDate.now()` or date decoding; no `Assume`, `TODO`, or `FIXME`; Phase 10 still `not-started`. |
+| 2026-11-24 | `./gradlew connectedDebugAndroidTest --console=plain` | BLOCKED | Failed with `No connected devices!`. Device `R5CT7058L2A` appeared briefly during the run, then disappeared; `adb reconnect offline` found no device. Instrumentation never executed. |
+| 2026-11-24 | Manual demo steps 1–9 | NOT RUN | No live device session; device-dependent criteria stay unchecked. |
+| 2026-11-24 | Stale Phase 4/6/6b/6c/8 evidence reconciliation | NOT DONE | No new manual/live evidence recorded; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked. |
+| 2026-11-25 | Review follow-up: forget-store ordering/failure UI, owner-scoped permission binder through a UI-owned interface, camera typed/gallery alternatives, schedule-specific rationale, persisted permanent-denial flags, ReviewAdapter text guard | PASS | JVM tests cover wipe-before-clear ordering, wipe-failure retention, restored denial state, and permission decisions. Fragments bind launchers only; ViewModels own permission checks/requests. |
+| 2026-11-25 | `./gradlew spotlessApply assembleDebug testDebugUnitTest lintDebug spotlessCheck assembleDebugAndroidTest --console=plain` | PASS | 302 JVM tests across 61 reports; 0 failures, 0 errors, 0 skipped. `lintDebug` passes despite dependency Kotlin-metadata `e:` lines from ML Kit GenAI artifacts. |
+| 2026-11-25 | Static scans: `git -c core.whitespace=cr-at-eol diff --check 42ea8fe`, domain Android-free boundary, `Assume`/`TODO`/`FIXME`, Phase 10 status | PASS | No whitespace errors with the repo's mixed CRLF/LF policy; domain has no Android/AndroidX/Hilt/Room/`work` imports (`javax.inject` DI annotations remain); no skipped-test markers or TODO/FIXME; Phase 10 stays `not-started`. |
+| 2026-11-25 | `./gradlew connectedDebugAndroidTest --console=plain` | BLOCKED | `No connected devices!`; `adb devices -l` shows no attached device. Instrumentation never executed. |
+| 2026-11-25 | Manual demo steps 1–9 | NOT RUN | No live device session; device/manual criteria stay unchecked. |
+| 2026-11-25 | Stale Phase 4/6/6b/6c/8 evidence reconciliation | NOT DONE | No new manual/live evidence recorded; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked. |
+
+**Status note:** implementation and static verification are complete, but `connectedDebugAndroidTest`, the manual demo, and evidence reconciliation are not. Phase 9A remains `in-progress` until those gates pass and every acceptance criterion has evidence.

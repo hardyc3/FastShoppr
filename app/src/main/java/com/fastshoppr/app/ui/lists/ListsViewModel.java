@@ -7,11 +7,11 @@ package com.fastshoppr.app.ui.lists;
 
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.SavedStateHandle;
 import androidx.lifecycle.ViewModel;
 import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
+import com.fastshoppr.app.domain.observation.Registration;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.time.Clock;
 import com.fastshoppr.app.domain.usecase.ArchiveListUseCase;
@@ -38,11 +38,8 @@ public final class ListsViewModel extends ViewModel {
 
   private final MutableLiveData<ListsUiState> state = new MutableLiveData<>(ListsUiState.loading());
   private final MutableLiveData<SingleEvent<ListsUiEvent>> events = new MutableLiveData<>();
-  private final LiveData<List<ShoppingListSummary>> activeLiveData;
-  private final LiveData<List<ShoppingListSummary>> archivedLiveData;
-
-  private final Observer<List<ShoppingListSummary>> activeObserver = this::onActiveChanged;
-  private final Observer<List<ShoppingListSummary>> archivedObserver = this::onArchivedChanged;
+  private final Registration activeRegistration;
+  private final Registration archivedRegistration;
 
   private List<ShoppingListSummary> active = List.of();
   private List<ShoppingListSummary> archived = List.of();
@@ -61,10 +58,10 @@ public final class ListsViewModel extends ViewModel {
     this.archiveListUseCase = archiveListUseCase;
     this.clock = clock;
     this.savedStateHandle = savedStateHandle;
-    this.activeLiveData = listRepository.observeActiveSummaries();
-    this.archivedLiveData = listRepository.observeArchivedSummaries();
-    activeLiveData.observeForever(activeObserver);
-    archivedLiveData.observeForever(archivedObserver);
+    this.activeRegistration =
+        listRepository.observeActiveSummaries().subscribe(this::onActiveChanged);
+    this.archivedRegistration =
+        listRepository.observeArchivedSummaries().subscribe(this::onArchivedChanged);
   }
 
   public LiveData<ListsUiState> getState() {
@@ -73,6 +70,11 @@ public final class ListsViewModel extends ViewModel {
 
   public LiveData<SingleEvent<ListsUiEvent>> getEvents() {
     return events;
+  }
+
+  /** Initial value for the create-list date picker. */
+  public LocalDate initialCreateDate() {
+    return LocalDateTimes.today(clock);
   }
 
   public void toggleShowArchived() {
@@ -163,7 +165,7 @@ public final class ListsViewModel extends ViewModel {
 
   @Override
   protected void onCleared() {
-    activeLiveData.removeObserver(activeObserver);
-    archivedLiveData.removeObserver(archivedObserver);
+    activeRegistration.close();
+    archivedRegistration.close();
   }
 }

@@ -5,8 +5,6 @@
  */
 package com.fastshoppr.app.ui.capture;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,9 +25,14 @@ import androidx.navigation.Navigation;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.databinding.FragmentCameraCaptureBinding;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
+import com.fastshoppr.app.ui.common.AppSettingsOpener;
+import com.fastshoppr.app.ui.common.PermissionLauncherBinder;
 import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiErrorText;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.common.util.concurrent.ListenableFuture;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -43,20 +46,29 @@ public final class CameraCaptureFragment extends Fragment {
 
   private FragmentCameraCaptureBinding binding;
   private CameraCaptureViewModel viewModel;
+  private CameraCaptureViewModel.CameraCaptureUiState currentState;
+  private boolean permissionDenied;
+  private ActivityResultLauncher<String> galleryLauncher;
 
   @Inject CaptureImageStore imageStore;
+  @Inject PermissionLauncherBinder permissionRequester;
 
   private ProcessCameraProvider cameraProvider;
   private ImageCapture imageCapture;
 
-  private final ActivityResultLauncher<String> permissionLauncher =
-      registerForActivityResult(
-          new ActivityResultContracts.RequestPermission(),
-          granted -> {
-            if (viewModel != null) {
-              onPermissionResult(granted);
-            }
-          });
+  @Override
+  public void onCreate(@Nullable Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    permissionRequester.bind(PlatformPermission.CAMERA, this);
+    galleryLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.GetContent(),
+            uri -> {
+              if (uri != null) {
+                viewModel.importImage(uri);
+              }
+            });
+  }
 
   @Nullable
   @Override
@@ -78,14 +90,11 @@ public final class CameraCaptureFragment extends Fragment {
     binding.toolbar.setNavigationOnClickListener(
         v -> Navigation.findNavController(v).popBackStack());
 
-    binding.btnAllowCamera.setOnClickListener(
-        v -> permissionLauncher.launch(Manifest.permission.CAMERA));
+    binding.btnAllowCamera.setOnClickListener(v -> viewModel.checkPermission());
+    binding.btnEnterItemsManually.setOnClickListener(v -> navigateToTypedCapture());
+    binding.btnImportGalleryImage.setOnClickListener(v -> galleryLauncher.launch("image/*"));
     binding.btnCapture.setOnClickListener(v -> capturePhoto());
-    binding.btnRetake.setOnClickListener(
-        v -> {
-          viewModel.retake();
-          renderState(new CameraCaptureViewModel.CameraCaptureUiState(false, false));
-        });
+    binding.btnRetake.setOnClickListener(v -> viewModel.retake());
 
     viewModel.getState().observe(getViewLifecycleOwner(), this::renderState);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
@@ -96,9 +105,7 @@ public final class CameraCaptureFragment extends Fragment {
   @Override
   public void onStart() {
     super.onStart();
-    if (hasCameraPermission()) {
-      ensureCamera();
-    }
+    viewModel.onScreenStarted();
   }
 
   @Override
@@ -107,20 +114,15 @@ public final class CameraCaptureFragment extends Fragment {
     super.onStop();
   }
 
-  private boolean hasCameraPermission() {
-    return ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA)
-        == PackageManager.PERMISSION_GRANTED;
-  }
-
   private void ensureCamera() {
-    if (binding == null || !hasCameraPermission() || !isAdded()) {
+    if (binding == null || currentState == null || !currentState.granted() || !isAdded()) {
       return;
     }
     ListenableFuture<ProcessCameraProvider> future =
         ProcessCameraProvider.getInstance(requireContext());
     future.addListener(
         () -> {
-          if (binding == null || !hasCameraPermission() || !isAdded()) {
+          if (binding == null || currentState == null || !currentState.granted() || !isAdded()) {
             return;
           }
           try {
@@ -198,18 +200,20 @@ public final class CameraCaptureFragment extends Fragment {
     if (binding == null) {
       return;
     }
+    currentState = state;
     binding.recognitionProgress.setVisibility(state.recognizing() ? View.VISIBLE : View.GONE);
-    binding.btnCapture.setEnabled(
-        !state.recognizing() && hasCameraPermission() && imageCapture != null);
+    binding.btnCapture.setEnabled(!state.recognizing() && state.granted() && imageCapture != null);
     binding.btnRetake.setVisibility(state.canRetake() ? View.VISIBLE : View.GONE);
     binding.btnRetake.setEnabled(!state.recognizing());
+    updatePermissionUi(permissionDenied);
   }
 
   private void updatePermissionUi(boolean denied) {
+    permissionDenied = denied;
     if (binding == null) {
       return;
     }
-    boolean granted = hasCameraPermission();
+    boolean granted = currentState != null && currentState.granted();
     binding.permissionPanel.setVisibility(granted ? View.GONE : View.VISIBLE);
     binding.permissionMessage.setText(
         denied ? R.string.camera_permission_denied : R.string.camera_permission_message);
@@ -230,6 +234,28 @@ public final class CameraCaptureFragment extends Fragment {
     } else if (content instanceof CameraCaptureViewModel.CameraUiEvent.EmptyRecognition) {
       EmptyRecognitionDialog.show(
           this, () -> {}, this::navigateToTypedCapture, this::navigateToTypedCapture);
+    } else if (content
+        instanceof CameraCaptureViewModel.CameraUiEvent.PermissionActionEvent permission) {
+      handlePermissionAction(permission.action());
+    }
+  }
+
+  private void handlePermissionAction(PermissionAction action) {
+    switch (action) {
+      case NONE -> ensureCamera();
+      case RATIONALE ->
+          new MaterialAlertDialogBuilder(requireContext())
+              .setMessage(R.string.camera_permission_message)
+              .setNegativeButton(android.R.string.cancel, (d, w) -> updatePermissionUi(true))
+              .setPositiveButton(R.string.ok, (d, w) -> viewModel.rationaleAccepted())
+              .show();
+      case REQUEST -> {
+        // The ViewModel consumes REQUEST by calling PermissionRequester directly.
+      }
+      case SETTINGS -> {
+        AppSettingsOpener.open(this);
+        updatePermissionUi(true);
+      }
     }
   }
 
@@ -245,19 +271,16 @@ public final class CameraCaptureFragment extends Fragment {
     }
   }
 
-  private void onPermissionResult(boolean granted) {
-    if (granted) {
-      updatePermissionUi(false);
-      ensureCamera();
-    } else {
-      updatePermissionUi(true);
-    }
-  }
-
   @Override
   public void onDestroyView() {
     super.onDestroyView();
     binding = null;
     imageCapture = null;
+  }
+
+  @Override
+  public void onDestroy() {
+    permissionRequester.unbind(PlatformPermission.CAMERA, this);
+    super.onDestroy();
   }
 }

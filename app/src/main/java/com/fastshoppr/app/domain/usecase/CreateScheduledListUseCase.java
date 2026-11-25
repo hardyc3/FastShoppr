@@ -5,18 +5,16 @@
  */
 package com.fastshoppr.app.domain.usecase;
 
-import android.content.Context;
-import androidx.core.app.NotificationManagerCompat;
 import com.fastshoppr.app.domain.date.LocalDateTimes;
 import com.fastshoppr.app.domain.model.ShoppingList;
 import com.fastshoppr.app.domain.model.ShoppingSchedule;
+import com.fastshoppr.app.domain.notification.ListCreationNotifier;
+import com.fastshoppr.app.domain.notification.NotificationPermissionStatus;
 import com.fastshoppr.app.domain.repository.ScheduleRepository;
 import com.fastshoppr.app.domain.repository.SettingsRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
 import com.fastshoppr.app.domain.repository.StoreRepository;
 import com.fastshoppr.app.domain.time.Clock;
-import com.fastshoppr.app.work.ScheduleNotificationHelper;
-import dagger.hilt.android.qualifiers.ApplicationContext;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.CompletableFuture;
@@ -27,7 +25,6 @@ public final class CreateScheduledListUseCase {
 
   public record Result(boolean created, ShoppingList list, boolean notified) {}
 
-  private final Context context;
   private final ScheduleRepository scheduleRepository;
   private final ShoppingListRepository listRepository;
   private final StoreRepository storeRepository;
@@ -35,11 +32,11 @@ public final class CreateScheduledListUseCase {
   private final AdvanceScheduleUseCase advanceScheduleUseCase;
   private final Clock clock;
   private final ExecutorService executor;
-  private final ScheduleNotificationHelper notificationHelper;
+  private final NotificationPermissionStatus notificationPermissionStatus;
+  private final ListCreationNotifier listCreationNotifier;
 
   @Inject
   public CreateScheduledListUseCase(
-      @ApplicationContext Context context,
       ScheduleRepository scheduleRepository,
       ShoppingListRepository listRepository,
       StoreRepository storeRepository,
@@ -47,8 +44,8 @@ public final class CreateScheduledListUseCase {
       AdvanceScheduleUseCase advanceScheduleUseCase,
       Clock clock,
       ExecutorService executor,
-      ScheduleNotificationHelper notificationHelper) {
-    this.context = context;
+      NotificationPermissionStatus notificationPermissionStatus,
+      ListCreationNotifier listCreationNotifier) {
     this.scheduleRepository = scheduleRepository;
     this.listRepository = listRepository;
     this.storeRepository = storeRepository;
@@ -56,7 +53,8 @@ public final class CreateScheduledListUseCase {
     this.advanceScheduleUseCase = advanceScheduleUseCase;
     this.clock = clock;
     this.executor = executor;
-    this.notificationHelper = notificationHelper;
+    this.notificationPermissionStatus = notificationPermissionStatus;
+    this.listCreationNotifier = listCreationNotifier;
   }
 
   public CompletableFuture<Result> runIfDue() {
@@ -83,7 +81,7 @@ public final class CreateScheduledListUseCase {
           advanceToUpcoming(schedule, today);
           boolean notified = false;
           if (createdNew && schedule.isNotifyOnCreate() && canNotify()) {
-            notified = notificationHelper.notifyListCreated(context, list);
+            notified = listCreationNotifier.notify(list);
           }
           return new Result(createdNew, list, notified);
         },
@@ -116,7 +114,7 @@ public final class CreateScheduledListUseCase {
       return false;
     }
     try {
-      return NotificationManagerCompat.from(context).areNotificationsEnabled();
+      return notificationPermissionStatus.isSystemPermissionGranted();
     } catch (Exception e) {
       return false;
     }

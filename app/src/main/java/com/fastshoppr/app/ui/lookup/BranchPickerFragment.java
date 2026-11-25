@@ -45,6 +45,7 @@ public final class BranchPickerFragment extends Fragment {
   private StoreBrand currentBrand;
   private StoreBrand loadedBrand;
   private String lastPageJson;
+  private BranchPickerViewModel.PickerState currentState;
 
   @Nullable
   @Override
@@ -75,14 +76,7 @@ public final class BranchPickerFragment extends Fragment {
             brands.stream().map(brand -> getString(StoreBrandLabel.labelRes(brand))).toList());
     adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     binding.branchBrandSpinner.setAdapter(adapter);
-    BranchPickerViewModel.PickerState initial = viewModel.getState().getValue();
-    if (initial != null) {
-      currentBrand = initial.getBrand();
-      int initialPosition = brands.indexOf(currentBrand);
-      if (initialPosition >= 0) {
-        binding.branchBrandSpinner.setSelection(initialPosition);
-      }
-    }
+    viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     binding.branchBrandSpinner.setOnItemSelectedListener(
         new android.widget.AdapterView.OnItemSelectedListener() {
           @Override
@@ -101,7 +95,6 @@ public final class BranchPickerFragment extends Fragment {
     binding.btnUseBranch.setOnClickListener(v -> requestPreview());
     binding.btnForgetBranch.setOnClickListener(v -> viewModel.forgetSelectedBranch());
 
-    viewModel.getState().observe(getViewLifecycleOwner(), this::render);
     viewModel.getEvents().observe(getViewLifecycleOwner(), this::handleEvent);
   }
 
@@ -174,9 +167,10 @@ public final class BranchPickerFragment extends Fragment {
   }
 
   private void render(BranchPickerViewModel.PickerState state) {
-    if (binding == null) {
+    if (binding == null || state == null) {
       return;
     }
+    currentState = state;
     StoreBrand brand = state.getBrand();
     if (currentBrand != brand) {
       currentBrand = brand;
@@ -206,6 +200,7 @@ public final class BranchPickerFragment extends Fragment {
     } else if (content instanceof BranchPickerViewModel.PickerEvent.SaveCompleted) {
       Navigation.findNavController(binding.getRoot()).popBackStack();
     } else if (content instanceof BranchPickerViewModel.PickerEvent.BranchRemoved) {
+      reloadAfterForget();
       showMessage(R.string.settings_store_removed_message);
     } else if (content instanceof BranchPickerViewModel.PickerEvent.ShowMessage message) {
       int messageRes =
@@ -214,9 +209,30 @@ public final class BranchPickerFragment extends Fragment {
             case CHALLENGE_PAGE -> R.string.branch_picker_blocked;
             case EXTRACTION_FAILED -> R.string.branch_picker_extract_failed;
             case UNSUPPORTED_BRAND -> R.string.branch_picker_unsupported;
+            case WEB_VIEW_CLEAR_FAILED -> R.string.branch_picker_clear_failed;
           };
       showMessage(messageRes);
     }
+  }
+
+  private void reloadAfterForget() {
+    if (binding == null) {
+      return;
+    }
+    WebView webView = binding.branchPickerWebView;
+    webView.stopLoading();
+    webView.clearHistory();
+    webView.clearFormData();
+    webView.clearCache(true);
+    lastPageJson = null;
+    loadedBrand = null;
+    BranchPickerViewModel.PickerState state = currentState;
+    if (state == null) {
+      webView.loadUrl("about:blank");
+      return;
+    }
+    loadedBrand = state.getBrand();
+    webView.loadUrl(state.getLocatorUrl());
   }
 
   private void showConfirmDialog(BranchPage page) {

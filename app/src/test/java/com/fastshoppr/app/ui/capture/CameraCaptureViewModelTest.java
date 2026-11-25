@@ -20,13 +20,18 @@ import com.fastshoppr.app.data.capture.CaptureImageStore;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.ItemSource;
+import com.fastshoppr.app.domain.model.PermissionAction;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ImageTextRecognitionRepository;
 import com.fastshoppr.app.domain.time.Clock;
+import com.fastshoppr.app.domain.usecase.RequestPermissionUseCase;
 import com.fastshoppr.app.testing.DirectExecutorService;
+import com.fastshoppr.app.testing.FakePermissionPorts;
 import com.fastshoppr.app.testing.FixedClock;
 import com.fastshoppr.app.testing.FixedIdGenerator;
+import com.fastshoppr.app.ui.common.SingleEvent;
 import com.fastshoppr.app.ui.common.UiError;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import java.io.File;
@@ -55,6 +60,10 @@ public final class CameraCaptureViewModelTest {
   private final List<CameraCaptureViewModel.CameraUiEvent> events = new ArrayList<>();
   private final IdGenerator idGenerator = new FixedIdGenerator();
   private final Clock clock = new FixedClock(1000L);
+  private final FakePermissionPorts.Status permissionStatus =
+      new FakePermissionPorts.Status(true, false);
+  private final FakePermissionPorts.Requester permissionRequester =
+      new FakePermissionPorts.Requester();
 
   private CameraCaptureViewModel viewModel;
 
@@ -68,6 +77,10 @@ public final class CameraCaptureViewModelTest {
   }
 
   private CameraCaptureViewModel createViewModel() {
+    return createViewModel(new SavedStateHandle(Map.of(NavArguments.LIST_ID, "list-1")));
+  }
+
+  private CameraCaptureViewModel createViewModel(SavedStateHandle handle) {
     return new CameraCaptureViewModel(
         captureRepository,
         textRecognitionRepository,
@@ -75,7 +88,10 @@ public final class CameraCaptureViewModelTest {
         idGenerator,
         clock,
         new DirectExecutorService(),
-        new SavedStateHandle(Map.of(NavArguments.LIST_ID, "list-1")));
+        permissionStatus,
+        permissionRequester,
+        new RequestPermissionUseCase(),
+        handle);
   }
 
   private void record(CameraCaptureViewModel.CameraUiEvent event) {
@@ -86,6 +102,82 @@ public final class CameraCaptureViewModelTest {
 
   private void recognitionReturns(CompletableFuture<List<RecognizedLine>> future) {
     when(textRecognitionRepository.recognize(anyString())).thenReturn(future);
+  }
+
+  @Test
+  public void cameraPermissionReadoutComesFromDomainPort() {
+    CameraCaptureViewModel.CameraCaptureUiState state = viewModel.getState().getValue();
+    assertNotNull(state);
+    assertTrue(state.granted());
+  }
+
+  @Test
+  public void permissionCheckShowsRationaleThenRequestsAndRoutesPermanentDenialToSettings() {
+    permissionStatus.set(false, false);
+    viewModel.checkPermission();
+    assertEquals(List.of(PermissionAction.RATIONALE), permissionActions());
+
+    viewModel.rationaleAccepted();
+    assertEquals(List.of(PlatformPermission.CAMERA), permissionRequester.requests);
+
+    permissionRequester.result(false);
+    assertEquals(
+        List.of(PermissionAction.RATIONALE, PermissionAction.SETTINGS), permissionActions());
+  }
+
+  @Test
+  public void rationaleAcceptedRequestsPermissionEvenWhenRationaleFlagRemainsTrue() {
+    permissionStatus.set(false, true);
+    viewModel.checkPermission();
+    viewModel.rationaleAccepted();
+
+    assertEquals(List.of(PermissionAction.RATIONALE), permissionActions());
+    assertEquals(List.of(PlatformPermission.CAMERA), permissionRequester.requests);
+  }
+
+  @Test
+  public void permanentDenialSurvivesSavedStateRestore() {
+    SavedStateHandle handle = new SavedStateHandle(Map.of(NavArguments.LIST_ID, "list-1"));
+    permissionStatus.set(false, false);
+    createViewModel(handle).permissionResult(false);
+
+    CameraCaptureViewModel restored = createViewModel(handle);
+    List<CameraCaptureViewModel.CameraUiEvent> restoredEvents = new ArrayList<>();
+    restored.getEvents().observeForever(event -> recordInto(restoredEvents, event));
+
+    restored.checkPermission();
+
+    assertEquals(List.of(PermissionAction.SETTINGS), actionsFrom(restoredEvents));
+  }
+
+  private static void recordInto(
+      List<CameraCaptureViewModel.CameraUiEvent> target,
+      SingleEvent<CameraCaptureViewModel.CameraUiEvent> event) {
+    CameraCaptureViewModel.CameraUiEvent content = event.getContentIfNotHandled();
+    if (content != null) {
+      target.add(content);
+    }
+  }
+
+  private static List<PermissionAction> actionsFrom(
+      List<CameraCaptureViewModel.CameraUiEvent> source) {
+    List<PermissionAction> actions = new ArrayList<>();
+    for (CameraCaptureViewModel.CameraUiEvent event : source) {
+      if (event instanceof CameraCaptureViewModel.CameraUiEvent.PermissionActionEvent permission) {
+        actions.add(permission.action());
+      }
+    }
+    return actions;
+  }
+
+  private List<PermissionAction> permissionActions() {
+    List<PermissionAction> actions = new ArrayList<>();
+    for (CameraCaptureViewModel.CameraUiEvent event : events) {
+      if (event instanceof CameraCaptureViewModel.CameraUiEvent.PermissionActionEvent permission) {
+        actions.add(permission.action());
+      }
+    }
+    return actions;
   }
 
   @Test

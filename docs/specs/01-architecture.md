@@ -82,7 +82,7 @@ com.fastshoppr.app
 
 ### Domain
 
-- Java and Android imports.
+- Java only; no Android, AndroidX, Hilt, Room, or `work` imports. Matches `AGENTS.md` and D-002.
 - Contains models, enums, repository interfaces, and small use cases.
 - Use cases are named after user actions, e.g. `AddItemUseCase`, `DeferItemUseCase`, `OrganizeListUseCase`, `CreateScheduledListUseCase`.
 - A use case may combine repositories but should not know about XML, Room, or HTTP.

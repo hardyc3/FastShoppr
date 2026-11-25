@@ -10,36 +10,45 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 import com.fastshoppr.app.R;
 import com.fastshoppr.app.domain.model.ShoppingListSummary;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 
 public final class CalendarUpcomingAdapter
-    extends RecyclerView.Adapter<CalendarUpcomingAdapter.Holder> {
+    extends ListAdapter<ShoppingListSummary, CalendarUpcomingAdapter.Holder> {
+
+  static final DiffUtil.ItemCallback<ShoppingListSummary> DIFF_CALLBACK =
+      new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(
+            @NonNull ShoppingListSummary oldItem, @NonNull ShoppingListSummary newItem) {
+          return Objects.equals(oldItem.getList().getId(), newItem.getList().getId());
+        }
+
+        @Override
+        public boolean areContentsTheSame(
+            @NonNull ShoppingListSummary oldItem, @NonNull ShoppingListSummary newItem) {
+          return oldItem.getItemCount() == newItem.getItemCount()
+              && oldItem.getStoreCount() == newItem.getStoreCount()
+              && Objects.equals(oldItem.getList().getName(), newItem.getList().getName())
+              && Objects.equals(
+                  oldItem.getList().getShoppingDate(), newItem.getList().getShoppingDate());
+        }
+      };
 
   public interface Listener {
     void onOpen(ShoppingListSummary summary);
   }
 
   private final Listener listener;
-  private List<ShoppingListSummary> items = new ArrayList<>();
 
   public CalendarUpcomingAdapter(Listener listener) {
+    super(DIFF_CALLBACK);
     this.listener = listener;
-  }
-
-  public void submit(List<ShoppingListSummary> items) {
-    int previous = this.items.size();
-    this.items = items == null ? new ArrayList<>() : items;
-    if (previous > 0) {
-      notifyItemRangeRemoved(0, previous);
-    }
-    if (!this.items.isEmpty()) {
-      notifyItemRangeInserted(0, this.items.size());
-    }
   }
 
   @NonNull
@@ -53,7 +62,7 @@ public final class CalendarUpcomingAdapter
 
   @Override
   public void onBindViewHolder(@NonNull Holder h, int position) {
-    ShoppingListSummary s = items.get(position);
+    ShoppingListSummary s = getItem(position);
     h.title.setText(
         h.itemView
             .getContext()
@@ -74,11 +83,6 @@ public final class CalendarUpcomingAdapter
                     .getQuantityString(
                         R.plurals.store_count, s.getStoreCount(), s.getStoreCount())));
     h.itemView.setOnClickListener(v -> listener.onOpen(s));
-  }
-
-  @Override
-  public int getItemCount() {
-    return items.size();
   }
 
   static final class Holder extends RecyclerView.ViewHolder {
