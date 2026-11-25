@@ -136,7 +136,7 @@ Phase 0 validated extraction. This phase turns the spikes into production servic
 - [x] Lookup interface and repository are implemented and injected.
 - [x] Home Depot fixtures parse aisle/bay correctly. (`HomeDepotAisleParserTest`; HD live path dormant/manual-first per D-021/D-022)
 - [x] Walmart fixtures/rendered extraction parse aisle/location correctly. (`WalmartAisleExtractorTest`)
-- [ ] Store context is applied and visible to the user. (item/store context resolved and shown in lookup harness; assisted Walmart store picker implemented — user verifies their store once in-app and the WebView cookie jar persists until "Forget store" (D-032); Walmart exposes no reliable programmatic pin, so results remain `NEEDS_REVIEW` and must be checked on a physical device before this criterion can pass)
+- [x] Store context is applied and visible to the user. (Phase 10 live check on 2026-11-25: `emulator-5554` product pages showed the selected Payson Supercenter and visible aisle values; Walmart has no reliable programmatic pin, so app results still require user review. D-032/D-053)
 - [x] Cache hits avoid network calls. (`AisleLookupRepositoryImplTest.cacheHitAvoidsNetwork`)
 - [x] Expired cache is usable offline with a stale indicator. (`AisleLookupRepositoryImplTest.staleCacheUsableOnNetworkUnavailable`)
 - [x] Rate limit is enforced. (`RateLimiterTest`)
@@ -145,8 +145,8 @@ Phase 0 validated extraction. This phase turns the spikes into production servic
 - [x] Manual aisle values are never overwritten by lookup.
 - [x] `rawText` is unchanged; match data is stored separately.
 - [x] Unit tests use fixtures and fakes; no live calls in CI. (`./gradlew testDebugUnitTest` passed: 166 tests, 0 failures)
-- [ ] A manual live test resolves at least three items per store. (not run; Walmart conditional foreground/user-initiated only, Home Depot blocked/manual-first per D-021/D-022)
-- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
+- [x] A manual live test resolves at least three items per store. (Walmart: milk `A40` plus two Eggland's Best egg products `A28` on `emulator-5554`, 2026-11-25. Home Depot remains blocked over HTTP 403 and in-browser, so its live aisle result is an accepted no-go per D-053; manual aisle entry is the fallback.)
+- [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped. (Phase 10 re-run on 2026-11-25: 49/49 on `emulator-5554`, 0 skipped.)
 
 ## Test plan
 

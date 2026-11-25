@@ -197,6 +197,33 @@ public final class ManualListsFlowTest {
   }
 
   @Test
+  public void addStoreOpensPrefilledBranchPickerForEverySupportedBrand() {
+    Intent intent =
+        new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
+      waitFor(
+          () -> onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed())));
+      onFocusedView(withId(R.id.create_list_button)).perform(click());
+      onFocusedView(withText(android.R.string.ok)).perform(click());
+      waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
+
+      for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+        String label = brandLabel(brand);
+        onFocusedView(withId(R.id.add_store_button)).perform(click());
+        onView(withId(R.id.store_spinner)).inRoot(isDialog()).perform(click());
+        onView(withText(label)).inRoot(isPlatformPopup()).perform(click());
+        onView(withText(R.string.add_store_add)).inRoot(isDialog()).perform(click());
+
+        waitForBranchPicker();
+        onFocusedView(withId(R.id.branchBrandSpinner)).check(matches(withSpinnerValue(label)));
+        pressBack();
+        waitForContentDescription("Add item to " + label);
+      }
+    }
+  }
+
+  @Test
   public void addStoreWithSavedBranchDoesNotOpenBranchPicker() {
     selectedStoreRepository.select(branch(StoreBrand.WALMART));
     Intent intent =
@@ -364,6 +391,19 @@ public final class ManualListsFlowTest {
         description.appendText("spinner with selection \"").appendText(expected).appendText("\"");
       }
     };
+  }
+
+  private static String brandLabel(StoreBrand brand) {
+    int resId =
+        switch (brand) {
+          case WALMART -> R.string.brand_walmart;
+          case HOME_DEPOT -> R.string.brand_home_depot;
+          case LOWES -> R.string.brand_lowes;
+          case TARGET -> R.string.brand_target;
+          case SMITHS -> R.string.brand_smiths;
+          case CUSTOM -> throw new IllegalArgumentException("custom has no locator brand");
+        };
+    return ApplicationProvider.getApplicationContext().getString(resId);
   }
 
   private static NearbyStore branch(StoreBrand brand) {

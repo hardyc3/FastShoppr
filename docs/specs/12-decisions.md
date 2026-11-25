@@ -130,10 +130,10 @@ Format:
 ## D-015 — Public, rate-limited, cached store access
 
 - Date: 2026-10-31
-- Status: accepted
+- Status: accepted (TTL amended by D-051)
 - Decision: Query only public retailer pages, identify the app in the user agent, limit to one request per second per store, cache results for 7 days, and stop on 403/429/challenges.
 - Rationale: Respect retailer infrastructure and terms while keeping lookups usable.
-- Consequences: Lookups may be incomplete. Manual aisle entry and cached results keep the app useful.
+- Consequences: Lookups may be incomplete. Manual aisle entry and cached results keep the app useful. Amendment (D-051, 2026-11-25): cache TTL is 60 days; the 7-day value above is historical.
 
 ## D-016 — OCR with review, not auto-save
 
@@ -417,4 +417,34 @@ Format:
 - Decision: Add **Phase 13 — Aisle Sign Lookup** after Phase 12 by numbering, with no feature dependency on Phases 10–12. The user photographs in-store aisle signs from store management; ML Kit OCR reads aisle numbers and category text; the user reviews and confirms rows stored per `storeId`. Item resolution uses manual entry first, then confirmed signs, then the existing cache, then retailer websites. On-device AI may infer an aisle only from confirmed sign text, only while in the foreground, and only when opted in; deterministic token matching is always available. Sign photos are discarded after confirm/discard and only sanitized text is retained. `StoreEntity.deletedAt` and a soft-deleted sign corpus get a 30-day restore window before purge; restoring a store restores its signs.
 - Rationale: Product feedback (2026-11-25): users can capture physical aisle signs once per store instead of relying on fragile retailer pages for every item. Bounding AI to user-confirmed signs prevents free-form product-location invention while still using available on-device inference. Reusing the existing 30-day soft-delete rule makes accidental store deletion recoverable without keeping photos.
 - Consequences: `05-on-device-ai.md` is intentionally not edited; `docs/specs/phases/phase-13-aisle-sign-lookup.md` is the authoritative override for this narrow AI use. Room schema moves 6→7 with migrations and tests for `aisle_signs` and `stores.deletedAt`. `10-security-privacy.md` gains aisle-sign text, camera-purpose, and retention entries. No new dependency, location permission, cloud model, image retention, Kotlin app source, or Compose. Phase 13 remains `not-started`; no implementation begins until explicitly instructed.
+
+## D-051 — Aisle lookup cache TTL is 60 days
+
+- Date: 2026-11-25
+- Status: accepted (supersedes the 7-day TTL in D-015)
+- Decision: Successful aisle lookup results are cached for **60 days**. D-015's 7-day value is historical and no longer applies.
+- Rationale: `AGENTS.md`, `03-store-integration.md`, `09-testing-quality.md`, Phase 6/10 specs, and the shipped `AisleLookupRepositoryImpl` all use 60 days. The one stale 7-day value in D-015 conflicts with the implementation and every current spec.
+- Consequences: Cache tests assert 60-day expiry and brand-scoped keys. No code change is required for this correction; D-015 remains accepted for its access-policy rules other than TTL.
+
+## D-052 — Phase 10 active; earlier status wording is historical
+
+- Date: 2026-11-25
+- Status: accepted (amends the status wording in D-046, D-047, D-048, and D-049)
+- Decision: Phase 10 — Store Integration Coverage is `in-progress` as of 2026-11-25. Statements in D-046/D-047/D-048/D-049 and the Phase 9A phase file that Phase 10 or Phase 9A was `not-started`, or that no phase was active, describe the state at their creation date and are historical.
+- Rationale: The user explicitly instructed implementation of Phase 10, including live-device verification and an audit of earlier-phase gaps. Current status lives in `AGENTS.md`, `docs/specs/README.md`, and the phase file.
+- Consequences: Phase 10 completed on 2026-11-25 with the verified brand capability recorded in D-053; the `in-progress` wording above describes the implementation window. Phase 11, Phase 12, and Phase 13 remain `not-started`. Earlier decisions are not rewritten; this entry supersedes only their status wording. No architectural change is made by this entry.
+
+## D-053 — Phase 10 live verification: only Walmart has automated aisle lookup
+
+- Date: 2026-11-25
+- Status: accepted (amends D-005 and the Phase 10 technical approach; records the answer to Phase 10 open question 1)
+- Decision: Live verification on `emulator-5554` and public-page probes on 2026-11-25 found:
+  - Walmart: keep the existing foreground WebView lookup; regression smoke only in Phase 10.
+  - Home Depot: HTTP 403 and an in-browser error page; keep HTTP lookup dormant and report a blocked state with manual-aisle fallback.
+  - Lowe's: Akamai `Access Denied` over HTTP and in the emulator browser; no automated lookup.
+  - Target: `Human verification` challenge in the emulator browser and no aisle in static product HTML; no automated lookup.
+  - Smiths: product page loads and shows availability but no public in-store aisle; HTTP client timed out; no automated lookup.
+  Custom stores remain manual-aisle only. Do not add WebView lookups or cookie sharing for these brands; that would change the approved architecture and cannot bypass bot challenges.
+- Rationale: Store data access policy forbids bypassing access controls or bot challenges. No public aisle is exposed on the verified pages for Lowe's, Target, or Smiths, and Home Depot remains blocked. Adding parsers for data the pages do not expose would fabricate results.
+- Consequences: `StoreLookupSupport` is the single per-brand capability decision. `AisleLookupRepositoryImpl` returns explicit `Blocked`/`NotFound` outcomes for the four non-Walmart brands, reuses cache before applying a block, and leaves custom-store items unchanged. Branch selection and manual aisle entry stay available for every brand. Phase 10 fixtures document observed blocked/no-aisle pages; no new dependency or Room migration is added.
 

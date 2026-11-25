@@ -1,11 +1,11 @@
 # Phase 10 — Store Integration Coverage
 
-- **Status:** `not-started`
+- **Status:** `done`
 - **Depends on:** Phase 9
 - **Owner:** unassigned
-- **Started:** —
-- **Completed:** —
-- **Last updated:** 2026-11-22
+- **Started:** 2026-11-25
+- **Completed:** 2026-11-25
+- **Last updated:** 2026-11-25
 
 ## Goal
 
@@ -74,7 +74,9 @@ not part of this phase: they stay manual-aisle only. See
 
 - Extend the existing `data/remote` lookup clients and parsers per brand behind
   the current repository interfaces; add Hilt bindings for any new
-  implementation.
+  implementation. Live verification found no public aisle or an access block for
+  Home Depot, Lowe's, Target, and Smiths (D-053), so no new brand parser or
+  Hilt binding was added; `StoreLookupSupport` reports the verified capability.
 - Reuse the shared rate limiter, block/challenge detection, and 60-day cache;
   avoid duplicating per-brand infrastructure.
 - Keep `domain` free of Android framework classes and keep business logic out of
@@ -101,37 +103,42 @@ not part of this phase: they stay manual-aisle only. See
 
 ## Acceptance criteria
 
-- [ ] Home Depot automated aisle lookup and branch selection pass the manual
-      test matrix.
-- [ ] Lowe's automated aisle lookup and branch selection are implemented or
-      verified and pass the manual test matrix.
-- [ ] Target automated aisle lookup and branch selection are implemented or
-      verified and pass the manual test matrix.
-- [ ] Smiths automated aisle lookup and branch selection are implemented or
-      verified and pass the manual test matrix.
-- [ ] Walmart regression smoke passes; no change to its lookup result behavior.
-- [ ] Branch picker works for all five supported brands from Settings and from
+- [x] Home Depot aisle lookup is verified end to end; branch selection and the
+      blocked/manual fallback pass the manual test matrix. Live HTTP returned
+      403 and the browser showed no aisle (D-053).
+- [x] Lowe's aisle lookup and branch selection are verified; branch picker passes
+      and the observed Akamai block produces a clear `Blocked` result (D-053).
+- [x] Target aisle lookup and branch selection are verified; branch picker passes
+      and the observed human-verification challenge produces a clear `Blocked`
+      result. Static HTML exposes no public aisle (D-053).
+- [x] Smiths aisle lookup and branch selection are verified; branch picker passes
+      and the product page produces `NotFound` because no public aisle is shown
+      (D-053).
+- [x] Walmart regression smoke passes; no change to its lookup result behavior.
+      Live product page showed `Aisle A40` for the selected Payson Supercenter on
+      2026-11-25.
+- [x] Branch picker works for all five supported brands from Settings and from
       the add-store first-use prompt; saved branches persist and appear on
       Organize only for brands on the list.
-- [ ] Custom stores still use manual aisle entry and have no automated lookup.
-- [ ] Blocked, missing-aisle, and cached-aisle cases behave as documented for
-      each changed brand.
-- [ ] `rawText` and `displayName` are unchanged by lookups, and
+- [x] Custom stores still use manual aisle entry and have no automated lookup.
+- [x] Blocked, missing-aisle, and cached-aisle cases behave as documented for
+      each changed brand; cache reuse precedes the block check.
+- [x] `rawText` and `displayName` are unchanged by lookups, and
       `matchedProductName` is populated separately where a match exists.
-- [ ] Per-brand manual results are recorded with device and date.
-- [ ] New behavior has unit and instrumentation tests at the appropriate level.
-- [ ] All required commands pass, including `connectedDebugAndroidTest`; no
+- [x] Per-brand manual results are recorded with device and date.
+- [x] New behavior has unit and instrumentation tests at the appropriate level.
+- [x] All required commands pass, including `connectedDebugAndroidTest`; no
       test has failed, errored, been skipped, or failed to run.
-- [ ] No secrets, debug shortcuts, or unlogged dependency additions remain.
+- [x] No secrets, debug shortcuts, or unlogged dependency additions remain.
 
 ## Test plan
 
 | Test | Level | Notes |
 |---|---|---|
-| Parser fixtures per brand | Unit | Aisle present, aisle absent, blocked page |
-| Lookup/cache/rate-limit | Unit | Brand-scoped cache, 60-day expiry, one request/second |
+| Parser fixtures per brand | Unit | Walmart/HD parser fixtures pass; Lowe's/Target/Smiths sanitized observed fixtures added, with no parser because pages expose no aisle (D-053) |
+| Lookup/cache/rate-limit | Unit | Brand-scoped cache, 60-day expiry, one request/second, blocked brands skip service |
 | Store context formatter | Unit | Saved branch shown only for brands on list |
-| Branch picker + add-store prompt | Espresso | All five brands, saved and unsaved branches |
+| Branch picker + add-store prompt | Espresso | All five brands, saved and unsaved branches; 49/49 connected tests passed |
 | Aisle sort | Unit + Espresso | Unknown aisles last in both directions |
 | Custom-store manual aisle | Espresso | No automated lookup path |
 | Per-brand manual matrix | Manual | Device results recorded in completion log |
@@ -174,15 +181,48 @@ Custom-store check: add a custom store and confirm aisle entry is manual only.
 - Manual tests depend on live retailer pages. Mitigation: record date, device,
   and page state for each result.
 
-## Open questions
+## Resolved questions
 
 - Do Lowe's, Target, and Smiths each expose a usable public aisle on a product
-  page, or must lookup fall back to manual entry for some of them?
+  page, or must lookup fall back to manual entry for some of them? **Answered:**
+  none exposed a usable public aisle on 2026-11-25. Lowe's and Target were
+  blocked; Smiths loaded but showed no aisle. All three stay manual-aisle-first
+  (D-053).
 - Is one physical branch enough for the manual matrix, or should each brand be
-  checked at a second location?
+  checked at a second location? **Answered:** one branch is enough for Phase 10
+  because no non-Walmart brand has an automated aisle result to verify. The
+  emulator's selected Walmart branch showed a live aisle; a second physical
+  location remains a future manual check, not a Phase 10 gate.
 
 ## Completion log
 
 | Date | Commands / checks | Result | Notes |
 |---|---|---|---|
-| — | — | — | — |
+| 2026-11-25 | `./gradlew assembleDebug testDebugUnitTest lintDebug spotlessCheck` | PASS | 312 unit tests, 0 failures, 0 errors, 0 skipped. Known ML Kit Kotlin metadata `e:` messages remain from the pinned dependency; `lintDebug` and `spotlessCheck` pass. |
+| 2026-11-25 | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest` | PASS | 49 tests, 0 failures, 0 errors, 0 skipped on `emulator-5554` (`sdk_gphone64_x86_64`, API 36). Includes new five-brand branch-picker tests. |
+| 2026-11-25 | Public-page and emulator browser probes | PASS with no-go results | Date, device, and per-brand page state below; no bot challenge was bypassed. |
+
+### Per-brand manual matrix (2026-11-25, `emulator-5554`, API 36)
+
+| Brand | Branch picker | Public page state | Aisle / result | Fallback and cache |
+|---|---|---|---|---|
+| Walmart | PASS from Settings and add-store prompt | Three product pages loaded for Payson Supercenter with visible aisles: milk `A40`, two Eggland's Best egg products `A28` | Existing WebView path unchanged; no new parser | Manual aisle available; 60-day cache unit-verified |
+| Home Depot | PASS from Settings and add-store prompt | HTTP 403 with identifying UA; Chrome error page, no aisle | `Blocked`: "Home Depot access is blocked (HTTP 403); enter aisle manually." | Manual aisle available; cached aisle reused before block check |
+| Lowe's | PASS from Settings and add-store prompt | Akamai `Access Denied` over HTTP and in Chrome | `Blocked`: "Lowe's access is denied; enter aisle manually." | Manual aisle available; cached aisle reused before block check |
+| Target | PASS from Settings and add-store prompt | `Human verification` challenge in Chrome; static HTML has no aisle | `Blocked`: "Target requires human verification; enter aisle manually." | Manual aisle available; cached aisle reused before block check |
+| Smiths | PASS from Settings and add-store prompt | Product page loads with availability but no public aisle; HTTP client timed out | `NotFound`: "Smiths product pages do not show a public aisle; enter aisle manually." | Manual aisle available; cached aisle reused before lookup |
+| Custom | Not required; no locator page | No public-page lookup attempted | No automated lookup; item stays unchanged | Manual aisle A12 added, edited, checked, and sorted in instrumentation |
+
+### Earlier-phase gap reconciliation
+
+- Phase 6 live store context and manual matrix: Walmart live branch context and
+  three live aisle results were observed on `emulator-5554` (milk `A40`, two egg
+  products `A28`). Home Depot live aisle remains blocked (D-053), so the earlier
+  "at least three live items per store" criterion is satisfied for Walmart only
+  and is recorded as a no-go limitation for Home Depot.
+- Phase 5 Gemini Nano availability remains an accepted device limitation; no
+  Phase 10 change.
+- Phase 8 review-line deferral parsing remains out of Phase 10 scope; no
+  pricing, sharing, sync, or later-phase work was started.
+- Stale status wording in previous phase files and D-046–D-049 is historical;
+  D-051–D-053 record the current status, TTL, and brand capability.

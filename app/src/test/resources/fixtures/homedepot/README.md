@@ -10,3 +10,7 @@ No live capture data, cookies, tokens, or personal information is included.
   - `product-aisle-bay.html` -> aisle `52`, bay `016`
   - `product-no-aisle.html` -> no aisle shown (NotFound)
   - `blocked.html` -> blocked (403/access denied)
+- Live recheck on 2026-11-25: a public product page returned HTTP 403 to the
+  identifying User-Agent, and `emulator-5554` Chrome showed an error page with
+  no aisle. `LookupConfig` stays dormant and the repository reports `Blocked`
+  with a manual-aisle message (D-053).

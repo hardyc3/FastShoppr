@@ -7,6 +7,7 @@ package com.fastshoppr.app.data.repository;
 
 import com.fastshoppr.app.data.remote.lookup.LookupQueryNormalizer;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
+import com.fastshoppr.app.data.remote.lookup.StoreLookupSupport;
 import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.id.IdGenerator;
 import com.fastshoppr.app.domain.lookup.LookupCandidatesCodec;
@@ -50,6 +51,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
   private final Clock clock;
   private final IdGenerator idGenerator;
   private final RateLimiter rateLimiter;
+  private final StoreLookupSupport lookupSupport;
   private final Map<StoreBrand, StoreLookupService> services;
 
   @Inject
@@ -60,6 +62,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       Clock clock,
       IdGenerator idGenerator,
       RateLimiter rateLimiter,
+      StoreLookupSupport lookupSupport,
       Set<StoreLookupService> serviceSet) {
     this.itemRepository = itemRepository;
     this.cacheRepository = cacheRepository;
@@ -67,6 +70,7 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     this.clock = clock;
     this.idGenerator = idGenerator;
     this.rateLimiter = rateLimiter;
+    this.lookupSupport = lookupSupport;
     this.services = new EnumMap<>(StoreBrand.class);
     for (StoreLookupService service : serviceSet) {
       services.put(service.getBrand(), service);
@@ -131,6 +135,18 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
         // caller/UI may treat as stale and optionally refresh. For an active lookup attempt,
         // we can try network and fall back to stale on network unavailability.
       }
+    }
+
+    StoreLookupSupport.Decision supportDecision = lookupSupport.forBrand(store.getBrand());
+    if (supportDecision.mode == StoreLookupSupport.Mode.MANUAL_ONLY) {
+      return LookupOutcome.unchanged(item, null);
+    }
+    if (supportDecision.mode != StoreLookupSupport.Mode.ENABLED) {
+      StoreLookupResult result =
+          supportDecision.mode == StoreLookupSupport.Mode.BLOCKED
+              ? new StoreLookupResult.Blocked(supportDecision.reason)
+              : new StoreLookupResult.NotFound(supportDecision.reason);
+      return applyNetworkResult(itemId, store, query, now, result);
     }
 
     StoreLookupService service = services.get(store.getBrand());

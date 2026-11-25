@@ -11,11 +11,11 @@ MVP stores:
 - Walmart (WebView-based lookup)
 - Home Depot (HTTP + HTML parsing)
 
-Store sections for Lowe's, Target, and Smiths may exist in the UI, but automated lookup is planned for Phase 10. Custom stores remain manual-aisle only. Manual aisle entry is always available.
+Store sections for Lowe's, Target, and Smiths may exist in the UI. Phase 10 verified that those public pages expose no usable aisle (or block access), so they stay manual-aisle-first with clear errors. Custom stores remain manual-aisle only. Manual aisle entry is always available.
 
 ## Current phase
 
-**Phase 9 — MVP Release** is `done` and reviewed (see `docs/specs/phases/phase-09-mvp-release.md`). **Phase 9A — Review Remediation** is `done` and reviewed (see `docs/specs/phases/phase-09a-review-remediation.md`). **Phase 10 — Store Integration Coverage** is `not-started` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Do not start Phase 10 until explicitly instructed. Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
+**Phase 10 — Store Integration Coverage** is `done` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Phase 9 — MVP Release and Phase 9A — Review Remediation are `done` and reviewed. Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
 
 ## Read order
 
