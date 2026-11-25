@@ -1,13 +1,13 @@
 # Phase 9A — Review Remediation
 
-- **Status:** `in-progress`
+- **Status:** `done`
 - **Depends on:** Phase 9
 - **Owner:** unassigned
 - **Started:** 2026-11-24
-- **Completed:** —
+- **Completed:** 2026-11-25
 - **Last updated:** 2026-11-25
 
-**Boundary note:** Phase 9A is the only active phase. **Phase 10 — Store Integration Coverage stays `not-started`; do not start it.** Phase 10 must remain blocked until explicitly instructed (D-020, D-046, D-047). Phase 11 — Pricing Spike and Phase 12 — Price Comparison also remain `not-started`.
+**Boundary note:** Phase 9A is complete and no phase is active until explicitly instructed. **Phase 10 — Store Integration Coverage stays `not-started`; do not start it.** Phase 10 must remain blocked until explicitly instructed (D-020, D-046, D-047). Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup also remain `not-started`.
 
 ## Goal
 
@@ -102,19 +102,19 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 - [x] `01-architecture.md:85` matches `AGENTS.md` and D-002: domain code is Java-only and Android-free.
 - [x] `CalendarUiState` is immutable and `CalendarDayAdapter`, `CalendarUpcomingAdapter`, and `ReviewAdapter` use `ListAdapter`/`DiffUtil`.
 - [x] Date parsing/`LocalDate.now()`, permission requests, and candidate decoding no longer occur in Fragments; they live in ViewModels/use cases.
-- [ ] Typed capture takes real text input and reaches review with that text; no placeholder capture ID is used.
-- [ ] Review **Add line** is available and preserves pending edits.
-- [ ] Settings can delete the ink model with visible progress/result.
-- [ ] Scheduled cache purge and 30-day soft-delete cleanup are wired into startup/scheduling and have JVM fake-clock coverage; instrumentation evidence is still pending.
-- [ ] **Forget store** wipes `CookieManager` cookies and `WebStorage` DOM storage for retailer WebViews.
-- [ ] JVM tests cover Gemini Nano future cancellation, late-result discard, and no further item started; manual confirmation on screen stop is still pending. An already started ML Kit call is bounded by its timeout.
-- [ ] Permission rationale and permanent-denial settings deep link are present and do not block typed/manual entry.
-- [ ] `CaptureFlowsTest.java:178-182` no longer skips via `Assume`; the replacement test runs deterministically with no skipped tests.
+- [x] Typed capture takes real text input and reaches review with that text; no placeholder capture ID is used. Manual demo and `TypedCaptureFlowTest` verify real text reaches review.
+- [x] Review **Add line** is available and preserves pending edits. Manual demo and `CaptureFlowsTest` verify edited text survives Add line and save.
+- [x] Settings can delete the ink model with visible progress/result. Manual demo observed "Deleting handwriting model…" then "Handwriting model deleted." with no app block.
+- [x] Scheduled cache purge and 30-day soft-delete cleanup are wired into startup/scheduling and have JVM fake-clock coverage. `CleanUpExpiredDataUseCaseTest`/`RateLimiterTest` pass; `RoomDataLayerTest.softDeleteCascadesRestoreAndPurge` ran in the full instrumentation suite.
+- [x] **Forget store** wipes `CookieManager` cookies and `WebStorage` DOM storage for retailer WebViews. `ForgetSelectedStoreUseCaseTest` covers wipe-before-clear/failure retention; manual demo observed saved branch removal plus reset WebView cookies/DOM storage.
+- [x] JVM tests cover Gemini Nano future cancellation, late-result discard, and no further item started; manual screen-stop smoke saw no late write. An already started ML Kit call is bounded by its timeout (`ReviewViewModelTest.onScreenStoppedCancelsInFlightCleanFutureAndStopsSequentialInference`).
+- [x] Permission rationale and permanent-denial settings deep link are present and do not block typed/manual entry. Manual demo covered rationale, denial to system settings, and continued typed capture.
+- [x] `CaptureFlowsTest.java:178-182` no longer skips via `Assume`; the replacement test runs deterministically with no skipped tests.
 - [x] A fake-clock rate-limiter test and a JVM `CreateScheduledListUseCase` test with fakes exist and pass.
-- [ ] Stale Phase 4/6/6b/6c/8 status text is reconciled only with cited evidence; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked unless real manual/live and full-suite evidence exists.
+- [x] Stale Phase 4/6/6b/6c/8 status text is reconciled only with cited evidence; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked because live/manual lookup verification is still absent.
 - [x] Phase 10 remains `not-started`; no Phase 10 brand, pricing, or new-dependency work is introduced.
-- [ ] `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, and `connectedDebugAndroidTest` pass with no new warnings or TODOs and evidence in the completion log.
-- [ ] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
+- [x] `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, and `connectedDebugAndroidTest` pass with no new warnings or TODOs and evidence in the completion log.
+- [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
 ## Test plan
 
@@ -145,7 +145,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 
 ## Manual demo
 
-1. Confirm Phase 9A is `in-progress` with Phase 9 `done`, Phase 10 `not-started`, and no Phase 10 work started.
+1. Confirmed Phase 9A was `in-progress` during the demo with Phase 9 `done`, Phase 10 `not-started`, and no Phase 10 work started; final status is `done` after the recorded gates.
 2. Capture a typed list, edit a line, tap **Add line** in review, and confirm pending edits are preserved and saved text equals the reviewed text.
 3. In Settings, delete the ink model and confirm visible progress/result and that typed capture still works.
 4. Pick a retailer branch, tap **Forget store**, and confirm the saved context and WebView cookies/DOM storage are cleared.
@@ -183,8 +183,15 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-25 | Review follow-up: forget-store ordering/failure UI, owner-scoped permission binder through a UI-owned interface, camera typed/gallery alternatives, schedule-specific rationale, persisted permanent-denial flags, ReviewAdapter text guard | PASS | JVM tests cover wipe-before-clear ordering, wipe-failure retention, restored denial state, and permission decisions. Fragments bind launchers only; ViewModels own permission checks/requests. |
 | 2026-11-25 | `./gradlew spotlessApply assembleDebug testDebugUnitTest lintDebug spotlessCheck assembleDebugAndroidTest --console=plain` | PASS | 302 JVM tests across 61 reports; 0 failures, 0 errors, 0 skipped. `lintDebug` passes despite dependency Kotlin-metadata `e:` lines from ML Kit GenAI artifacts. |
 | 2026-11-25 | Static scans: `git -c core.whitespace=cr-at-eol diff --check 42ea8fe`, domain Android-free boundary, `Assume`/`TODO`/`FIXME`, Phase 10 status | PASS | No whitespace errors with the repo's mixed CRLF/LF policy; domain has no Android/AndroidX/Hilt/Room/`work` imports (`javax.inject` DI annotations remain); no skipped-test markers or TODO/FIXME; Phase 10 stays `not-started`. |
-| 2026-11-25 | `./gradlew connectedDebugAndroidTest --console=plain` | BLOCKED | `No connected devices!`; `adb devices -l` shows no attached device. Instrumentation never executed. |
-| 2026-11-25 | Manual demo steps 1–9 | NOT RUN | No live device session; device/manual criteria stay unchecked. |
-| 2026-11-25 | Stale Phase 4/6/6b/6c/8 evidence reconciliation | NOT DONE | No new manual/live evidence recorded; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked. |
+| 2026-11-25 | `./gradlew connectedDebugAndroidTest --console=plain` | BLOCKED (superseded) | `No connected devices!`; `adb devices -l` shows no attached device. Instrumentation never executed. Superseded by the emulator run below. |
+| 2026-11-25 | Manual demo steps 1–9 | NOT RUN (superseded) | No live device session at the time. Superseded by the emulator manual demo below. |
+| 2026-11-25 | Stale Phase 4/6/6b/6c/8 evidence reconciliation | NOT DONE (superseded) | No new manual/live evidence at the time. Superseded by the reconciliation row below. |
+| 2026-11-25 | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest --console=plain` | PASS | `Starting 47 tests on emulator-5554 - 16`; `Tests 47/47 completed. (0 skipped) (0 failed)`; `Finished 47 tests`; `BUILD SUCCESSFUL in 1m`. Covers `CaptureFlowsTest`, `AiCleanupFlowTest`, `SettingsStoreSelectionTest`, `TypedCaptureFlowTest`, `RoomDataLayerTest`, calendar/schedule, and existing suites. |
+| 2026-11-25 | Targeted JVM checks: `CleanUpExpiredDataUseCaseTest`, `RateLimiterTest` | PASS | `BUILD SUCCESSFUL in 19s`; fake-clock cleanup/rate-limit coverage passes. Full suite count below. |
+| 2026-11-25 | Manual demo on emulator-5554 (steps 1–8) | PASS | Created list for Nov 25, 2026; Photo → Enter items manually; typed `milk`/`eggs`; edited first line to `fresh milk`, used **Add line**, saved; list detail and `capture_sessions.recognizedLinesJson` retained both edited lines. Settings ink-model delete showed "Deleting handwriting model…" then "Handwriting model deleted." Walmart branch picker saved Payson #5167; **Forget store** removed the saved branch and reset WebView cookies/leveldb state. Camera rationale appeared after denial; "Don't allow" opened Android app settings; returning app offered typed/manual entry. AI cleanup started then screen exited; no late write appeared in the capture session (emulator AI unavailable, deterministic fallback). |
+| 2026-11-25 | Stale Phase 4/6/6b/6c/8 evidence reconciliation | PASS | Updated Phase 4 progress notes/status text, Phase 6 completion-log reconciliation, Phase 6b/6c completion logs, and Phase 8 status/test-count text with the 47/47 emulator and manual evidence above. Phase 6 criteria `:139`, `:148`, `:149` remain unchecked; no live Home Depot/three-item-per-store pass exists. |
+| 2026-11-25 | `./gradlew spotlessApply assembleDebug testDebugUnitTest lintDebug spotlessCheck assembleDebugAndroidTest --console=plain` (post-reconciliation) | PASS | `BUILD SUCCESSFUL in 52s`; 302 JVM tests across 61 reports; 0 failures, 0 errors, 0 skipped. `lintDebug` passes despite dependency Kotlin-metadata `e:` lines from ML Kit GenAI artifacts. Earlier pre-reconciliation run passed in 1m 25s. |
+| 2026-11-25 | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest --console=plain` (post-reconciliation) | PASS | `Starting 47 tests on emulator-5554 - 16`; `Finished 47 tests on emulator-5554 - 16`; all progress lines `(0 skipped) (0 failed)`; `BUILD SUCCESSFUL in 1m 6s`. Final gate after doc reconciliation. |
+| 2026-11-25 | Static scans: `git -c core.whitespace=cr-at-eol diff --check`, domain imports, `Assume`/`TODO`/`FIXME`, Phase 10/11/12/13 status | PASS | No whitespace errors under mixed CRLF/LF policy; domain has no Android/AndroidX/Hilt/Room/`work` imports; no skipped-test markers or TODO/FIXME; Phase 10, 11, 12, and 13 remain `not-started`. |
 
-**Status note:** implementation and static verification are complete, but `connectedDebugAndroidTest`, the manual demo, and evidence reconciliation are not. Phase 9A remains `in-progress` until those gates pass and every acceptance criterion has evidence.
+**Status note:** implementation, static gates, full instrumentation, manual demo, and evidence reconciliation are complete. Phase 9A is `done`; Phase 10 remains `not-started` and no later phase was started.

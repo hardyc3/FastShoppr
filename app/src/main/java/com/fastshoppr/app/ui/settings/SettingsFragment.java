@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.RadioGroup;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -21,9 +22,11 @@ import com.fastshoppr.app.domain.model.StoreBrand;
 import com.fastshoppr.app.ui.common.StoreBrandLabel;
 import com.fastshoppr.app.ui.navigation.NavArguments;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.radiobutton.MaterialRadioButton;
 import com.google.android.material.snackbar.Snackbar;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -153,18 +156,27 @@ public final class SettingsFragment extends Fragment {
         labels.add(getString(StoreBrandLabel.labelRes(brand)) + ": " + store.getLabel());
       }
     }
-    int[] selection = {-1};
+    View dialogView =
+        LayoutInflater.from(requireContext()).inflate(R.layout.dialog_forget_store, null);
+    RadioGroup options = dialogView.findViewById(R.id.forgetStoreOptions);
+    Map<Integer, StoreBrand> brandByOption = new HashMap<>();
+    for (int index = 0; index < brands.size(); index++) {
+      MaterialRadioButton option = new MaterialRadioButton(requireContext());
+      option.setId(View.generateViewId());
+      option.setText(labels.get(index));
+      options.addView(option);
+      brandByOption.put(option.getId(), brands.get(index));
+    }
     new MaterialAlertDialogBuilder(requireContext())
         .setTitle(R.string.settings_store_forget_title)
-        .setMessage(R.string.settings_store_forget_message)
-        .setSingleChoiceItems(
-            labels.toArray(new String[0]), -1, (dialog, which) -> selection[0] = which)
+        .setView(dialogView)
         .setNegativeButton(R.string.cancel, null)
         .setPositiveButton(
             R.string.settings_store_remove,
             (dialog, which) -> {
-              if (selection[0] >= 0 && selection[0] < brands.size()) {
-                viewModel.forgetStore(brands.get(selection[0]));
+              StoreBrand brand = brandByOption.get(options.getCheckedRadioButtonId());
+              if (brand != null) {
+                viewModel.forgetStore(brand);
               }
             })
         .show();

@@ -5,7 +5,7 @@
 - **Owner:** unassigned
 - **Started:** 2026-11-08
 - **Completed:** 2026-11-09
-- **Last updated:** 2026-11-09
+- **Last updated:** 2026-11-25
 
 ## Goal
 
@@ -152,9 +152,9 @@ Phase 0 proved the ML Kit APIs. This phase turns them into a usable capture pipe
 - Should the review screen support reordering lines?
 - Should the app keep a thumbnail of the original image until review is saved?
 
-## Progress notes (2026-11-08, paused mid-verification)
+## Progress notes (2026-11-08, historical verification snapshot)
 
-Phase status is `in-progress`. Implementation is code-complete; verification is not.
+At this snapshot the phase status was `in-progress` and implementation was code-complete but not yet verified. Final status is `done`; evidence is in the completion log below and in the Phase 9A emulator re-verification row.
 
 ### Done
 
@@ -194,4 +194,5 @@ Phase status is `in-progress`. Implementation is code-complete; verification is 
 | 2026-11-09 | `lintDebug` | pass | |
 | 2026-11-09 | `assembleDebug` | pass | APK `app/build/outputs/apk/debug/app-debug.apk`. |
 | 2026-11-09 | Manual demo (emulator) | partial/manual + automated | Ink model download/ready, strokes → recognition → review w/ low-confidence flag/bulk controls observed. ADB IME interference blocked manual save tap; save/merge/split/delete/add/permission/image-cleanup covered by instrumentation/unit tests. |
-| 2026-11-09 | Coherence fixes + tests (review pass) | pass | `CaptureRepository.saveReviewed` makes item inserts+capture complete atomic in `runInTransaction` and computes contiguous sort positions per store; `ReviewViewModel` uses it (no partial DB state on failure), reports `DISCARD_FAILED` on discard errors, and defers discard navigation until success. Recognition repos unscoped (per-injection/VM lifetime); `ImageTextRecognitionRepository.close()` added and camera VM closes on clear. Added unit tests: atomic save transaction/order/sort positions, save failure keeps image, discard failure stays on review. Verified: `spotlessApply`, `testDebugUnitTest`, `lintDebug`, `assembleDebug`, `spotlessCheck` (Windows toolchain). `connectedDebugAndroidTest` not rerun in this session (no device check here); rerun before merge — `CaptureFlowsTest` covers review save/discard flows touched by this change. |
+| 2026-11-09 | Coherence fixes + tests (review pass) | pass | `CaptureRepository.saveReviewed` makes item inserts+capture complete atomic in `runInTransaction` and computes contiguous sort positions per store; `ReviewViewModel` uses it (no partial DB state on failure), reports `DISCARD_FAILED` on discard errors, and defers discard navigation until success. Recognition repos unscoped (per-injection/VM lifetime); `ImageTextRecognitionRepository.close()` added and camera VM closes on clear. Added unit tests: atomic save transaction/order/sort positions, save failure keeps image, discard failure stays on review. Verified: `spotlessApply`, `testDebugUnitTest`, `lintDebug`, `assembleDebug`, `spotlessCheck` (Windows toolchain). `connectedDebugAndroidTest` not rerun in that session; superseded by the 2026-11-25 full-suite run below. `CaptureFlowsTest` covers review save/discard flows touched by this change. |
+| 2026-11-25 | Phase 9A evidence reconciliation: full instrumentation and manual capture smoke | pass | `connectedDebugAndroidTest` passed 47/47 on `emulator-5554` (0 skipped/failed), including `CaptureFlowsTest` and `TypedCaptureFlowTest`. Manual demo created two typed lines, edited one to `fresh milk`, used **Add line**, and saved both lines; Settings ink-model deletion showed progress/result. Earlier "paused mid-verification" text is historical only. |

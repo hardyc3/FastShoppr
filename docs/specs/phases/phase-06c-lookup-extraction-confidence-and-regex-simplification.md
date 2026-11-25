@@ -117,4 +117,5 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-14 | ./gradlew spotlessCheck | Passes | No formatting violations |
 | 2026-11-14 | ./gradlew lintDebug | Passes | No lint issues |
 | 2026-11-14 | ./gradlew assembleDebug | Passes | Debug build successful |
-| 2026-11-15 | User-confirmed phase completion | pass | Marked `done` per user instruction; `connectedDebugAndroidTest` and full manual demo not re-verified in this session. |
+| 2026-11-15 | User-confirmed phase completion | pass | Marked `done` per user instruction; `connectedDebugAndroidTest` and full manual demo not re-verified in that session. |
+| 2026-11-25 | Phase 9A evidence reconciliation | pass | Full `connectedDebugAndroidTest` now passes 47/47 on `emulator-5554` with 0 skipped/failed. No separate Phase 6c manual demo rerun was performed. |

@@ -15,7 +15,7 @@ Store sections for Lowe's, Target, and Smiths may exist in the UI, but automated
 
 ## Current phase
 
-**Phase 9 — MVP Release** is `done` and reviewed (see `docs/specs/phases/phase-09-mvp-release.md`). **Phase 9A — Review Remediation** is `in-progress` (see `docs/specs/phases/phase-09a-review-remediation.md`). **Phase 10 — Store Integration Coverage** is `not-started` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Do not start Phase 10 until explicitly instructed. Phase 11 — Pricing Spike and Phase 12 — Price Comparison remain `not-started`.
+**Phase 9 — MVP Release** is `done` and reviewed (see `docs/specs/phases/phase-09-mvp-release.md`). **Phase 9A — Review Remediation** is `done` and reviewed (see `docs/specs/phases/phase-09a-review-remediation.md`). **Phase 10 — Store Integration Coverage** is `not-started` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Do not start Phase 10 until explicitly instructed. Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
 
 ## Read order
 

@@ -62,6 +62,7 @@ public final class TypedCaptureFlowTest {
       onView(withId(R.id.itemInput)).perform(replaceText("milk\n eggs"));
       onView(withId(R.id.btnContinue)).perform(click());
 
+      String[] captureId = new String[1];
       TestWait.waitFor(
           () ->
               scenario.onActivity(
@@ -71,18 +72,20 @@ public final class TypedCaptureFlowTest {
                     assertEquals(R.id.review, controller.getCurrentDestination().getId());
                     Bundle arguments = controller.getCurrentBackStackEntry().getArguments();
                     assertNotNull(arguments);
-                    String captureId = arguments.getString(NavArguments.CAPTURE_ID);
-                    assertNotNull(captureId);
-                    assertFalse(NavArguments.PLACEHOLDER_CAPTURE_ID.equals(captureId));
-
-                    CaptureSession session = captureRepository.getById(captureId);
-                    assertEquals(ItemSource.TYPED, session.getSource());
-                    List<CapturedLine> lines =
-                        captureRepository.decodeDraft(session.getRecognizedLinesJson());
-                    assertEquals(2, lines.size());
-                    assertEquals("milk", lines.get(0).getText());
-                    assertEquals("eggs", lines.get(1).getText());
+                    captureId[0] = arguments.getString(NavArguments.CAPTURE_ID);
+                    assertNotNull(captureId[0]);
+                    assertFalse(NavArguments.PLACEHOLDER_CAPTURE_ID.equals(captureId[0]));
                   }));
+      TestWait.waitFor(
+          () -> {
+            CaptureSession session = captureRepository.getById(captureId[0]);
+            assertEquals(ItemSource.TYPED, session.getSource());
+            List<CapturedLine> lines =
+                captureRepository.decodeDraft(session.getRecognizedLinesJson());
+            assertEquals(2, lines.size());
+            assertEquals("milk", lines.get(0).getText());
+            assertEquals("eggs", lines.get(1).getText());
+          });
     }
   }
 
@@ -114,11 +117,14 @@ public final class TypedCaptureFlowTest {
                     assertNotNull(arguments);
                     assertEquals(listId, arguments.getString(NavArguments.LIST_ID));
                     assertEquals("typed-flow-cap", arguments.getString(NavArguments.CAPTURE_ID));
-                    CaptureSession updated = captureRepository.getById("typed-flow-cap");
-                    List<CapturedLine> lines =
-                        captureRepository.decodeDraft(updated.getRecognizedLinesJson());
-                    assertEquals("edited milk", lines.get(0).getText());
                   }));
+      TestWait.waitFor(
+          () -> {
+            CaptureSession updated = captureRepository.getById("typed-flow-cap");
+            List<CapturedLine> lines =
+                captureRepository.decodeDraft(updated.getRecognizedLinesJson());
+            assertEquals("edited milk", lines.get(0).getText());
+          });
     }
   }
 

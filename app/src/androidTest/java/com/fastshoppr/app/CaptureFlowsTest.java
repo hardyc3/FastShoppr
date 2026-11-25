@@ -21,51 +21,56 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.view.View;
 import android.widget.CheckBox;
-import androidx.core.content.ContextCompat;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.UiController;
 import androidx.test.espresso.ViewAction;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.espresso.contrib.RecyclerViewActions;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.platform.app.InstrumentationRegistry;
 import com.fastshoppr.app.data.local.FastShopprDatabase;
+import com.fastshoppr.app.di.PermissionModule;
 import com.fastshoppr.app.domain.model.CaptureSession;
 import com.fastshoppr.app.domain.model.CapturedLine;
 import com.fastshoppr.app.domain.model.ItemSource;
 import com.fastshoppr.app.domain.model.ListItem;
+import com.fastshoppr.app.domain.model.PlatformPermission;
 import com.fastshoppr.app.domain.model.RecognizedLine;
 import com.fastshoppr.app.domain.model.ShoppingList;
+import com.fastshoppr.app.domain.port.PermissionRequester;
+import com.fastshoppr.app.domain.port.PermissionStatus;
 import com.fastshoppr.app.domain.repository.CaptureRepository;
 import com.fastshoppr.app.domain.repository.ListItemRepository;
 import com.fastshoppr.app.domain.repository.ShoppingListRepository;
+import com.fastshoppr.app.ui.common.PermissionLauncherBinder;
 import com.fastshoppr.app.ui.navigation.NavArguments;
+import dagger.Binds;
+import dagger.Module;
+import dagger.hilt.InstallIn;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
-import java.io.IOException;
+import dagger.hilt.android.testing.UninstallModules;
+import dagger.hilt.components.SingletonComponent;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.function.Consumer;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @HiltAndroidTest
+@UninstallModules(PermissionModule.class)
 @RunWith(AndroidJUnit4.class)
 public final class CaptureFlowsTest {
 
@@ -75,14 +80,14 @@ public final class CaptureFlowsTest {
   @Inject ShoppingListRepository listRepository;
   @Inject CaptureRepository captureRepository;
   @Inject ListItemRepository listItemRepository;
+  @Inject FakePermissionState permissionState;
 
   private String listId;
-  private int initialCameraPermission;
 
   @Before
   public void setUp() {
     hiltRule.inject();
-    initialCameraPermission = currentCameraPermission();
+    permissionState.setCameraGranted(true);
     SupportSQLiteDatabase sqlite = database.getOpenHelper().getWritableDatabase();
     sqlite.execSQL("DELETE FROM list_items");
     sqlite.execSQL("DELETE FROM capture_sessions");
@@ -99,11 +104,6 @@ public final class CaptureFlowsTest {
         new CaptureSession("cap-1", listId, ItemSource.CAMERA_OCR, null, json, 1L, null, null));
   }
 
-  @After
-  public void restoreCameraPermission() {
-    setCameraPermission(initialCameraPermission == PackageManager.PERMISSION_GRANTED);
-  }
-
   @Test
   public void reviewFlowMergeSplitDeleteSave() {
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
@@ -118,7 +118,7 @@ public final class CaptureFlowsTest {
               onFocusedView(withId(R.id.recyclerView))
                   .check(matches(hasDescendant(withText("Walmart")))));
       onFocusedView(withId(R.id.reviewNote)).check(matches(isDisplayed()));
-      onFocusedView(withId(R.id.btnAddLine)).check(matches(not(isDisplayed())));
+      onFocusedView(withId(R.id.btnAddLine)).check(matches(isDisplayed()));
 
       onFocusedView(withId(R.id.btnMergeSelected)).perform(click());
       waitForText("milk eggs");
@@ -185,8 +185,7 @@ public final class CaptureFlowsTest {
 
   @Test
   public void cameraPermissionDeniedShowsRequestWithoutBlockingManualEntry() {
-    setCameraPermission(false);
-    waitFor(() -> assertEquals(PackageManager.PERMISSION_DENIED, currentCameraPermission()));
+    permissionState.setCameraGranted(false);
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
@@ -207,8 +206,7 @@ public final class CaptureFlowsTest {
 
   @Test
   public void cameraPermissionGrantedHidesPermissionRequest() {
-    setCameraPermission(true);
-    waitFor(() -> assertEquals(PackageManager.PERMISSION_GRANTED, currentCameraPermission()));
+    permissionState.setCameraGranted(true);
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.list_detail, NavArguments.forList(listId));
@@ -226,29 +224,68 @@ public final class CaptureFlowsTest {
     }
   }
 
-  private static int currentCameraPermission() {
-    return ContextCompat.checkSelfPermission(
-        ApplicationProvider.getApplicationContext(), Manifest.permission.CAMERA);
+  @Module
+  @InstallIn(SingletonComponent.class)
+  abstract static class FakePermissionModule {
+
+    @Binds
+    @Singleton
+    abstract PermissionStatus bindPermissionStatus(FakePermissionState implementation);
+
+    @Binds
+    @Singleton
+    abstract PermissionRequester bindPermissionRequester(FakePermissionRequester implementation);
+
+    @Binds
+    @Singleton
+    abstract PermissionLauncherBinder bindPermissionLauncherBinder(
+        FakePermissionRequester implementation);
   }
 
-  /**
-   * Sets CAMERA through the platform shell command available to {@link android.app.UiAutomation};
-   * no runtime-permission dependency or test-only app hook is needed.
-   */
-  private static void setCameraPermission(boolean granted) {
-    String packageName = ApplicationProvider.getApplicationContext().getPackageName();
-    String action = granted ? "grant" : "revoke";
-    String command = "pm " + action + " " + packageName + " " + Manifest.permission.CAMERA;
-    ParcelFileDescriptor result =
-        InstrumentationRegistry.getInstrumentation().getUiAutomation().executeShellCommand(command);
-    if (result == null) {
-      throw new AssertionError("UiAutomation could not change CAMERA permission: " + command);
+  @Singleton
+  public static final class FakePermissionState implements PermissionStatus {
+
+    private volatile boolean cameraGranted = true;
+
+    @Inject
+    FakePermissionState() {}
+
+    void setCameraGranted(boolean granted) {
+      cameraGranted = granted;
     }
-    try (ParcelFileDescriptor ignored = result) {
-      // pm grant/revoke produce no output worth reading; closing the pipe completes the command.
-    } catch (IOException error) {
-      throw new AssertionError("Could not finish CAMERA permission command: " + command, error);
+
+    @Override
+    public boolean isGranted(PlatformPermission permission) {
+      return permission == PlatformPermission.CAMERA ? cameraGranted : true;
     }
+
+    @Override
+    public boolean shouldShowRationale(PlatformPermission permission) {
+      return false;
+    }
+  }
+
+  @Singleton
+  public static final class FakePermissionRequester
+      implements PermissionRequester, PermissionLauncherBinder {
+
+    private final FakePermissionState state;
+
+    @Inject
+    FakePermissionRequester(FakePermissionState state) {
+      this.state = state;
+    }
+
+    @Override
+    public void request(PlatformPermission permission, Consumer<Boolean> result) {
+      result.accept(state.isGranted(permission));
+    }
+
+    @Override
+    public void bind(PlatformPermission permission, androidx.fragment.app.Fragment fragment) {}
+
+    @Override
+    public void unbind(PlatformPermission permission, androidx.fragment.app.Fragment fragment) {}
   }
 
   private static ViewAction clickRowCheckBox() {

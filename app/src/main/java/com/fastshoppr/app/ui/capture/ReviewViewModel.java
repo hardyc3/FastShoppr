@@ -1006,10 +1006,10 @@ public final class ReviewViewModel extends ViewModel {
                 postEvent(new ReviewUiEvent.ShowError(UiError.SAVE_FAILED));
                 return;
               }
+              postEvent(new ReviewUiEvent.SaveCompleted());
               if (listId != null && organizingScheduler != null) {
                 organizingScheduler.scheduleAfterSave(listId);
               }
-              postEvent(new ReviewUiEvent.SaveCompleted());
             });
   }
 

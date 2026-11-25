@@ -108,7 +108,11 @@ public final class SettingsStoreSelectionTest {
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
-      waitFor(() -> onFocusedView(withId(R.id.btnForgetSavedStore)).check(matches(isDisplayed())));
+      waitFor(
+          () ->
+              onFocusedView(withId(R.id.storeSummary))
+                  .check(matches(withText(containsString("Walmart #123")))));
+      onFocusedView(withId(R.id.btnForgetSavedStore)).check(matches(isDisplayed()));
 
       onFocusedView(withId(R.id.btnForgetSavedStore)).perform(click());
       waitFor(
