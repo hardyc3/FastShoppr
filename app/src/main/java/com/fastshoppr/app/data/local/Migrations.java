@@ -211,5 +211,21 @@ public final class Migrations {
         }
       };
 
+  public static final Migration MIGRATION_6_7 =
+      new Migration(6, 7) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+          // Target was removed after live checks showed no public aisle. Convert the row so
+          // existing list items keep a valid store reference, then drop its stale cache.
+          database.execSQL(
+              "DELETE FROM `aisle_cache` WHERE `storeId` IN "
+                  + "(SELECT `id` FROM `stores` WHERE `brand` = 'TARGET')");
+          database.execSQL(
+              "UPDATE `stores` SET `brand` = 'CUSTOM', `name` = 'Removed store', "
+                  + "`isCustom` = 1, `isDefault` = 0, `isArchived` = 1 "
+                  + "WHERE `brand` = 'TARGET'");
+        }
+      };
+
   private Migrations() {}
 }

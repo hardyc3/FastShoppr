@@ -10,19 +10,18 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**
- * Verified Phase 10 capability for each supported brand.
+ * Verified lookup capability for each supported brand.
  *
- * <p>Live checks on 2026-11-25 found Home Depot blocked by HTTP 403, Lowe's blocked by Akamai,
- * Target behind human verification, and Smiths showing no public aisle on its product page. Those
- * brands stay manual-aisle-first; Walmart keeps its foreground WebView path. See D-053 and D-054.
+ * <p>Walmart keeps its foreground WebView path. Home Depot, Lowe's, and Smiths use the shared
+ * search-first HTTP path: search the public site, open the first matching product, then parse the
+ * visible aisle. Target was removed after live checks showed no public aisle (D-056). Custom stores
+ * remain manual-only. See D-053 through D-055.
  */
 @Singleton
 public final class StoreLookupSupport {
 
   public enum Mode {
     ENABLED,
-    BLOCKED,
-    NO_PUBLIC_AISLE,
     MANUAL_ONLY
   }
 
@@ -42,9 +41,7 @@ public final class StoreLookupSupport {
       return new Decision(Mode.MANUAL_ONLY);
     }
     return switch (brand) {
-      case WALMART -> new Decision(Mode.ENABLED);
-      case HOME_DEPOT, LOWES, TARGET -> new Decision(Mode.BLOCKED);
-      case SMITHS -> new Decision(Mode.NO_PUBLIC_AISLE);
+      case WALMART, HOME_DEPOT, LOWES, SMITHS -> new Decision(Mode.ENABLED);
       case CUSTOM -> new Decision(Mode.MANUAL_ONLY);
     };
   }

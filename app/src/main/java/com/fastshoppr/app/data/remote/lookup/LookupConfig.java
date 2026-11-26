@@ -11,9 +11,8 @@ import javax.inject.Singleton;
 /**
  * Runtime gates for store lookup integrations.
  *
- * <p>Per D-021/D-022, Home Depot live HTTP lookup is dormant until a real-device pass confirms
- * aisle pages are reachable. Walmart lookups must remain user-initiated and foreground-only; this
- * config only gates automated/network integrations.
+ * <p>Per D-055, Home Depot, Lowe's, and Smiths use the shared search-first HTTP path. Walmart
+ * lookups remain user-initiated and foreground-only; this config only gates automated integrations.
  */
 @Singleton
 public class LookupConfig {
@@ -21,8 +20,8 @@ public class LookupConfig {
   @Inject
   public LookupConfig() {}
 
-  /** Home Depot is blocked (403) in current environment; keep HTTP path dormant by default. */
-  public boolean isHomeDepotLiveEnabled() {
-    return false;
+  /** The search-first retail path is enabled; 403/429 and challenge pages still stop the run. */
+  public boolean isRetailHttpEnabled() {
+    return true;
   }
 }

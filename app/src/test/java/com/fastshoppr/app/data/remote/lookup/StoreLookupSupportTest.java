@@ -16,20 +16,11 @@ public class StoreLookupSupportTest {
   private final StoreLookupSupport support = new StoreLookupSupport();
 
   @Test
-  public void walmartRemainsTheOnlyAutomatedLookupBrand() {
-    assertEquals(StoreLookupSupport.Mode.ENABLED, support.forBrand(StoreBrand.WALMART).mode);
-  }
-
-  @Test
-  public void blockedRetailersHaveNoAutomatedLookup() {
-    for (StoreBrand brand : List.of(StoreBrand.HOME_DEPOT, StoreBrand.LOWES, StoreBrand.TARGET)) {
-      assertEquals(StoreLookupSupport.Mode.BLOCKED, support.forBrand(brand).mode);
+  public void automatedLookupBrandsAreEnabledAfterSearchFirstVerification() {
+    for (StoreBrand brand :
+        List.of(StoreBrand.WALMART, StoreBrand.HOME_DEPOT, StoreBrand.LOWES, StoreBrand.SMITHS)) {
+      assertEquals(StoreLookupSupport.Mode.ENABLED, support.forBrand(brand).mode);
     }
-  }
-
-  @Test
-  public void smithsHasNoPublicAisleOnProductPages() {
-    assertEquals(StoreLookupSupport.Mode.NO_PUBLIC_AISLE, support.forBrand(StoreBrand.SMITHS).mode);
   }
 
   @Test

@@ -99,13 +99,18 @@ Fakes must be deterministic and configurable per test.
 
 ## Phase 10 store integration coverage
 
-- Automated aisle lookup tests use sanitized fixtures for each changed brand:
-  aisle present, aisle absent, and blocked page.
+- Automated aisle lookup tests use sanitized fixtures for Home Depot, Lowe's,
+  and Smiths: search link, aisle present, aisle absent, and blocked page.
+- Search-first service tests assert the first query-matching same-retailer
+  product link is followed, off-host and unrelated carousel links are ignored,
+  two requests per lookup respect the rate limit, and HTTP 403/429 or challenge
+  markers stop the run.
 - Cache tests assert brand-scoped keys, 60-day expiry, and one request per second
   per store.
 - Device manual tests cover branch selection → item entry → organize → aisle
-  result → sort for Home Depot, Lowe's, Target, and Smiths, plus a Walmart
-  regression smoke. Results are recorded per brand with device and date.
+  result → sort for Home Depot, Lowe's, and Smiths, plus a Walmart regression
+  smoke. Target was removed under D-056. Results are recorded per brand with
+  device and date.
 - Custom-store tests assert manual-only aisle entry; no automated lookup path is
   exercised.
 

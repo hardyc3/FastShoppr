@@ -8,6 +8,8 @@ package com.fastshoppr.app.domain.model;
 public enum LookupSource {
   WALMART_WEBVIEW,
   HOME_DEPOT_HTTP,
+  LOWES_HTTP,
+  SMITHS_HTTP,
   MANUAL,
   CACHE
 }

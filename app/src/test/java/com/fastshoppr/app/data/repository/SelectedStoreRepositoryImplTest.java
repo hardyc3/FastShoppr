@@ -95,24 +95,24 @@ public final class SelectedStoreRepositoryImplTest {
   @Test
   public void multipleBrandsAreSavedUnderSeparateKeys() {
     repository.select(store(StoreBrand.WALMART, "Walmart #1"));
-    repository.select(store(StoreBrand.TARGET, "Target #2"));
+    repository.select(store(StoreBrand.SMITHS, "Smiths #2"));
 
     assertEquals(2, repository.getSelected().size());
     assertEquals("Walmart #1", repository.getSelected(StoreBrand.WALMART).getName());
-    assertEquals("Target #2", repository.getSelected(StoreBrand.TARGET).getName());
+    assertEquals("Smiths #2", repository.getSelected(StoreBrand.SMITHS).getName());
     assertTrue(values.containsKey("selected_store_WALMART"));
-    assertTrue(values.containsKey("selected_store_TARGET"));
+    assertTrue(values.containsKey("selected_store_SMITHS"));
   }
 
   @Test
   public void clearRemovesOnlyThatBrand() {
     repository.select(store(StoreBrand.WALMART, "Walmart #1"));
-    repository.select(store(StoreBrand.TARGET, "Target #2"));
+    repository.select(store(StoreBrand.SMITHS, "Smiths #2"));
 
     repository.clear(StoreBrand.WALMART);
 
     assertNull(repository.getSelected(StoreBrand.WALMART));
-    assertEquals(StoreBrand.TARGET, repository.getSelected().keySet().iterator().next());
+    assertEquals(StoreBrand.SMITHS, repository.getSelected().keySet().iterator().next());
   }
 
   @Test
@@ -144,11 +144,11 @@ public final class SelectedStoreRepositoryImplTest {
   public void malformedStoredJsonIsIgnored() {
     values.put("selected_store_" + StoreBrand.LOWES.name(), "{not-json");
     values.put("selected_store_" + StoreBrand.SMITHS.name(), "\"not-an-object\"");
-    values.put("selected_store_" + StoreBrand.TARGET.name(), "   ");
+    values.put("selected_store_" + StoreBrand.HOME_DEPOT.name(), "   ");
 
     assertNull(repository.getSelected(StoreBrand.LOWES));
     assertNull(repository.getSelected(StoreBrand.SMITHS));
-    assertNull(repository.getSelected(StoreBrand.TARGET));
+    assertNull(repository.getSelected(StoreBrand.HOME_DEPOT));
     assertTrue(repository.getSelected().isEmpty());
   }
 

@@ -14,7 +14,6 @@ import static org.junit.Assert.assertTrue;
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
 import androidx.lifecycle.MutableLiveData;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
-import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.data.remote.lookup.StoreLookupSupport;
 import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.lookup.StoreLookupRequest;
@@ -93,7 +92,6 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
-            new FakeStoreLookupMessages(),
             Set.of(walmartService));
   }
 
@@ -294,7 +292,6 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
-            new FakeStoreLookupMessages(),
             Set.of(service));
     ListItem item = item("i9", "eggs", LookupStatus.PENDING, null);
     itemRepo.insert(item);
@@ -387,10 +384,34 @@ public class AisleLookupRepositoryImplTest {
   }
 
   @Test
-  public void blockedBrandStopsWithoutCallingItsService() {
+  public void repositoryReservesRateLimitSlotBeforeLookup() {
+    CountingRateLimiter limiter = new CountingRateLimiter(clock);
+    repo =
+        new AisleLookupRepositoryImpl(
+            itemRepo,
+            cacheRepo,
+            storeRepo,
+            clock,
+            new FixedIdGenerator(),
+            limiter,
+            new StoreLookupSupport(),
+            Set.of(walmartService));
+    ListItem item = item("i-rate", "milk", LookupStatus.PENDING, null);
+    itemRepo.insert(item);
+
+    repo.lookupItem("i-rate", true);
+
+    assertEquals(1, limiter.calls.get());
+  }
+
+  @Test
+  public void enabledLowesBrandCallsItsOwnService() {
     Store lowes = store(StoreBrand.LOWES, "store-lowes");
     storeRepo.put(lowes);
     CountingService lowesService = new CountingService(StoreBrand.LOWES);
+    lowesService.result =
+        new StoreLookupResult.Found(
+            "12", null, "Paper Towels", null, 0.9f, LookupSource.LOWES_HTTP);
     repo =
         new AisleLookupRepositoryImpl(
             itemRepo,
@@ -400,38 +421,46 @@ public class AisleLookupRepositoryImplTest {
             new FixedIdGenerator(),
             new RateLimiter(clock),
             new StoreLookupSupport(),
-            new FakeStoreLookupMessages(),
             Set.of(walmartService, lowesService));
     ListItem item = itemAtStore("i-lowes", "paper towels", lowes.getId());
     itemRepo.insert(item);
 
     AisleLookupRepository.LookupOutcome outcome = repo.lookupItem("i-lowes", true);
 
-    assertTrue(outcome.blocked);
-    assertTrue(outcome.result instanceof StoreLookupResult.Blocked);
-    assertEquals(
-        "Lowe's access is denied; enter aisle manually.",
-        ((StoreLookupResult.Blocked) outcome.result).getReason());
-    assertEquals(LookupStatus.ERROR, outcome.item.getLookupStatus());
+    assertFalse(outcome.blocked);
+    assertEquals(1, lowesService.calls.get());
+    assertEquals(LookupStatus.FOUND, outcome.item.getLookupStatus());
+    assertEquals(LookupSource.LOWES_HTTP, outcome.item.getLookupSource());
+    assertEquals("12", outcome.item.getAisle());
     assertEquals("paper towels", outcome.item.getRawText());
     assertEquals("paper towels", outcome.item.getDisplayName());
-    assertEquals(0, lowesService.calls.get());
   }
 
   @Test
-  public void smithsWithoutPublicAisleReturnsNotFound() {
+  public void enabledSmithsUsesItsServiceAndPreservesRawText() {
     Store smiths = store(StoreBrand.SMITHS, "store-smiths");
     storeRepo.put(smiths);
+    CountingService smithsService = new CountingService(StoreBrand.SMITHS);
+    smithsService.result = new StoreLookupResult.NotFound("No public aisle shown.");
+    repo =
+        new AisleLookupRepositoryImpl(
+            itemRepo,
+            cacheRepo,
+            storeRepo,
+            clock,
+            new FixedIdGenerator(),
+            new RateLimiter(clock),
+            new StoreLookupSupport(),
+            Set.of(walmartService, smithsService));
     ListItem item = itemAtStore("i-smiths", "milk", smiths.getId());
     itemRepo.insert(item);
 
     AisleLookupRepository.LookupOutcome outcome = repo.lookupItem("i-smiths", true);
 
+    assertEquals(1, smithsService.calls.get());
     assertTrue(outcome.result instanceof StoreLookupResult.NotFound);
     assertEquals(LookupStatus.NOT_FOUND, outcome.item.getLookupStatus());
-    assertEquals(
-        "Smiths product pages do not show a public aisle; enter aisle manually.",
-        outcome.item.getLookupError());
+    assertEquals("No public aisle shown.", outcome.item.getLookupError());
     assertEquals("milk", outcome.item.getRawText());
     assertEquals("milk", outcome.item.getDisplayName());
   }
@@ -451,7 +480,7 @@ public class AisleLookupRepositoryImplTest {
   }
 
   @Test
-  public void cachedAisleIsReusedBeforeBrandBlock() {
+  public void cachedAisleIsReusedBeforeNetworkLookup() {
     Store lowes = store(StoreBrand.LOWES, "store-lowes-cache");
     storeRepo.put(lowes);
     cacheRepo.put(
@@ -477,6 +506,33 @@ public class AisleLookupRepositoryImplTest {
     assertEquals("12", outcome.item.getAisle());
     assertEquals("paper towels", outcome.item.getRawText());
     assertEquals("paper towels", outcome.item.getDisplayName());
+  }
+
+  @Test
+  public void lowConfidenceCacheHitStaysInReview() {
+    Store lowes = store(StoreBrand.LOWES, "store-lowes-review");
+    storeRepo.put(lowes);
+    cacheRepo.put(
+        new AisleCache(
+            "c-lowes-review",
+            lowes.getId(),
+            "paper towels",
+            "12",
+            null,
+            "Paper Towels",
+            null,
+            0.55f,
+            LookupSource.LOWES_HTTP,
+            clock.nowMillis(),
+            clock.nowMillis() + 10_000L));
+    ListItem item = itemAtStore("i-lowes-review", "paper towels", lowes.getId());
+    itemRepo.insert(item);
+
+    AisleLookupRepository.LookupOutcome outcome = repo.lookupItem("i-lowes-review", false);
+
+    assertTrue(outcome.fromCache);
+    assertEquals(LookupStatus.NEEDS_REVIEW, outcome.item.getLookupStatus());
+    assertNotNull(outcome.item.getLookupError());
   }
 
   @Test
@@ -515,7 +571,8 @@ public class AisleLookupRepositoryImplTest {
     AisleLookupRepository.LookupOutcome outcome = repo.lookupItem("i-separate", false);
 
     assertFalse(outcome.fromCache);
-    assertTrue(outcome.blocked);
+    assertTrue(outcome.result instanceof StoreLookupResult.Error);
+    assertEquals(LookupStatus.ERROR, outcome.item.getLookupStatus());
   }
 
   private Store store(StoreBrand brand, String id) {
@@ -558,20 +615,16 @@ public class AisleLookupRepositoryImplTest {
         .build();
   }
 
-  static final class FakeStoreLookupMessages extends StoreLookupMessages {
-    FakeStoreLookupMessages() {
-      super(null);
+  static class CountingRateLimiter extends RateLimiter {
+    final AtomicInteger calls = new AtomicInteger();
+
+    CountingRateLimiter(FixedClock clock) {
+      super(clock);
     }
 
     @Override
-    public String forBrand(StoreBrand brand) {
-      return switch (brand) {
-        case HOME_DEPOT -> "Home Depot access is blocked (HTTP 403); enter aisle manually.";
-        case LOWES -> "Lowe's access is denied; enter aisle manually.";
-        case TARGET -> "Target requires human verification; enter aisle manually.";
-        case SMITHS -> "Smiths product pages do not show a public aisle; enter aisle manually.";
-        default -> "Custom stores use manual aisle entry.";
-      };
+    public void acquire(StoreBrand brand) {
+      calls.incrementAndGet();
     }
   }
 

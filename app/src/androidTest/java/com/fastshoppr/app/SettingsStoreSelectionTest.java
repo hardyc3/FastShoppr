@@ -17,16 +17,13 @@ import static com.fastshoppr.app.testing.StoreLabelMatchers.label;
 import static com.fastshoppr.app.testing.StoreLabelMatchers.withSpinnerValue;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 import android.view.View;
 import androidx.test.core.app.ActivityScenario;
-import androidx.test.core.app.ApplicationProvider;
 import androidx.test.espresso.ViewInteraction;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.StoreBrand;
@@ -51,8 +48,6 @@ public final class SettingsStoreSelectionTest {
   @Rule public final HiltAndroidRule hiltRule = new HiltAndroidRule(this);
 
   @Inject SelectedStoreRepository selectedStoreRepository;
-
-  @Inject StoreLookupMessages storeLookupMessages;
 
   @Before
   public void setUp() {
@@ -90,7 +85,7 @@ public final class SettingsStoreSelectionTest {
   }
 
   @Test
-  public void savedBranchesForAllFiveBrandsAppearInSummary() {
+  public void savedBranchesForAllSupportedBrandsAppearInSummary() {
     for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
       selectedStoreRepository.select(
           branch(brand, label(brand) + " #1", (brand.ordinal() + 1) + " Main St"));
@@ -108,22 +103,6 @@ public final class SettingsStoreSelectionTest {
             .check(matches(withText(containsString(label(brand) + " #1"))));
       }
     }
-  }
-
-  @Test
-  public void verifiedOutcomeMessagesComeFromResources() {
-    assertEquals(
-        ApplicationProvider.getApplicationContext().getString(R.string.lookup_home_depot_blocked),
-        storeLookupMessages.forBrand(StoreBrand.HOME_DEPOT));
-    assertEquals(
-        ApplicationProvider.getApplicationContext().getString(R.string.lookup_lowes_blocked),
-        storeLookupMessages.forBrand(StoreBrand.LOWES));
-    assertEquals(
-        ApplicationProvider.getApplicationContext().getString(R.string.lookup_target_blocked),
-        storeLookupMessages.forBrand(StoreBrand.TARGET));
-    assertEquals(
-        ApplicationProvider.getApplicationContext().getString(R.string.lookup_smiths_no_aisle),
-        storeLookupMessages.forBrand(StoreBrand.SMITHS));
   }
 
   @Test

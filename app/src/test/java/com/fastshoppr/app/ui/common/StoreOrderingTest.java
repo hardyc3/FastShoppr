@@ -16,15 +16,15 @@ public final class StoreOrderingTest {
 
   @Test
   public void ordersByBrandThenNameWithoutMutatingInput() {
-    Store target = store("t", StoreBrand.TARGET, "Target");
+    Store smiths = store("s", StoreBrand.SMITHS, "Smiths");
     Store walmartB = store("wb", StoreBrand.WALMART, "Walmart B");
     Store walmartA = store("wa", StoreBrand.WALMART, "Walmart A");
-    List<Store> input = List.of(target, walmartB, walmartA);
+    List<Store> input = List.of(smiths, walmartB, walmartA);
 
     List<Store> ordered = StoreOrdering.byBrandThenName(input);
 
-    assertEquals(List.of("wa", "wb", "t"), ordered.stream().map(Store::getId).toList());
-    assertEquals("t", input.get(0).getId());
+    assertEquals(List.of("wa", "wb", "s"), ordered.stream().map(Store::getId).toList());
+    assertEquals(List.of("s", "wb", "wa"), input.stream().map(Store::getId).toList());
   }
 
   private static Store store(String id, StoreBrand brand, String name) {

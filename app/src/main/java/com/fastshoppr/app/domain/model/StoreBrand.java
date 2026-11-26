@@ -9,7 +9,6 @@ public enum StoreBrand {
   WALMART("Walmart"),
   HOME_DEPOT("Home Depot"),
   LOWES("Lowe's"),
-  TARGET("Target"),
   SMITHS("Smiths"),
   CUSTOM("Custom");
 

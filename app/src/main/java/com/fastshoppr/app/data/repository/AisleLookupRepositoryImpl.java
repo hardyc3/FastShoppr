@@ -7,7 +7,6 @@ package com.fastshoppr.app.data.repository;
 
 import com.fastshoppr.app.data.remote.lookup.LookupQueryNormalizer;
 import com.fastshoppr.app.data.remote.lookup.RateLimiter;
-import com.fastshoppr.app.data.remote.lookup.StoreLookupMessages;
 import com.fastshoppr.app.data.remote.lookup.StoreLookupSupport;
 import com.fastshoppr.app.domain.error.AppError;
 import com.fastshoppr.app.domain.id.IdGenerator;
@@ -53,7 +52,6 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
   private final IdGenerator idGenerator;
   private final RateLimiter rateLimiter;
   private final StoreLookupSupport lookupSupport;
-  private final StoreLookupMessages messages;
   private final Map<StoreBrand, StoreLookupService> services;
 
   @Inject
@@ -65,7 +63,6 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       IdGenerator idGenerator,
       RateLimiter rateLimiter,
       StoreLookupSupport lookupSupport,
-      StoreLookupMessages messages,
       Set<StoreLookupService> serviceSet) {
     this.itemRepository = itemRepository;
     this.cacheRepository = cacheRepository;
@@ -74,7 +71,6 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     this.idGenerator = idGenerator;
     this.rateLimiter = rateLimiter;
     this.lookupSupport = lookupSupport;
-    this.messages = messages;
     this.services = new EnumMap<>(StoreBrand.class);
     for (StoreLookupService service : serviceSet) {
       services.put(service.getBrand(), service);
@@ -141,17 +137,8 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
       }
     }
 
-    StoreLookupSupport.Decision supportDecision = lookupSupport.forBrand(store.getBrand());
-    if (supportDecision.mode == StoreLookupSupport.Mode.MANUAL_ONLY) {
+    if (lookupSupport.forBrand(store.getBrand()).mode == StoreLookupSupport.Mode.MANUAL_ONLY) {
       return LookupOutcome.unchanged(item, null);
-    }
-    if (supportDecision.mode != StoreLookupSupport.Mode.ENABLED) {
-      String reason = messages.forBrand(store.getBrand());
-      StoreLookupResult result =
-          supportDecision.mode == StoreLookupSupport.Mode.BLOCKED
-              ? new StoreLookupResult.Blocked(reason)
-              : new StoreLookupResult.NotFound(reason);
-      return applyNetworkResult(itemId, store, query, now, result);
     }
 
     StoreLookupService service = services.get(store.getBrand());
@@ -188,6 +175,8 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
     return switch (cached.getSource()) {
       case WALMART_WEBVIEW -> store.getBrand() == StoreBrand.WALMART;
       case HOME_DEPOT_HTTP -> store.getBrand() == StoreBrand.HOME_DEPOT;
+      case LOWES_HTTP -> store.getBrand() == StoreBrand.LOWES;
+      case SMITHS_HTTP -> store.getBrand() == StoreBrand.SMITHS;
       case MANUAL, CACHE -> true;
     };
   }
@@ -396,8 +385,12 @@ public final class AisleLookupRepositoryImpl implements AisleLookupRepository {
   }
 
   private ListItem applyCacheHit(ListItem item, AisleCache cache, boolean stale, long now) {
-    LookupStatus status = LookupStatus.FOUND;
-    String error = stale ? "Showing saved aisle (may be outdated)." : null;
+    boolean lowConfidence = cache.getConfidence() != null && cache.getConfidence() < 0.6f;
+    LookupStatus status = lowConfidence ? LookupStatus.NEEDS_REVIEW : LookupStatus.FOUND;
+    String error =
+        lowConfidence
+            ? "Low confidence match. Confirm the aisle or choose another product."
+            : stale ? "Showing saved aisle (may be outdated)." : null;
     return ListItem.builderFrom(item)
         .aisle(cache.getAisle())
         .matchCandidatesJson(null)

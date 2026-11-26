@@ -104,20 +104,15 @@ public final class RoomDataLayerTest {
   }
 
   @Test
-  public void seedsFiveChainStoresExactlyOnce() {
+  public void seedsFourChainStoresExactlyOnce() {
     List<Store> firstRead = storeRepository.getActive();
     List<Store> secondRead = storeRepository.getActive();
 
-    assertEquals(5, firstRead.size());
-    assertEquals(5, secondRead.size());
+    assertEquals(4, firstRead.size());
+    assertEquals(4, secondRead.size());
     Set<StoreBrand> brands = firstRead.stream().map(Store::getBrand).collect(Collectors.toSet());
     assertEquals(
-        Set.of(
-            StoreBrand.WALMART,
-            StoreBrand.HOME_DEPOT,
-            StoreBrand.LOWES,
-            StoreBrand.TARGET,
-            StoreBrand.SMITHS),
+        Set.of(StoreBrand.WALMART, StoreBrand.HOME_DEPOT, StoreBrand.LOWES, StoreBrand.SMITHS),
         brands);
     assertTrue(firstRead.stream().allMatch(store -> !store.isCustom()));
   }
@@ -216,13 +211,13 @@ public final class RoomDataLayerTest {
   @Test
   public void defaultStoreSelectionIsExclusive() {
     Store walmart = storeRepository.findByBrand(StoreBrand.WALMART);
-    Store target = storeRepository.findByBrand(StoreBrand.TARGET);
+    Store smiths = storeRepository.findByBrand(StoreBrand.SMITHS);
 
     storeRepository.setDefault(walmart.getId());
     assertEquals(walmart.getId(), storeRepository.getDefault().getId());
 
-    storeRepository.setDefault(target.getId());
-    assertEquals(target.getId(), storeRepository.getDefault().getId());
+    storeRepository.setDefault(smiths.getId());
+    assertEquals(smiths.getId(), storeRepository.getDefault().getId());
     assertEquals(1, storeRepository.getActive().stream().filter(Store::isDefault).count());
   }
 

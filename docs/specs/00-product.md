@@ -20,7 +20,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 2. Add items by typing, handwriting on screen, camera photo, or gallery image.
 3. Review recognized text in a bulk-edit screen.
 4. Optionally let on-device AI suggest cleaner item names; the user confirms.
-5. Assign each item to a store section (Walmart, Home Depot, Lowe's, Target, Smiths, or a future custom store).
+5. Assign each item to a store section (Walmart, Home Depot, Lowe's, Smiths, or a future custom store).
 6. The app looks up each item's aisle in the background and notifies the user when the route is ready.
 7. Items are grouped by store and sorted by aisle; the user can reverse the aisle direction.
 8. The user checks items off while shopping.
@@ -48,8 +48,9 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 
 ## Post-MVP scope (Phases 10–12)
 
-- Verified automated aisle lookup and branch selection for Lowe's, Target, and
-  Smiths, with Home Depot verification and a Walmart regression check (Phase 10).
+- Verified search-first automated aisle lookup and branch selection for Home
+  Depot, Lowe's, and Smiths, with a Walmart regression check (Phase 10). Target
+  was removed because it exposes no public aisle (D-056).
 - User-added local stores.
 - Price collection from public store pages where available.
 - Manual price override.
@@ -80,7 +81,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | On-device AI cleanup | Yes | — | — |
 | Walmart aisle lookup | Yes | — | — |
 | Home Depot aisle lookup | Yes | — | — |
-| Lowe's/Target/Smiths automated lookup | Manual aisle | Phase 10 | — |
+| Home Depot/Lowe's/Smiths automated lookup | Manual aisle | Phase 10 search-first | — |
 | Multi-store list sections | Yes | — | — |
 | Aisle asc/desc toggle | Yes | — | — |
 | Background organizing | Yes | — | — |

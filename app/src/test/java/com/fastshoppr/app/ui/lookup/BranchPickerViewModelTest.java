@@ -97,11 +97,11 @@ public final class BranchPickerViewModelTest {
     viewModel.previewCurrentPage(branchPageJson("Store One", "1 Main St", "Denver", "CO", "80202"));
     events.previews.clear();
 
-    viewModel.selectBrand(StoreBrand.TARGET);
+    viewModel.selectBrand(StoreBrand.SMITHS);
     assertTrue(events.previews.isEmpty());
-    assertEquals(StoreBrand.TARGET, viewModel.getState().getValue().getBrand());
+    assertEquals(StoreBrand.SMITHS, viewModel.getState().getValue().getBrand());
     assertEquals(
-        StoreLocatorPages.locatorUrl(StoreBrand.TARGET),
+        StoreLocatorPages.locatorUrl(StoreBrand.SMITHS),
         viewModel.getState().getValue().getLocatorUrl());
 
     viewModel.savePendingBranch();

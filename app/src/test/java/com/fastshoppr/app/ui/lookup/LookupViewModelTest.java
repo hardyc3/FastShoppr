@@ -81,7 +81,7 @@ public final class LookupViewModelTest {
     when(itemRepository.getByList("list-1"))
         .thenReturn(List.of(item("item-1", "store-1"), item("item-2", "store-2")));
     when(storeRepository.getById("store-1")).thenReturn(store());
-    when(storeRepository.getById("store-2")).thenReturn(targetStore());
+    when(storeRepository.getById("store-2")).thenReturn(smithsStore());
     when(getSelectedStores.execute()).thenReturn(Map.of());
     when(notificationPermissionStatus.isRuntimePermissionRequired()).thenReturn(true);
     viewModel =
@@ -169,11 +169,11 @@ public final class LookupViewModelTest {
             null,
             null,
             NearbyStoreSource.LOCATOR);
-    NearbyStore target =
+    NearbyStore smiths =
         new NearbyStore(
             "456",
-            StoreBrand.TARGET,
-            "Target #456",
+            StoreBrand.SMITHS,
+            "Smiths #456",
             null,
             null,
             null,
@@ -197,7 +197,7 @@ public final class LookupViewModelTest {
         .thenReturn(
             Map.of(
                 StoreBrand.WALMART, walmart,
-                StoreBrand.TARGET, target,
+                StoreBrand.SMITHS, smiths,
                 StoreBrand.LOWES, lowes));
 
     viewModel.loadContext();
@@ -205,7 +205,7 @@ public final class LookupViewModelTest {
     String context = viewModel.getStoreContext().getValue();
     assertTrue(context.contains("Walmart: Walmart Supercenter — 1 Main St"));
     assertFalse(context.contains("Walmart — 1 Main St\n"));
-    assertTrue(context.contains("Target: Target #456"));
+    assertTrue(context.contains("Smiths: Smiths #456"));
     assertFalse(context.contains("Lowe's #789"));
   }
 
@@ -232,8 +232,8 @@ public final class LookupViewModelTest {
             Map.of(
                 StoreBrand.WALMART,
                 branch(StoreBrand.WALMART),
-                StoreBrand.TARGET,
-                branch(StoreBrand.TARGET)));
+                StoreBrand.SMITHS,
+                branch(StoreBrand.SMITHS)));
 
     viewModel.loadContext();
 
@@ -351,11 +351,11 @@ public final class LookupViewModelTest {
         1L);
   }
 
-  private static Store targetStore() {
+  private static Store smithsStore() {
     return new Store(
         "store-2",
-        StoreBrand.TARGET,
-        "Target",
+        StoreBrand.SMITHS,
+        "Smiths",
         "2 Market St",
         null,
         null,

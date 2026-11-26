@@ -106,7 +106,7 @@ public final class DeleteAllDataTest {
     assertNull(selectedStoreRepository.getSelected(StoreBrand.HOME_DEPOT));
     assertNull(settingsPreferences.getSelectedStoreJson(StoreBrand.WALMART));
     assertFalse(image.exists());
-    assertEquals(5, storeDao.getActive().size());
+    assertEquals(4, storeDao.getActive().size());
     assertNoZipKeys(settings);
   }
 

@@ -24,11 +24,11 @@ public final class ListDetailRowsBuilderTest {
   @Test
   public void groupsByStoreAndPlacesUnresolvedItemsAfterAttentionHeader() {
     Store walmart = store("walmart", StoreBrand.WALMART, "Walmart");
-    Store target = store("target", StoreBrand.TARGET, "Target");
+    Store smiths = store("smiths", StoreBrand.SMITHS, "Smiths");
 
     List<ListDetailRow> rows =
         builder.build(
-            List.of(walmart, target),
+            List.of(walmart, smiths),
             List.of(item("a", "walmart", "10"), item("b", "walmart", null)),
             SortDirection.ASC,
             storeId -> "draft-" + storeId,
@@ -39,8 +39,8 @@ public final class ListDetailRowsBuilderTest {
     assertEquals(new ListDetailRow.AttentionHeader("walmart"), rows.get(2));
     assertItemId(rows.get(3), "b");
     assertEquals(new ListDetailRow.AddItem(walmart, "draft-walmart", 7L), rows.get(4));
-    assertEquals(new ListDetailRow.StoreHeader(target, 0), rows.get(5));
-    assertEquals(new ListDetailRow.AddItem(target, "draft-target", 7L), rows.get(6));
+    assertEquals(new ListDetailRow.StoreHeader(smiths, 0), rows.get(5));
+    assertEquals(new ListDetailRow.AddItem(smiths, "draft-smiths", 7L), rows.get(6));
   }
 
   @Test

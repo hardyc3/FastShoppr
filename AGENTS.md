@@ -11,11 +11,11 @@ MVP stores:
 - Walmart (WebView-based lookup)
 - Home Depot (HTTP + HTML parsing)
 
-Store sections for Lowe's, Target, and Smiths may exist in the UI. Phase 10 verified that those public pages expose no usable aisle (or block access), so they stay manual-aisle-first with clear errors. Custom stores remain manual-aisle only. Manual aisle entry is always available.
+Walmart keeps the foreground WebView aisle lookup. Home Depot, Lowe's, and Smiths use a shared search-first public-page lookup: search, open the first query-matching same-retailer product result, parse the visible aisle/bay, and fall back to manual entry on block or no aisle. Target was removed from supported brands because it exposes no public aisle; stored Target rows migrate to archived custom stores. Custom stores remain manual-aisle only.
 
 ## Current phase
 
-**Phase 10 — Store Integration Coverage** is `done` (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Phase 9 — MVP Release and Phase 9A — Review Remediation are `done` and reviewed. Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
+**Phase 10 — Store Integration Coverage** is `in-progress` for a documented follow-up (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Target has been removed after live verification showed no public aisle; Home Depot, Lowe's, and Smiths now use search-first aisle parsing with live verification still environment-dependent. Phase 9 — MVP Release and Phase 9A — Review Remediation are `done` and reviewed. Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
 
 ## Read order
 

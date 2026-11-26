@@ -7,13 +7,13 @@ MVP automated lookup supports:
 | Store | Method | Store context | Status |
 |---|---|---|---|
 | Walmart | WebView extraction | Branch picked in WebView | Phase 6; Phase 10 regression passed |
-| Home Depot | HTTP blocked; manual aisle fallback | Branch picked in WebView | Phase 10 verified blocked (D-053) |
-| Lowe's | Manual aisle only | Branch picked in WebView | Phase 10 verified no public aisle/blocked (D-053) |
-| Target | Manual aisle only | Branch picked in WebView | Phase 10 verified bot challenge/no public aisle (D-053) |
-| Smiths | Manual aisle only | Branch picked in WebView | Phase 10 verified no public aisle (D-053) |
+| Home Depot | Search-first HTTP → first query match → aisle/bay | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Lowe's | Search-first HTTP → first query match → aisle | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Smiths | Search-first HTTP → first query match → aisle | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Target | Removed | — | No public aisle; stored rows archived as custom (D-056) |
 | Custom stores | Manual aisle only | — | No automated lookup |
 
-Manual aisle entry is always available and must never depend on a successful lookup. Phase 10 verified that Lowe's, Target, and Smiths do not expose a usable public aisle, and that Home Depot is blocked from this environment; those brands report a clear blocked/not-found state and stay manual-aisle-first (D-053). Walmart remains the only automated WebView lookup and passed the regression smoke.
+Manual aisle entry is always available and must never depend on a successful lookup. Home Depot, Lowe's, and Smiths show aisles only after a specific search result is opened, so the app follows the first query-matching same-retailer product result and records that trade-off (D-055). A blocked page, missing product link, or missing aisle produces `Blocked`/`NotFound` with manual fallback. Walmart remains the foreground WebView lookup and passed the regression smoke. Target was removed because it exposes no public aisle (D-056).
 
 ## Access policy
 
@@ -46,7 +46,6 @@ guaranteed APIs):
 | Walmart | `https://www.walmart.com/store/finder` |
 | Home Depot | `https://www.homedepot.com/l/store-locator` |
 | Lowe's | `https://www.lowes.com/store` |
-| Target | `https://www.target.com/store-locator` |
 | Smiths | `https://www.smithsfoodanddrug.com/stores/search` |
 
 Custom stores have no automated locator and no **Pick branch** action.
@@ -202,13 +201,12 @@ Home Depot product pages were expected to show in-store availability such as `Ai
 ## Store context
 
 The app must know which physical store's layout to query. One generic WebView
-branch picker supplies that context for Walmart, Home Depot, Lowe's, Target, and
-Smiths (D-043); Phase 10 verified it for all five brands on a device. Walmart
-keeps the automated WebView flow documented above. Home Depot is blocked, and
-Lowe's, Target, and Smiths expose no usable public aisle, so those brands report
-a clear state and remain manual-aisle-first (D-053). The saved branch is explicit
-user context; it is not silently applied as a lookup result or treated as proof
-of an aisle.
+branch picker supplies that context for Walmart, Home Depot, Lowe's, and Smiths
+(D-043); Phase 10 verified it for the original five brands, then removed Target
+under D-056. Walmart keeps the automated WebView flow documented above. Home
+Depot, Lowe's, and Smiths use the search-first public-page flow in D-055. The
+saved branch is explicit user context; it is not silently applied as a lookup
+result or treated as proof of an aisle.
 
 Priority order for a user-visible store context:
 

@@ -100,6 +100,14 @@ public final class TypedCaptureFlowTest {
 
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       navigate(scenario, R.id.review, NavArguments.forCapture("typed-flow-cap"));
+      TestWait.waitFor(
+          () ->
+              scenario.onActivity(
+                  activity -> {
+                    NavController controller = controller(activity);
+                    assertNotNull(controller.getCurrentDestination());
+                    assertEquals(R.id.review, controller.getCurrentDestination().getId());
+                  }));
       onView(withId(R.id.textField)).check(matches(isDisplayed()));
       onView(withId(R.id.textField)).perform(replaceText("edited milk"));
 
