@@ -197,13 +197,20 @@ Rules:
 ## Enums
 
 ```java
-public enum StoreBrand { WALMART, HOME_DEPOT, LOWES, TARGET, SMITHS, CUSTOM }
+public enum StoreBrand { WALMART, HOME_DEPOT, LOWES, SMITHS, CUSTOM }
 
 public enum LookupStatus {
     PENDING, QUEUED, IN_PROGRESS, FOUND, NOT_FOUND, NEEDS_REVIEW, ERROR
 }
 
-public enum LookupSource { WALMART_WEBVIEW, HOME_DEPOT_HTTP, MANUAL, CACHE }
+public enum LookupSource {
+  WALMART_WEBVIEW,
+  HOME_DEPOT_HTTP,
+  LOWES_HTTP,
+  SMITHS_HTTP,
+  MANUAL,
+  CACHE
+}
 
 public enum ItemSource { TYPED, DIGITAL_INK, CAMERA_OCR, GALLERY_OCR }
 
@@ -308,6 +315,8 @@ Do not store list data in SharedPreferences.
 - Every schema change requires a migration and a migration test.
 - No destructive migrations in release builds.
 - Keep migrations append-only; do not edit shipped migrations.
+- Version 7 (`MIGRATION_6_7`) archives removed Target stores as custom stores and
+  deletes their cached aisles so existing list items keep a valid store reference.
 
 ## Indexing
 

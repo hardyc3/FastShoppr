@@ -21,13 +21,14 @@ import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.label;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.withSpinnerValue;
 import static org.hamcrest.Matchers.allOf;
 import static org.junit.Assert.assertEquals;
 
 import android.content.Intent;
 import android.view.View;
 import android.widget.EditText;
-import android.widget.Spinner;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.core.app.ApplicationProvider;
@@ -197,6 +198,33 @@ public final class ManualListsFlowTest {
   }
 
   @Test
+  public void addStoreOpensPrefilledBranchPickerForEverySupportedBrand() {
+    Intent intent =
+        new Intent(ApplicationProvider.getApplicationContext(), MainActivity.class)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(intent)) {
+      waitFor(
+          () -> onFocusedView(withText(R.string.lists_empty_title)).check(matches(isDisplayed())));
+      onFocusedView(withId(R.id.create_list_button)).perform(click());
+      onFocusedView(withText(android.R.string.ok)).perform(click());
+      waitFor(() -> onFocusedView(withId(R.id.list_detail_name)).check(matches(isDisplayed())));
+
+      for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+        String brandLabel = label(brand);
+        onFocusedView(withId(R.id.add_store_button)).perform(click());
+        onView(withId(R.id.store_spinner)).inRoot(isDialog()).perform(click());
+        onView(withText(brandLabel)).inRoot(isPlatformPopup()).perform(click());
+        onView(withText(R.string.add_store_add)).inRoot(isDialog()).perform(click());
+
+        waitForBranchPicker();
+        onFocusedView(withId(R.id.branchBrandSpinner)).check(matches(withSpinnerValue(brandLabel)));
+        pressBack();
+        waitForContentDescription("Add item to " + brandLabel);
+      }
+    }
+  }
+
+  @Test
   public void addStoreWithSavedBranchDoesNotOpenBranchPicker() {
     selectedStoreRepository.select(branch(StoreBrand.WALMART));
     Intent intent =
@@ -347,23 +375,6 @@ public final class ManualListsFlowTest {
   private static void waitForBranchPicker() {
     waitFor(
         () -> onFocusedView(withText(R.string.branch_picker_title)).check(matches(isDisplayed())));
-  }
-
-  private static Matcher<View> withSpinnerValue(String expected) {
-    return new TypeSafeMatcher<>() {
-      @Override
-      protected boolean matchesSafely(View view) {
-        if (!(view instanceof Spinner spinner) || spinner.getSelectedItem() == null) {
-          return false;
-        }
-        return expected.equals(spinner.getSelectedItem().toString());
-      }
-
-      @Override
-      public void describeTo(Description description) {
-        description.appendText("spinner with selection \"").appendText(expected).appendText("\"");
-      }
-    };
   }
 
   private static NearbyStore branch(StoreBrand brand) {

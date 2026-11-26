@@ -185,7 +185,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 - Store archive semantics change → migration + restore/purge tests; `isArchived` retained for existing UI.
 - 30-day purge depends on existing cleanup scheduling → extend and test the same job; no separate scheduler.
 - No photo retained → disputing an OCR result means re-photographing; accepted tradeoff for privacy.
-- Phase 9A currently has `connectedDebugAndroidTest` blocked by no device → Phase 13 must remain `in-progress`/`blocked` until a device runs the connected tests.
+- Historical note (superseded 2026-11-25): Phase 9A connected tests were once blocked by no device; they now pass 51/51 on `emulator-5554`. Phase 13 remains `not-started` until explicitly instructed.
 
 ## Open questions
 

@@ -18,12 +18,7 @@ import org.junit.Test;
 public final class StoreLocatorPagesTest {
 
   private static final List<StoreBrand> ORDER =
-      List.of(
-          StoreBrand.WALMART,
-          StoreBrand.HOME_DEPOT,
-          StoreBrand.LOWES,
-          StoreBrand.TARGET,
-          StoreBrand.SMITHS);
+      List.of(StoreBrand.WALMART, StoreBrand.HOME_DEPOT, StoreBrand.LOWES, StoreBrand.SMITHS);
 
   @Test
   public void supportedBrandsMatchStableBrandOrder() {
@@ -51,8 +46,6 @@ public final class StoreLocatorPagesTest {
         StoreLocatorPages.locatorUrl(StoreBrand.HOME_DEPOT));
     assertEquals("https://www.lowes.com/store", StoreLocatorPages.locatorUrl(StoreBrand.LOWES));
     assertEquals(
-        "https://www.target.com/store-locator", StoreLocatorPages.locatorUrl(StoreBrand.TARGET));
-    assertEquals(
         "https://www.smithsfoodanddrug.com/stores/search",
         StoreLocatorPages.locatorUrl(StoreBrand.SMITHS));
   }
@@ -66,7 +59,7 @@ public final class StoreLocatorPagesTest {
 
   @Test
   public void navigationAllowlistRequiresHttpsOnTheExactRetailerHost() {
-    assertTrue(StoreLocatorPages.isAllowedNavigation(StoreBrand.TARGET, "about:blank"));
+    assertTrue(StoreLocatorPages.isAllowedNavigation(StoreBrand.WALMART, "about:blank"));
     for (StoreBrand brand : ORDER) {
       String host = URI.create(StoreLocatorPages.locatorUrl(brand)).getHost();
       assertTrue(StoreLocatorPages.isAllowedNavigation(brand, "https://" + host + "/stores"));
@@ -86,7 +79,7 @@ public final class StoreLocatorPagesTest {
   public void navigationToAnotherSupportedRetailerIsRejected() {
     assertFalse(
         StoreLocatorPages.isAllowedNavigation(
-            StoreBrand.WALMART, StoreLocatorPages.locatorUrl(StoreBrand.TARGET)));
+            StoreBrand.WALMART, StoreLocatorPages.locatorUrl(StoreBrand.LOWES)));
     assertFalse(
         StoreLocatorPages.isAllowedNavigation(
             StoreBrand.HOME_DEPOT, StoreLocatorPages.locatorUrl(StoreBrand.SMITHS)));

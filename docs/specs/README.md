@@ -21,7 +21,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | `00-product.md` | Vision, users, journey, MVP scope, non-goals, success criteria |
 | `01-architecture.md` | Stack, package layout, layers, state, DI, navigation, errors |
 | `02-data-model.md` | Entities, enums, relationships, date rules, aisle sorting |
-| `03-store-integration.md` | Lookup architecture, Walmart WebView, Home Depot HTTP, cache, rate limits |
+| `03-store-integration.md` | Lookup architecture, Walmart WebView, shared search-first HTTP, cache, rate limits |
 | `04-ocr-and-input.md` | Typed, Digital Ink, camera, gallery, review, normalization |
 | `05-on-device-ai.md` | Gemini Nano usage, fallbacks, prompts, privacy, testing |
 | `06-scheduling-dates-calendar.md` | Shopping dates, custom interval, deferral parsing, calendar, overdue items |
@@ -51,7 +51,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 8 | Schedule & calendar | `done` | 3, 7 |
 | 9 | MVP release | `done` | 8 |
 | 9A | Review remediation | `done` | 9 |
-| 10 | Store integration coverage | `not-started` | 9 |
+| 10 | Store integration coverage | `in-progress` | 9 |
 | 11 | Pricing spike | `not-started` | 10 |
 | 12 | Price comparison | `not-started` | 11 |
 | 13 | Aisle sign lookup | `not-started` | 12 (sequence only) |

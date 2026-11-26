@@ -170,6 +170,48 @@ public final class MigrationTest {
     versionSix.close();
   }
 
+  @Test
+  public void migratesVersionSixToVersionSevenAndRetiresTargetStore() throws IOException {
+    SupportSQLiteDatabase versionSix = helper.createDatabase(TEST_DATABASE, 6);
+    versionSix.execSQL(
+        "INSERT INTO stores (id, brand, name, isCustom, isDefault, isArchived, createdAt, updatedAt) "
+            + "VALUES ('b4b5e2c3-4d5e-4f6a-9b0c-1d2e3f4a5b6c', 'TARGET', 'Target Store', "
+            + "0, 1, 0, 1, 1)");
+    versionSix.execSQL(
+        "INSERT INTO aisle_cache (id, storeId, normalizedQuery, source, fetchedAt, expiresAt) "
+            + "VALUES ('cache-6', 'b4b5e2c3-4d5e-4f6a-9b0c-1d2e3f4a5b6c', 'milk', 'LOCAL', 1, 1)");
+    versionSix.close();
+
+    SupportSQLiteDatabase versionSeven =
+        helper.runMigrationsAndValidate(
+            TEST_DATABASE,
+            7,
+            true,
+            Migrations.MIGRATION_1_2,
+            Migrations.MIGRATION_2_3,
+            Migrations.MIGRATION_3_4,
+            Migrations.MIGRATION_4_5,
+            Migrations.MIGRATION_5_6,
+            Migrations.MIGRATION_6_7);
+
+    Cursor cursor =
+        versionSeven.query(
+            "SELECT brand, name, isCustom, isDefault, isArchived FROM stores WHERE id = ?",
+            new Object[] {"b4b5e2c3-4d5e-4f6a-9b0c-1d2e3f4a5b6c"});
+    try {
+      assertTrue(cursor.moveToFirst());
+      assertEquals("CUSTOM", cursor.getString(0));
+      assertEquals("Removed store", cursor.getString(1));
+      assertEquals(1, cursor.getInt(2));
+      assertEquals(0, cursor.getInt(3));
+      assertEquals(1, cursor.getInt(4));
+    } finally {
+      cursor.close();
+    }
+    assertEquals(0, rowCount(versionSeven, "aisle_cache"));
+    versionSeven.close();
+  }
+
   private static boolean columnExists(SupportSQLiteDatabase database, String table, String column) {
     Cursor cursor = database.query("PRAGMA table_info(`" + table + "`)");
     try {

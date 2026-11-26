@@ -170,13 +170,13 @@ public final class SettingsViewModelTest {
   @Test
   public void refreshReloadsBranchesAfterReturningFromBranchPicker() {
     when(getSelectedStores.execute())
-        .thenReturn(Collections.emptyMap(), Map.of(StoreBrand.TARGET, store(StoreBrand.TARGET)));
+        .thenReturn(Collections.emptyMap(), Map.of(StoreBrand.SMITHS, store(StoreBrand.SMITHS)));
     viewModel = newViewModel();
     assertTrue(viewModel.getState().getValue().getSelectedStores().isEmpty());
 
     viewModel.refresh();
 
-    assertTrue(viewModel.getState().getValue().getSelectedStores().containsKey(StoreBrand.TARGET));
+    assertTrue(viewModel.getState().getValue().getSelectedStores().containsKey(StoreBrand.SMITHS));
   }
 
   @Test

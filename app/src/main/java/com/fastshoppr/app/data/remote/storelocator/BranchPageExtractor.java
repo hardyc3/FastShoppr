@@ -42,7 +42,7 @@ public final class BranchPageExtractor {
           + "if(found||!s.textContent)return;try{walk(JSON.parse(s.textContent))}catch(e){}});"
           + "var h1=document.querySelector('h1');"
           + "var name=found?found.name:clean(meta('og:title')||(h1?h1.innerText:''));"
-          + "if(!name){var t=clean(document.title);name=t.replace(/\\s*[-|]\\s*(Walmart|The Home Depot|Home Depot|Lowe's|Target|Smiths).*$/i,'');}"
+          + "if(!name){var t=clean(document.title);name=t.replace(/\\s*[-|]\\s*(Walmart|The Home Depot|Home Depot|Lowe's|Smiths).*$/i,'');}"
           + "var body=document.body?clean(document.body.innerText).substring(0,2000):'';"
           + "return JSON.stringify({name:name,addressLine:found?found.street:'',"
           + "city:found?found.city:'',state:found?found.state:'',"

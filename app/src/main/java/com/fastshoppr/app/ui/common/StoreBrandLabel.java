@@ -20,7 +20,6 @@ public final class StoreBrandLabel {
     LABEL_RES.put(StoreBrand.WALMART, R.string.brand_walmart);
     LABEL_RES.put(StoreBrand.HOME_DEPOT, R.string.brand_home_depot);
     LABEL_RES.put(StoreBrand.LOWES, R.string.brand_lowes);
-    LABEL_RES.put(StoreBrand.TARGET, R.string.brand_target);
     LABEL_RES.put(StoreBrand.SMITHS, R.string.brand_smiths);
     LABEL_RES.put(StoreBrand.CUSTOM, R.string.add_store_hint);
   }

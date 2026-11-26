@@ -7,7 +7,7 @@
 - **Completed:** 2026-11-25
 - **Last updated:** 2026-11-25
 
-**Boundary note:** Phase 9A is complete and no phase is active until explicitly instructed. **Phase 10 — Store Integration Coverage stays `not-started`; do not start it.** Phase 10 must remain blocked until explicitly instructed (D-020, D-046, D-047). Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup also remain `not-started`.
+**Historical boundary note (2026-11-24):** At Phase 9A completion, Phase 10 was `not-started` and no phase was active. **Current status (2026-11-25):** Phase 10 — Store Integration Coverage is `done` after explicit implementation and verification (D-052/D-053). Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
 
 ## Goal
 
@@ -112,7 +112,7 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 - [x] `CaptureFlowsTest.java:178-182` no longer skips via `Assume`; the replacement test runs deterministically with no skipped tests.
 - [x] A fake-clock rate-limiter test and a JVM `CreateScheduledListUseCase` test with fakes exist and pass.
 - [x] Stale Phase 4/6/6b/6c/8 status text is reconciled only with cited evidence; Phase 6 criteria `:139`, `:148`, `:149` remain unchecked because live/manual lookup verification is still absent.
-- [x] Phase 10 remains `not-started`; no Phase 10 brand, pricing, or new-dependency work is introduced.
+- [x] Phase 10 remained `not-started` during Phase 9A; no Phase 10 brand, pricing, or new-dependency work was introduced. Current Phase 10 status is recorded in `AGENTS.md` and D-052.
 - [x] `assembleDebug`, `testDebugUnitTest`, `lintDebug`, `spotlessCheck`, and `connectedDebugAndroidTest` pass with no new warnings or TODOs and evidence in the completion log.
 - [x] Every test in the test plan has run and passed, including `connectedDebugAndroidTest` on the simulated device (emulator); no test has failed, errored, or been skipped.
 
@@ -194,4 +194,4 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 | 2026-11-25 | `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest --console=plain` (post-reconciliation) | PASS | `Starting 47 tests on emulator-5554 - 16`; `Finished 47 tests on emulator-5554 - 16`; all progress lines `(0 skipped) (0 failed)`; `BUILD SUCCESSFUL in 1m 6s`. Final gate after doc reconciliation. |
 | 2026-11-25 | Static scans: `git -c core.whitespace=cr-at-eol diff --check`, domain imports, `Assume`/`TODO`/`FIXME`, Phase 10/11/12/13 status | PASS | No whitespace errors under mixed CRLF/LF policy; domain has no Android/AndroidX/Hilt/Room/`work` imports; no skipped-test markers or TODO/FIXME; Phase 10, 11, 12, and 13 remain `not-started`. |
 
-**Status note:** implementation, static gates, full instrumentation, manual demo, and evidence reconciliation are complete. Phase 9A is `done`; Phase 10 remains `not-started` and no later phase was started.
+**Status note:** implementation, static gates, full instrumentation, manual demo, and evidence reconciliation are complete. Phase 9A is `done`; Phase 10 was `not-started` at that time and is now `done` (D-052/D-053). No later phase was started.

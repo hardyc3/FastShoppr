@@ -6,12 +6,15 @@
 package com.fastshoppr.app;
 
 import static androidx.test.espresso.Espresso.onView;
+import static androidx.test.espresso.Espresso.pressBack;
 import static androidx.test.espresso.action.ViewActions.click;
 import static androidx.test.espresso.assertion.ViewAssertions.matches;
 import static androidx.test.espresso.matcher.ViewMatchers.isDisplayed;
 import static androidx.test.espresso.matcher.ViewMatchers.withContentDescription;
 import static androidx.test.espresso.matcher.ViewMatchers.withId;
 import static androidx.test.espresso.matcher.ViewMatchers.withText;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.label;
+import static com.fastshoppr.app.testing.StoreLabelMatchers.withSpinnerValue;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertNotNull;
@@ -24,6 +27,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.fastshoppr.app.domain.model.NearbyStore;
 import com.fastshoppr.app.domain.model.NearbyStoreSource;
 import com.fastshoppr.app.domain.model.StoreBrand;
+import com.fastshoppr.app.domain.model.StoreLocatorPages;
 import com.fastshoppr.app.domain.repository.SelectedStoreRepository;
 import dagger.hilt.android.testing.HiltAndroidRule;
 import dagger.hilt.android.testing.HiltAndroidTest;
@@ -81,6 +85,27 @@ public final class SettingsStoreSelectionTest {
   }
 
   @Test
+  public void savedBranchesForAllSupportedBrandsAppearInSummary() {
+    for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+      selectedStoreRepository.select(
+          branch(brand, label(brand) + " #1", (brand.ordinal() + 1) + " Main St"));
+    }
+
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      onFocusedView(withId(R.id.open_settings_button)).perform(click());
+      waitFor(
+          () ->
+              onFocusedView(withId(R.id.storeSummary))
+                  .check(matches(withText(containsString(label(StoreBrand.WALMART) + " #1")))));
+
+      for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+        onFocusedView(withId(R.id.storeSummary))
+            .check(matches(withText(containsString(label(brand) + " #1"))));
+      }
+    }
+  }
+
+  @Test
   public void brandPickerControlsUseCurrentBrandsAndExplainPrivacy() {
     try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
       onFocusedView(withId(R.id.open_settings_button)).perform(click());
@@ -98,6 +123,34 @@ public final class SettingsStoreSelectionTest {
       onFocusedView(allOf(withId(R.id.btnPickBranch), withText(R.string.settings_store_find)))
           .check(matches(isDisplayed()));
       onFocusedView(withText(containsString("No ZIP code"))).check(matches(isDisplayed()));
+    }
+  }
+
+  @Test
+  public void branchPickerIsAvailableForEverySupportedBrandFromSettings() {
+    try (ActivityScenario<MainActivity> scenario = ActivityScenario.launch(MainActivity.class)) {
+      onFocusedView(withId(R.id.open_settings_button)).perform(click());
+      waitFor(
+          () ->
+              onFocusedView(
+                      allOf(
+                          withId(R.id.storeBrandSpinner),
+                          withContentDescription(R.string.settings_store_brand_label)))
+                  .check(matches(isDisplayed())));
+
+      for (StoreBrand brand : StoreLocatorPages.brandOrder()) {
+        String brandLabel = label(brand);
+        onFocusedView(withId(R.id.storeBrandSpinner)).perform(click());
+        onFocusedView(withText(brandLabel)).perform(click());
+        onFocusedView(withId(R.id.btnPickBranch)).perform(click());
+
+        waitFor(
+            () ->
+                onFocusedView(withId(R.id.branchBrandSpinner))
+                    .check(matches(withSpinnerValue(brandLabel))));
+        pressBack();
+        waitFor(() -> onFocusedView(withId(R.id.storeBrandSpinner)).check(matches(isDisplayed())));
+      }
     }
   }
 

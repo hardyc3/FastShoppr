@@ -93,14 +93,14 @@ public final class SettingsPreferencesTest {
   @Test
   public void clearAllRestoresDefaults() {
     settings.setAiCleanupEnabled(true);
-    settings.setSelectedStoreJson(StoreBrand.TARGET, branchJson("Target #1"));
+    settings.setSelectedStoreJson(StoreBrand.SMITHS, branchJson("Smiths #1"));
     settings.setDefaultStoreId("default-store");
 
     settings.clearAll();
 
     assertNull(settings.getDefaultStoreId());
     assertFalse(settings.isAiCleanupEnabled());
-    assertNull(settings.getSelectedStoreJson(StoreBrand.TARGET));
+    assertNull(settings.getSelectedStoreJson(StoreBrand.SMITHS));
     assertTrue(preferences.getAll().isEmpty());
     assertNoZipKeys();
   }

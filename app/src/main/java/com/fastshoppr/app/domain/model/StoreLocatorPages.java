@@ -14,12 +14,7 @@ import java.util.Set;
 public final class StoreLocatorPages {
 
   private static final List<StoreBrand> ORDER =
-      List.of(
-          StoreBrand.WALMART,
-          StoreBrand.HOME_DEPOT,
-          StoreBrand.LOWES,
-          StoreBrand.TARGET,
-          StoreBrand.SMITHS);
+      List.of(StoreBrand.WALMART, StoreBrand.HOME_DEPOT, StoreBrand.LOWES, StoreBrand.SMITHS);
 
   private static final Set<StoreBrand> SUPPORTED = Set.copyOf(ORDER);
 
@@ -45,7 +40,6 @@ public final class StoreLocatorPages {
       case WALMART -> "https://www.walmart.com/store/finder";
       case HOME_DEPOT -> "https://www.homedepot.com/l/store-locator";
       case LOWES -> "https://www.lowes.com/store";
-      case TARGET -> "https://www.target.com/store-locator";
       case SMITHS -> "https://www.smithsfoodanddrug.com/stores/search";
       default -> throw new IllegalArgumentException("No public locator page for brand: " + brand);
     };
@@ -73,7 +67,6 @@ public final class StoreLocatorPages {
         case WALMART -> host.equals("walmart.com") || host.endsWith(".walmart.com");
         case HOME_DEPOT -> host.equals("homedepot.com") || host.endsWith(".homedepot.com");
         case LOWES -> host.equals("lowes.com") || host.endsWith(".lowes.com");
-        case TARGET -> host.equals("target.com") || host.endsWith(".target.com");
         case SMITHS ->
             host.equals("smithsfoodanddrug.com") || host.endsWith(".smithsfoodanddrug.com");
         default -> false;

@@ -6,14 +6,14 @@ MVP automated lookup supports:
 
 | Store | Method | Store context | Status |
 |---|---|---|---|
-| Walmart | WebView extraction | Branch picked in WebView | Phase 6; Phase 10 regression only |
-| Home Depot | OkHttp + Jsoup | Branch picked in WebView | Phase 6; verify in Phase 10 |
-| Lowe's | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
-| Target | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
-| Smiths | Manual aisle only until Phase 10 | Branch picked in WebView | Phase 10 |
-| Custom stores | Manual aisle only | — | No automated lookup planned |
+| Walmart | WebView extraction | Branch picked in WebView | Phase 6; Phase 10 regression passed |
+| Home Depot | Search-first HTTP → first query match → aisle/bay | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Lowe's | Search-first HTTP → first query match → aisle | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Smiths | Search-first HTTP → first query match → aisle | Branch picked in WebView | Phase 10 follow-up (D-055) |
+| Target | Removed | — | No public aisle; stored rows archived as custom (D-056) |
+| Custom stores | Manual aisle only | — | No automated lookup |
 
-Manual aisle entry is always available and must never depend on a successful lookup. Automated lookup coverage for Lowe's, Target, and Smiths is the work of Phase 10 (D-046); that phase also verifies Home Depot and keeps Walmart as a regression smoke.
+Manual aisle entry is always available and must never depend on a successful lookup. Home Depot, Lowe's, and Smiths show aisles only after a specific search result is opened, so the app follows the first query-matching same-retailer product result and records that trade-off (D-055). A blocked page, missing product link, or missing aisle produces `Blocked`/`NotFound` with manual fallback. Walmart remains the foreground WebView lookup and passed the regression smoke. Target was removed because it exposes no public aisle (D-056).
 
 ## Access policy
 
@@ -46,7 +46,6 @@ guaranteed APIs):
 | Walmart | `https://www.walmart.com/store/finder` |
 | Home Depot | `https://www.homedepot.com/l/store-locator` |
 | Lowe's | `https://www.lowes.com/store` |
-| Target | `https://www.target.com/store-locator` |
 | Smiths | `https://www.smithsfoodanddrug.com/stores/search` |
 
 Custom stores have no automated locator and no **Pick branch** action.
@@ -164,7 +163,7 @@ Walmart is JavaScript-heavy and does not reliably expose aisle data in static HT
 
 ## Home Depot HTTP integration
 
-Home Depot product pages publicly show in-store availability such as `Aisle 52, Bay 016`.
+Home Depot product pages were expected to show in-store availability such as `Aisle 52, Bay 016`. Phase 10 re-verification on 2026-11-25 found HTTP 403 with the identifying user agent and an error page in the emulator browser, so the live HTTP path stays dormant and the app reports `Blocked` with a manual-aisle fallback (D-053).
 
 ### Requirements
 
@@ -202,12 +201,12 @@ Home Depot product pages publicly show in-store availability such as `Aisle 52, 
 ## Store context
 
 The app must know which physical store's layout to query. One generic WebView
-branch picker supplies that context for Walmart, Home Depot, Lowe's, Target, and
-Smiths (D-043). Automated Walmart and Home Depot lookups keep the flows
-documented above. Phase 10 extends automated lookup to Lowe's, Target, and
-Smiths and verifies Home Depot with a device test matrix per brand (D-046).
-The saved branch is explicit user context; it is not silently applied as a
-lookup result or treated as proof of an aisle.
+branch picker supplies that context for Walmart, Home Depot, Lowe's, and Smiths
+(D-043); Phase 10 verified it for the original five brands, then removed Target
+under D-056. Walmart keeps the automated WebView flow documented above. Home
+Depot, Lowe's, and Smiths use the search-first public-page flow in D-055. The
+saved branch is explicit user context; it is not silently applied as a lookup
+result or treated as proof of an aisle.
 
 Priority order for a user-visible store context:
 

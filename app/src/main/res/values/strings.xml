@@ -295,6 +295,7 @@
     <string name="schedule_permission_rationale">Allow notifications to remind you about recurring shopping lists and show schedule updates.</string>
     <string name="lookup_permission_denied_message">Notifications are off. Walmart lookups will run when the app is open.</string>
     <string name="lookup_completed_counts">Organizing finished: %1$s</string>
+    <string name="lookup_error_label">Lookup error</string>
 
     <!-- Schedule -->
     <string name="schedule_title">Shopping schedule</string>
@@ -376,14 +377,12 @@
     <string name="brand_walmart">Walmart</string>
     <string name="brand_home_depot">Home Depot</string>
     <string name="brand_lowes">Lowe\'s</string>
-    <string name="brand_target">Target</string>
     <string name="brand_smiths">Smiths</string>
 
     <string-array name="store_brands">
         <item>@string/brand_walmart</item>
         <item>@string/brand_home_depot</item>
         <item>@string/brand_lowes</item>
-        <item>@string/brand_target</item>
         <item>@string/brand_smiths</item>
     </string-array>
 </resources>

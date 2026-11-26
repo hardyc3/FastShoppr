@@ -130,10 +130,10 @@ Format:
 ## D-015 — Public, rate-limited, cached store access
 
 - Date: 2026-10-31
-- Status: accepted
+- Status: accepted (TTL amended by D-051)
 - Decision: Query only public retailer pages, identify the app in the user agent, limit to one request per second per store, cache results for 7 days, and stop on 403/429/challenges.
 - Rationale: Respect retailer infrastructure and terms while keeping lookups usable.
-- Consequences: Lookups may be incomplete. Manual aisle entry and cached results keep the app useful.
+- Consequences: Lookups may be incomplete. Manual aisle entry and cached results keep the app useful. Amendment (D-051, 2026-11-25): cache TTL is 60 days; the 7-day value above is historical.
 
 ## D-016 — OCR with review, not auto-save
 
@@ -417,4 +417,58 @@ Format:
 - Decision: Add **Phase 13 — Aisle Sign Lookup** after Phase 12 by numbering, with no feature dependency on Phases 10–12. The user photographs in-store aisle signs from store management; ML Kit OCR reads aisle numbers and category text; the user reviews and confirms rows stored per `storeId`. Item resolution uses manual entry first, then confirmed signs, then the existing cache, then retailer websites. On-device AI may infer an aisle only from confirmed sign text, only while in the foreground, and only when opted in; deterministic token matching is always available. Sign photos are discarded after confirm/discard and only sanitized text is retained. `StoreEntity.deletedAt` and a soft-deleted sign corpus get a 30-day restore window before purge; restoring a store restores its signs.
 - Rationale: Product feedback (2026-11-25): users can capture physical aisle signs once per store instead of relying on fragile retailer pages for every item. Bounding AI to user-confirmed signs prevents free-form product-location invention while still using available on-device inference. Reusing the existing 30-day soft-delete rule makes accidental store deletion recoverable without keeping photos.
 - Consequences: `05-on-device-ai.md` is intentionally not edited; `docs/specs/phases/phase-13-aisle-sign-lookup.md` is the authoritative override for this narrow AI use. Room schema moves 6→7 with migrations and tests for `aisle_signs` and `stores.deletedAt`. `10-security-privacy.md` gains aisle-sign text, camera-purpose, and retention entries. No new dependency, location permission, cloud model, image retention, Kotlin app source, or Compose. Phase 13 remains `not-started`; no implementation begins until explicitly instructed.
+
+## D-051 — Aisle lookup cache TTL is 60 days
+
+- Date: 2026-11-25
+- Status: accepted (supersedes the 7-day TTL in D-015)
+- Decision: Successful aisle lookup results are cached for **60 days**. D-015's 7-day value is historical and no longer applies.
+- Rationale: `AGENTS.md`, `03-store-integration.md`, `09-testing-quality.md`, Phase 6/10 specs, and the shipped `AisleLookupRepositoryImpl` all use 60 days. The one stale 7-day value in D-015 conflicts with the implementation and every current spec.
+- Consequences: Cache tests assert 60-day expiry and brand-scoped keys. No code change is required for this correction; D-015 remains accepted for its access-policy rules other than TTL.
+
+## D-052 — Phase 10 active; earlier status wording is historical
+
+- Date: 2026-11-25
+- Status: accepted (amends the status wording in D-046, D-047, D-048, and D-049)
+- Decision: Phase 10 — Store Integration Coverage was `in-progress` during implementation on 2026-11-25 and is `done` at the end of that date. Statements in D-046/D-047/D-048/D-049 and the Phase 9A phase file that Phase 10 or Phase 9A was `not-started`, or that no phase was active, describe the state at their creation date and are historical.
+- Rationale: The user explicitly instructed implementation of Phase 10, including live-device verification and an audit of earlier-phase gaps. Current status lives in `AGENTS.md`, `docs/specs/README.md`, and the phase file.
+- Consequences: Phase 10 completed on 2026-11-25 with the verified brand capability recorded in D-053; the `in-progress` wording above describes the implementation window. Phase 11, Phase 12, and Phase 13 remain `not-started`. Earlier decisions are not rewritten; this entry supersedes only their status wording. No architectural change is made by this entry.
+
+## D-053 — Phase 10 live verification: only Walmart has automated aisle lookup
+
+- Date: 2026-11-25
+- Status: accepted (amends D-005 and the Phase 10 technical approach; records the answer to Phase 10 open question 1)
+- Decision: Live verification on `emulator-5554` and public-page probes on 2026-11-25 found:
+  - Walmart: keep the existing foreground WebView lookup; regression smoke only in Phase 10.
+  - Home Depot: HTTP 403 and an in-browser error page; keep HTTP lookup dormant and report a blocked state with manual-aisle fallback.
+  - Lowe's: Akamai `Access Denied` over HTTP and in the emulator browser; no automated lookup.
+  - Target: `Human verification` challenge in the emulator browser and no aisle in static product HTML; no automated lookup.
+  - Smiths: product page loads and shows availability but no public in-store aisle; HTTP client timed out; no automated lookup.
+  Custom stores remain manual-aisle only. Do not add WebView lookups or cookie sharing for these brands; that would change the approved architecture and cannot bypass bot challenges.
+- Rationale: Store data access policy forbids bypassing access controls or bot challenges. No public aisle is exposed on the verified pages for Lowe's, Target, or Smiths, and Home Depot remains blocked. Adding parsers for data the pages do not expose would fabricate results.
+- Consequences: `StoreLookupSupport` is the single per-brand capability decision. `AisleLookupRepositoryImpl` returns explicit `Blocked`/`NotFound` outcomes for the four non-Walmart brands, reuses cache before applying a block, and leaves custom-store items unchanged. Branch selection and manual aisle entry stay available for every brand. Phase 10 fixtures document observed blocked/no-aisle pages; no new dependency or Room migration is added.
+
+## D-054 — Verified no-go satisfies Phase 10 per-brand coverage
+
+- Date: 2026-11-25
+- Status: accepted (amends the Phase 10 acceptance wording and the Phase 6 live-matrix criterion)
+- Decision: For a supported brand, Phase 10 "implemented or verified" coverage passes when **either** an automated aisle result is demonstrated **or** a live public-page check records a verified no-go (403/429, bot challenge, or no public aisle) and the app reports a clear `Blocked`/`NotFound` state with manual aisle entry still available. No automated request is sent for a verified no-go brand, so the rate limiter and network parser are not exercised for it. A later retailer page change requires fresh live evidence before re-enabling. The earlier Phase 6 "three live items per store" criterion remains open for Home Depot; it is not rewritten as a pass.
+- Rationale: The store access policy forbids bypassing access controls and the app must not invent an aisle the page does not expose. D-053 records observed no-go states for Home Depot, Lowe's, Target, and Smiths; Walmart alone produced three live aisles on `emulator-5554`. Requiring an impossible automated aisle would make the phase unfinishable without violating that policy.
+- Consequences: Phase 10 acceptance rows are checked with the D-053 no-go evidence recorded in the completion log, not by weakening any automated test. Phase 6 live criteria stay unchecked where Home Depot has no pass. `StoreLookupSupport` remains a snapshot requiring re-verification; all user-facing outcome copy lives in `strings.xml` through `StoreLookupMessages`, and the item error view is accessibility-labelled. D-056 supersedes the copy mechanism for the search-first follow-up.
+
+## D-055 — Search-first aisle lookup for Home Depot, Lowe's, and Smiths
+
+- Date: 2026-11-25
+- Status: accepted (supersedes the dormant/blocked lookup state for these three brands in D-053/D-054)
+- Decision: Home Depot, Lowe's, and Smiths use one shared public-page lookup: search the retailer with the normalized item text, take the **first query-matching same-retailer HTTPS product link**, fetch that product page, and parse the visible aisle/bay. Unrelated carousel links and off-host links are skipped; no overlap means no lookup. The first-match assumption is explicit: it can pick the wrong variant. Mitigations are (1) store `matchedProductName`/`matchedProductUrl`, (2) downgrade parses with confidence below 0.6 to `NEEDS_REVIEW`, (3) keep manual aisle entry available, and (4) stop with `Blocked`/`NotFound` on 403/429, challenge markers, no product link, or no visible aisle. The legacy Home Depot HTTP service is removed in favour of the shared service. No bulk scraping, login, CAPTCHA, or bot-challenge bypass is permitted.
+- Rationale: The user reported that these three retailers do display aisle information once a specific item is selected after a search; the earlier no-aisle conclusion was too broad. A first-match path is the smallest implementation that can verify the approach without introducing a product-picker UI or a new dependency. Wrong-variant risk must be surfaced rather than hidden as a confident aisle.
+- Consequences: `RetailSiteConfig`, `RetailHttpLookupService`, and `RetailPageParser` are added. Hilt provides one service instance per brand into the existing set. `LookupSource` gains `LOWES_HTTP` and `SMITHS_HTTP`; 60-day cache and one-request-per-second rules still apply, with a second slot reserved for the product fetch. Low-confidence parses and their cache hits stay `NEEDS_REVIEW`; a labelled aisle for a different store is rejected rather than inferred. `StoreLookupSupport` marks the three brands `ENABLED`; `StoreLookupMessages` is no longer needed and is removed. Sanitized fixtures cover query-aware search links, unrelated carousel rejection, aisle/bay, blocked pages, no aisle, and HTTP failures.
+
+## D-056 — Target removed from supported brands
+
+- Date: 2026-11-25
+- Status: accepted (supersedes the Target row in D-053 and the four-brand no-go framing in D-054)
+- Decision: `StoreBrand.TARGET` is removed from the enum, seeded stores, branch locator, UI pickers, lookup capability, and strings. Room version 7 adds `MIGRATION_6_7`, which converts existing `TARGET` store rows to archived custom stores named `Removed store` and deletes their cached aisles, preserving list-item store references. Target is no longer a supported brand; no automated or manual aisle lookup is claimed for it.
+- Rationale: The user verified that Target does not display a public aisle. Keeping it selectable would promise a lookup the retailer does not expose and would continue the human-verification problem seen in live probes. Removing the enum, rather than only hiding the picker, avoids stale capability branches, but existing data still needs a conversion path.
+- Consequences: The picker and seed set now contain Walmart, Home Depot, Lowe's, and Smiths; custom remains manual-only. Existing Target rows become archived custom stores and their `selected_store_TARGET` preference is simply ignored. Phase 10 manual matrix records Target as removed rather than a no-go pass. No new dependency or Kotlin code is added.
 

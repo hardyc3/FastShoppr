@@ -41,17 +41,17 @@ public final class BranchPageExtractorTest {
   @Test
   public void metaAndTitleFallbackFieldsCanBeEmpty() {
     String json =
-        "{\"name\":\"Target #42\",\"addressLine\":\"\",\"city\":\"\",\"state\":\"\","
-            + "\"postalCode\":\"\",\"title\":\"Target #42 | Target\",\"bodyText\":\"\"}";
+        "{\"name\":\"Smiths #42\",\"addressLine\":\"\",\"city\":\"\",\"state\":\"\","
+            + "\"postalCode\":\"\",\"title\":\"Smiths #42 | Smiths\",\"bodyText\":\"\"}";
 
     BranchPage page = extractor.parse(gson.toJson(json));
 
-    assertEquals("Target #42", page.name());
+    assertEquals("Smiths #42", page.name());
     assertEquals("", page.addressLine());
     assertEquals("", page.city());
     assertEquals("", page.state());
     assertEquals("", page.postalCode());
-    assertEquals("Target #42 | Target", page.title());
+    assertEquals("Smiths #42 | Smiths", page.title());
     assertEquals("", page.bodyText());
   }
 
