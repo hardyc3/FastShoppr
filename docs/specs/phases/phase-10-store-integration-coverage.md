@@ -53,7 +53,6 @@ D-056.
 - Automated lookup or branch location for custom stores; manual aisle entry is
   guaranteed.
 - Target lookup or branch picker; existing Target rows are archived as custom.
-- Price extraction, pricing spike, or price comparison (Phases 11–12).
 - Reworking the Walmart WebView foreground-service design.
 - Backend, cloud sync, sharing, or authentication.
 - Google Maps Popular Times or busyness scraping.

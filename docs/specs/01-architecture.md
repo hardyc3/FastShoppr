@@ -207,7 +207,6 @@ Define repository interfaces in `domain/repository/`:
 - `AisleCacheRepository`
 - `SettingsRepository`
 - `CaptureRepository`
-- `PriceRepository` (post-MVP)
 
 Define integration interfaces:
 

@@ -23,7 +23,6 @@
 
 Not allowed:
 
-- Choosing the cheapest store or reasoning over prices.
 - Generating store aisles or inventing product locations.
 - Running in the background.
 - Sending data to a cloud model.

@@ -472,3 +472,11 @@ Format:
 - Rationale: The user verified that Target does not display a public aisle. Keeping it selectable would promise a lookup the retailer does not expose and would continue the human-verification problem seen in live probes. Removing the enum, rather than only hiding the picker, avoids stale capability branches, but existing data still needs a conversion path.
 - Consequences: The picker and seed set now contain Walmart, Home Depot, Lowe's, and Smiths; custom remains manual-only. Existing Target rows become archived custom stores and their `selected_store_TARGET` preference is simply ignored. Phase 10 manual matrix records Target as removed rather than a no-go pass. No new dependency or Kotlin code is added.
 
+## D-057 — Pricing phases removed; Aisle Sign Lookup becomes Phase 11
+
+- Date: 2026-11-26
+- Status: accepted (supersedes the pricing scope in D-012/D-021/D-022/D-046/D-047 and the phase numbering in D-050/D-052; amends `AGENTS.md`, `docs/specs/README.md`, all current spec documents, completed phase files that name the removed phases, and `docs/spikes/phase-00-report.md`)
+- Decision: **Phase 11 — Pricing Spike** and **Phase 12 — Price Comparison** are removed. **Phase 13 — Aisle Sign Lookup** is renumbered to **Phase 11 — Aisle Sign Lookup**, depends on Phase 10 by sequence only, and remains `not-started`. No pricing feature, price extraction, price cache, or price comparison is scheduled. Custom stores remain supported with manual aisle entry. Pricing observations from Phase 0 remain historical report content only.
+- Rationale: Product feedback (2026-11-26): "let's remove phases 11 and 12, I don't want to do that in this app." No price-tracking implementation exists in app code, so no code or schema needs reverting.
+- Consequences: Historical decision entries are preserved; this entry supersedes only their pricing scope and phase numbering. Forward-looking specs no longer describe `PriceQuote`, `PriceSource`, `PriceRepository`, price UI, price privacy entries, or pricing tests. `08-pricing-and-custom-stores.md` keeps its filename but now covers custom stores only. No Room migration, dependency, build command, or app-code change is authorized. Required commands in `AGENTS.md` are unchanged.
+

@@ -29,7 +29,6 @@ Must cover:
 - Date phrase parsing and nearest-list selection.
 - Overdue prompt options.
 - Schedule interval advancement.
-- Price comparison rules (post-MVP).
 - Review state: add, edit, delete, merge, split, select all.
 - Error mapping from HTTP/parser/AI failures.
 

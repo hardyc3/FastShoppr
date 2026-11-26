@@ -1,11 +1,11 @@
-# Phase 13 — Aisle Sign Lookup
+# Phase 11 — Aisle Sign Lookup
 
 - **Status:** `not-started`
-- **Depends on:** 12 (sequence only; no feature dependency on Phases 10–12)
+- **Depends on:** 10 (sequence only; no feature dependency on Phase 10 work)
 - **Owner:** unassigned
 - **Started:** —
 - **Completed:** —
-- **Last updated:** 2026-11-25
+- **Last updated:** 2026-11-26
 
 ## Goal
 
@@ -15,12 +15,12 @@ Let the user photograph in-store aisle signs, confirm OCR results, and use those
 
 Today aisle resolution uses manual entry, a 60-day `AisleCacheEntity`, and retailer lookups (Walmart WebView, Home Depot HTTP). Many stores print an aisle number with short category lists on physical aisle signs. Capturing those signs once per store gives a local, user-verified source of aisle knowledge.
 
-This phase follows Phase 12 by numbering but does **not** depend on Phase 10 brand coverage, Phase 11 pricing work, or Phase 12 price comparison. It must not be started until explicitly instructed.
+This phase follows Phase 10 by numbering but has no feature dependency on Phase 10 work. It must not be started until explicitly instructed.
 
 Spec precedence for this phase:
 
-- This file supersedes the `05-on-device-ai.md:24-31` prohibition on generating store aisles **only** for bounded inference over user-confirmed `AisleSign` rows. It does not permit free-form product-location invention or background AI. `05-on-device-ai.md` is intentionally left unchanged.
-- This file amends `10-security-privacy.md` with aisle-sign text, camera purpose, and retention rules; those edits are recorded in D-050 in `12-decisions.md`.
+- This file supersedes the `05-on-device-ai.md:24-31` prohibition on generating store aisles **only** for bounded inference over user-confirmed `AisleSign` rows. It does not permit free-form product-location invention or background AI. `05-on-device-ai.md` keeps its aisle-generation prohibition; D-057 removed only its pricing line.
+- This file amends `10-security-privacy.md` with aisle-sign text, camera purpose, and retention rules; those edits are recorded in D-050 and renumbered by D-057 in `12-decisions.md`.
 - Existing invariants remain: `rawText` is never overwritten, manual aisle/bay always wins, unknown aisles sort last, all timestamps are UTC epoch milliseconds, active queries exclude soft deletes, and soft-deleted data remains restorable for 30 days before purge.
 
 ## In scope
@@ -41,7 +41,7 @@ Spec precedence for this phase:
 ## Out of scope
 
 - No retailer website, WebView, parser, rate-limit, or cache behavior changes beyond lookup ordering.
-- No Phase 10 brand coverage, Phase 11 pricing spike, or Phase 12 price comparison work.
+- No Phase 10 brand coverage or pricing work.
 - No global category-to-aisle map, free-form AI product-location invention, cloud LLM, or paid API.
 - No geofence, location permission, ZIP, or coordinate use.
 - No image gallery, image history, thumbnail retention, or server upload for sign photos.
@@ -185,7 +185,7 @@ This phase cannot be marked `done` while any required test has failed, errored, 
 - Store archive semantics change → migration + restore/purge tests; `isArchived` retained for existing UI.
 - 30-day purge depends on existing cleanup scheduling → extend and test the same job; no separate scheduler.
 - No photo retained → disputing an OCR result means re-photographing; accepted tradeoff for privacy.
-- Historical note (superseded 2026-11-25): Phase 9A connected tests were once blocked by no device; they now pass 51/51 on `emulator-5554`. Phase 13 remains `not-started` until explicitly instructed.
+- Historical note (superseded 2026-11-25): Phase 9A connected tests were once blocked by no device; they now pass 51/51 on `emulator-5554`. Phase 11 remains `not-started` until explicitly instructed.
 
 ## Open questions
 

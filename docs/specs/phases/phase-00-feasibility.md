@@ -77,7 +77,7 @@ This phase de-risks Phases 5–11. It produces a report, sanitized fixtures, and
 
 - Observe whether local prices are visible on public pages for Walmart, Home Depot, and one other store.
 - Note whether store context and size/unit are visible.
-- Decide whether Phase 12 can automate extraction or must rely on manual prices for a store.
+- Record price-availability observations as historical Phase 0 findings; no pricing phase follows.
 
 ## Technical approach
 
@@ -107,7 +107,7 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 - [x] Gemini Nano availability, latency, quota, and fallback behavior are documented. *(Documented as unverifiable on available hardware; emulator has no AICore; no supported device. On-device check steps in `docs/spikes/phase-00-verification.md`.)*
 - [x] Date-phrase parsing rules and ambiguity handling are documented.
 - [x] Price availability is documented for at least three stores.
-- [x] The report contains explicit go/no-go decisions for Phases 5, 6, and 11.
+- [x] The report contains explicit go/no-go decisions for Phases 5 and 6.
 - [x] No personal data, cookies, tokens, or live credentials are committed.
 - [x] No production app code or Gradle project is required yet.
 
@@ -138,7 +138,7 @@ If the app module does not exist yet, place fixtures under `docs/spikes/fixtures
 - Home Depot may require cookies or a store-selection flow. Mitigation: document the flow and keep fixtures.
 - Gemini Nano may be unavailable on the test device. Mitigation: rules fallback; AI remains optional.
 - Camera handwriting accuracy may be poor. Mitigation: Digital Ink is the primary handwriting path; review is mandatory.
-- Price data may not be available. Mitigation: manual prices and a Phase 12 go/no-go.
+- Price data may not be available. No pricing phase follows; finding retained for historical reference.
 
 ## Open questions
 

@@ -170,30 +170,6 @@ Rules:
 - Cache is keyed by store and normalized query; store context matters.
 - Do not cache blocked or failed responses.
 
-### PriceQuote (post-MVP)
-
-```text
-PriceQuote
-  id: String (PK)
-  storeId: String (indexed)
-  itemId: String?              // null when the quote is for a search term
-  normalizedQuery: String
-  priceMinorUnits: Long
-  currencyCode: String
-  productName: String?
-  productUrl: String?
-  source: PriceSource
-  observedAt: Long
-  expiresAt: Long
-```
-
-Rules:
-
-- Prices are location- and time-sensitive.
-- Manual quotes always show their source and timestamp.
-- Do not claim a price is current if it is expired.
-- No price data leaves the device.
-
 ## Enums
 
 ```java
@@ -216,8 +192,6 @@ public enum ItemSource { TYPED, DIGITAL_INK, CAMERA_OCR, GALLERY_OCR }
 
 public enum IntervalUnit { DAYS, WEEKS }
 
-public enum PriceSource { STORE_PAGE, MANUAL, RECEIPT }
-
 public enum SortDirection { ASC, DESC }
 ```
 
@@ -239,7 +213,6 @@ ShoppingList     1 --- * ListItem
 Store            1 --- * ListItem
 ShoppingList     1 --- * CaptureSession
 Store            1 --- * AisleCache
-Store            1 --- * PriceQuote
 ```
 
 Deletion rules:
@@ -332,7 +305,6 @@ Add indexes for:
 - `CaptureSession.listId`
 - `CaptureSession.deletedAt`
 - `AisleCache.storeId + normalizedQuery`
-- `PriceQuote.storeId + normalizedQuery`
 
 ## Validation rules
 

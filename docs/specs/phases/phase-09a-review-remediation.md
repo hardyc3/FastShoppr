@@ -7,7 +7,7 @@
 - **Completed:** 2026-11-25
 - **Last updated:** 2026-11-25
 
-**Historical boundary note (2026-11-24):** At Phase 9A completion, Phase 10 was `not-started` and no phase was active. **Current status (2026-11-25):** Phase 10 — Store Integration Coverage is `done` after explicit implementation and verification (D-052/D-053). Phase 11 — Pricing Spike, Phase 12 — Price Comparison, and Phase 13 — Aisle Sign Lookup remain `not-started`.
+**Historical boundary note (2026-11-24):** At Phase 9A completion, Phase 10 was `not-started` and no phase was active. **Current status (2026-11-26):** Phase 10 — Store Integration Coverage is `done` after explicit implementation and verification (D-052/D-053). Phase 11 — Aisle Sign Lookup remains `not-started`; former pricing phases were removed (D-057).
 
 ## Goal
 
@@ -30,7 +30,7 @@ D-002:32 and `AGENTS.md` require the domain layer to be free of Android imports;
 ## Out of scope
 
 - Phase 10 work: no automated lookup or branch selection for Lowe's, Target, or Smiths; no new Phase 10 brand coverage or device matrix. Phase 10 remains `not-started` and must not be started.
-- Price comparison, price extraction, or any Phase 11/12 behavior.
+- Pricing or any removed pricing-phase behavior.
 - New dependencies (no new libraries, no Kotlin app source, no Compose, no coroutines/Flow/DataStore).
 - Room schema migration unless investigation proves one is necessary; if proven, it needs its own decision entry, exported schema, and migration test before implementation.
 - Changing the `rawText`, `displayName`, `normalizedText`, or soft-delete data invariants.

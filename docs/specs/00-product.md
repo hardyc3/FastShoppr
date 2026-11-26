@@ -46,17 +46,13 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 - Overdue-item prompt.
 - Local-only storage; no account required.
 
-## Post-MVP scope (Phases 10–12)
+## Post-MVP scope (Phases 10–11)
 
 - Verified search-first automated aisle lookup and branch selection for Home
   Depot, Lowe's, and Smiths, with a Walmart regression check (Phase 10). Target
   was removed because it exposes no public aisle (D-056).
 - User-added local stores.
-- Price collection from public store pages where available.
-- Manual price override.
-- Cheapest-store suggestions per item.
-- Price cache and refresh.
-- No price comparison in the MVP release.
+- Aisle sign lookup from user-confirmed in-store photos (Phase 11).
 
 ## Deferred scope
 
@@ -90,7 +86,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 | Item deferral by phrase | Yes | — | — |
 | Overdue prompt | Yes | — | — |
 | Custom local stores | — | Yes | — |
-| Price comparison | — | Yes | — |
+| Aisle sign lookup | — | Phase 11 | — |
 | Shared live editing | — | — | Yes |
 | Google Sign-In | — | — | Yes |
 | Google Maps busyness | — | — | Yes |
@@ -99,7 +95,7 @@ Shoppers often keep lists as notes, photos, or handwriting. A list tells you wha
 
 - FastShoppr is not a delivery or e-commerce app. It does not place orders.
 - It does not guarantee that an aisle is correct; store layouts change and matches can be wrong.
-- It does not replace the retailer's app for pricing, inventory, or checkout.
+- It does not replace the retailer's app for inventory or checkout.
 - It does not scrape private, authenticated, or bulk catalog data.
 - It does not upload list contents, images, or location to a server.
 

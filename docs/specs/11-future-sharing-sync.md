@@ -134,7 +134,7 @@ Future improvements:
 ## Privacy and security
 
 - Shared list contents leave the device only after the user opts in.
-- Do not share images, location, or price history by default.
+- Do not share images or location by default.
 - Provide a clear privacy explanation before enabling sync.
 - Allow the owner to delete the remote list and revoke access.
 - Follow `10-security-privacy.md`.
@@ -142,7 +142,7 @@ Future improvements:
 ## Open questions
 
 - Should shared lists support images or only text items?
-- Should viewers see aisle and price data?
+- Should viewers see aisle data?
 - How long should deleted lists be retained?
 - Should membership be per list or per household?
 - Do we need web access?

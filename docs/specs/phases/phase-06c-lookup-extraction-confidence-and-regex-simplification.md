@@ -26,7 +26,6 @@ Phase 6 extraction currently assigns fixed confidence values such as `0.9f`, `0.
 
 - New store integrations.
 - Background orchestration (Phase 7).
-- Price extraction (Phase 12).
 - Changing store access policy or retry policy.
 
 ## Requirements

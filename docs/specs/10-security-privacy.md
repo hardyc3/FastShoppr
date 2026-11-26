@@ -2,7 +2,7 @@
 
 ## Principles
 
-- Local-first: lists, images, aisle results, prices, and saved branch metadata stay on the device; no ZIP or coordinates are collected.
+- Local-first: lists, images, aisle results, and saved branch metadata stay on the device; no ZIP or coordinates are collected.
 - No backend, no analytics SDK, no cloud sync, and no account in the MVP.
 - Collect the minimum data needed for a feature.
 - Request permissions at the moment of use, not at launch.
@@ -20,7 +20,6 @@
 | Aisle sign text (OCR-confirmed, no photo) | Room (`aisle_signs`) | No |
 | Soft-deleted store and aisle-sign metadata | Room | No |
 | Saved branch (name and address) | SharedPreferences, one per brand | No |
-| Price quotes | Room | No |
 | Preferences | SharedPreferences | No |
 
 ## Threat model
@@ -111,9 +110,9 @@ Use a debug-only logger that is disabled in release builds.
 - Delete sign photo temp files after confirm or discard; keep only OCR-confirmed text in `aisle_signs`.
 - Keep aisle-sign rows until the user edits, replaces, or deletes them.
 - Keep soft-deleted stores and aisle-sign rows restorable for 30 days, then purge them; restoring a store restores its signs.
-- Delete expired aisle and price cache entries periodically.
+- Delete expired aisle cache entries periodically.
 - Keep lists until the user deletes or archives them.
-- Keep manual aisle and price entries until the user edits or deletes them.
+- Keep manual aisle entries until the user edits or deletes them.
 - "Delete all data" also clears aisle-sign rows and aisle-sign settings.
 - Provide a "Delete all data" action in settings.
 

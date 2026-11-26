@@ -5,7 +5,7 @@
 - **Last updated:** 2026-11-22
 
 Use this copy when FastShoppr is uploaded to an app store. Keep claims limited to
-MVP behavior. Do not claim store hours, visit suggestions, price comparison,
+MVP behavior. Do not claim store hours, visit suggestions, pricing features,
 sharing, sync, or an account.
 
 ## Listing fields
