@@ -53,6 +53,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 | 9A | Review remediation | `done` | 9 |
 | 10 | Store integration coverage | `in-progress` | 9 |
 | 11 | Aisle sign lookup | `not-started` | 10 (sequence only) |
+| 12 | Aisle cache & correction | `not-started` | 11 (sequence only) |
 
 ## Status values
 
@@ -66,6 +67,7 @@ A phase may not begin until the previous phase is reviewed and marked `done`. If
 - The app is Java 21 with XML Views and ViewBinding. Do not add Kotlin app source, the Kotlin Android plugin, or Jetpack Compose. Gradle Kotlin DSL is allowed for build scripts.
 - The current release is local-first. There is no backend, cloud sync, sharing, or authentication.
 - Store integration coverage for all supported brands is Phase 10. Pricing is not in scope; the former pricing phases were removed (D-057).
+- Aisle cache TTL is 90 days with rejected-result suppression (D-058). Manual aisle entry writes cache and is never suppressed.
 - Google Maps Popular Times and busyness scraping are not used. Store hours and visit planning were removed by D-045.
 - On-device AI is optional and always has a deterministic fallback.
 - Walmart WebView lookups require the foreground-service design.

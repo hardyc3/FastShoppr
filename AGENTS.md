@@ -15,7 +15,7 @@ Walmart keeps the foreground WebView aisle lookup. Home Depot, Lowe's, and Smith
 
 ## Current phase
 
-**Phase 10 — Store Integration Coverage** is `in-progress` for a documented follow-up (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Target has been removed after live verification showed no public aisle; Home Depot, Lowe's, and Smiths now use search-first aisle parsing with live verification still environment-dependent. Phase 9 — MVP Release and Phase 9A — Review Remediation are `done` and reviewed. Phase 11 — Aisle Sign Lookup remains `not-started`. Former pricing phases were removed by D-057; no pricing work is scheduled.
+**Phase 10 — Store Integration Coverage** is `in-progress` for a documented follow-up (see `docs/specs/phases/phase-10-store-integration-coverage.md`). Target has been removed after live verification showed no public aisle; Home Depot, Lowe's, and Smiths now use search-first aisle parsing with live verification still environment-dependent. Phase 9 — MVP Release and Phase 9A — Review Remediation are `done` and reviewed. Phase 11 — Aisle Sign Lookup and Phase 12 — Aisle Cache & Correction remain `not-started`. Former pricing phases were removed by D-057; no pricing work is scheduled. D-058 sets the aisle cache TTL to 90 days with rejected-result suppression.
 
 ## Read order
 
@@ -92,7 +92,7 @@ docs/specs/
   11-future-sharing-sync.md
   12-decisions.md
   templates/phase-template.md
-  phases/phase-00-feasibility.md ... phase-11-aisle-sign-lookup.md
+  phases/phase-00-feasibility.md ... phase-12-aisle-cache-and-correction.md
 ```
 
 The Android project is created in Phase 1. Use this package layout:

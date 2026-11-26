@@ -20,7 +20,7 @@ Manual aisle entry is always available and must never depend on a successful loo
 - Query only public retailer pages.
 - Set a descriptive user agent that identifies FastShoppr.
 - Limit to one request per second per store.
-- Cache successful results for 60 days.
+- Cache successful results for 90 days (D-058).
 - Do not retry aggressively after a block.
 - Stop on HTTP 403, 429, CAPTCHA, or bot challenge and show a clear message.
 - Never bypass authentication, paywalls, or access controls.
@@ -237,13 +237,16 @@ Rules:
 
 ## Caching
 
-- Cache key: `storeId + normalizedQuery`.
-- TTL: 60 days.
-- Cache successful `Found` results only.
+- Cache key: `storeId + normalizedQuery`. Later `displayName`, `normalizedText`, or store edits do not rekey existing rows.
+- TTL: 90 days (D-058). Every successful write resets the clock.
+- Cache successful `Found` results from WebView, HTTP, aisle-sign, and manual entry paths. Phase 12 supersedes Phase 11's "no cache write for sign results" test note.
 - Do not cache `Blocked`, `ParserFailed`, or transient `Error` results.
-- Allow the user to refresh a single item or an entire store section.
-- Show a subtle "cached" indicator when a result is older than the TTL but still usable offline.
-- Manual overrides take precedence over cache and are stored as manual results.
+- Manual overrides take precedence over sign, cache, and website results and are stored as `LookupSource.MANUAL` cache rows. Automatic and sign results never overwrite them.
+- Lookup precedence: manual → sign → cache → website. Rejected-result fingerprints gate sign, cache, and website results but never manual entry.
+- Rejection fingerprint: `storeId + normalizedQuery + aisle + bay + matchedProductName`. `source` is excluded because cache writes normalize it to `CACHE`.
+- Rejection rows live in `rejected_lookup_results`, separate from `aisle_cache`. Invalidating a cache row preserves suppression; rows expire 90 days after rejection, soft-delete with the store, and clear on "Delete all data".
+- Allow the user to refresh a single item or an entire store section. Refresh bypasses cache but still enforces rejection rows.
+- Show a subtle "cached" indicator when a result is older than the TTL but still usable offline. Expired cache does not bypass rejection gating.
 
 ## Retries and alternates
 
@@ -259,6 +262,7 @@ Rules:
 - `rawText` is never changed by a lookup.
 - `matchedProductName` is stored and shown below the written name.
 - The UI shows a "Not right?" action that opens candidate selection or manual aisle entry.
+- "Mark aisle incorrect" invalidates the shared cache row for the item's store and normalized name, records a rejected-result fingerprint, and optionally saves a manual correction.
 - Accepting a match updates only the aisle/bay/match fields, never `rawText`.
 
 ## Fixtures

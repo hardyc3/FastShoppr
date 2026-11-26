@@ -164,11 +164,31 @@ AisleCache
 
 Rules:
 
-- Default TTL is 60 days.
+- Default TTL is 90 days (D-058).
 - A cache hit does not require network access.
 - Expired entries may be used offline with an "outdated" flag.
-- Cache is keyed by store and normalized query; store context matters.
+- Cache is keyed by store and normalized query; store context matters. Later `displayName`, `normalizedText`, or store edits do not rekey existing rows.
 - Do not cache blocked or failed responses.
+- Manual aisle entry writes a cache row with `LookupSource.MANUAL` and is authoritative until invalidated or replaced by another manual write. Automatic and sign results never overwrite it.
+- A rejected-result fingerprint blocks sign, cache, and website results but never blocks manual entry.
+
+```text
+RejectedAisleResult
+  id: String (PK)
+  storeId: String (indexed)
+  normalizedQuery: String
+  fingerprint: String      // storeId + normalizedQuery + aisle + bay + matchedProductName
+  rejectedAt: Long
+  expiresAt: Long          // rejectedAt + 90 days
+  deletedAt: Long?
+```
+
+Rules:
+
+- Rejection rows are stored separately from `AisleCache` so invalidating a cache row preserves suppression.
+- Fingerprint excludes `source` because cache writes normalize source to `CACHE`; the same wrong result must be recognized from cache and from a fresh website result.
+- Unique on `(storeId, normalizedQuery, fingerprint)`. Keep at most five active rows per key, newest by `rejectedAt`.
+- Rejection rows expire 90 days after rejection, soft-delete with their store, restore with the store within 30 days, and are cleared by "Delete all data".
 
 ## Enums
 
@@ -213,6 +233,7 @@ ShoppingList     1 --- * ListItem
 Store            1 --- * ListItem
 ShoppingList     1 --- * CaptureSession
 Store            1 --- * AisleCache
+Store            1 --- * RejectedAisleResult
 ```
 
 Deletion rules:
@@ -220,7 +241,8 @@ Deletion rules:
 - Deletion is a soft delete with a cleanup after 30 days. The user can restore deleted lists during the 30-day window.
 - Deleting a list stamps the same `deletedAt` on the list, its items, and its capture sessions; restoring the list restores only records deleted with it.
 - Restoring a list fails if another active list already exists for that `shoppingDate`.
-- Deleting a store is blocked while items or cache entries reference it; archive instead. Archived stores are excluded from active store queries.
+- Deleting a store is blocked while items, cache entries, or rejection rows reference it; archive instead. Archived stores are excluded from active store queries.
+- Rejection rows expire 90 days after rejection, follow store soft-delete/restore/purge, and are cleared by "Delete all data".
 - Deleting an item soft-deletes the item but keeps its capture session until cleanup.
 
 ## Date semantics
@@ -290,6 +312,8 @@ Do not store list data in SharedPreferences.
 - Keep migrations append-only; do not edit shipped migrations.
 - Version 7 (`MIGRATION_6_7`) archives removed Target stores as custom stores and
   deletes their cached aisles so existing list items keep a valid store reference.
+- Version 8 (`MIGRATION_7_8`) adds `rejected_lookup_results` with its unique and
+  cleanup indexes (D-058).
 
 ## Indexing
 
@@ -305,6 +329,8 @@ Add indexes for:
 - `CaptureSession.listId`
 - `CaptureSession.deletedAt`
 - `AisleCache.storeId + normalizedQuery`
+- `RejectedAisleResult.storeId + normalizedQuery + fingerprint` (unique)
+- `RejectedAisleResult.storeId + normalizedQuery + expiresAt + deletedAt`
 
 ## Validation rules
 
